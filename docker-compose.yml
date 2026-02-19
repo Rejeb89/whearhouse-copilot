@@ -1,0 +1,38 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: warehouse
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - '5433:5432'
+
+  backend:
+    build: ./backend
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/warehouse
+      JWT_SECRET: supersecret_jwt_key
+      LOW_STOCK_THRESHOLD: '5'
+    ports:
+      - '4000:4000'
+    # No bind mount in Compose production run to avoid overwriting container node_modules
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - '3002:3000'
+    environment:
+      VITE_API_URL: http://localhost:4000
+    # No bind mount to keep built frontend files inside the image
+
+volumes:
+  db_data:

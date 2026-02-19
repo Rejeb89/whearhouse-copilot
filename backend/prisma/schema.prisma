@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  receptions Reception[]
+  distributions Distribution[]
+  logs      Log[]
+}
+
+model Item {
+  id                Int       @id @default(autoincrement())
+  name              String
+  sku               String    @unique
+  category          String?   // مثال: طب، مساعدات، معدات
+  description       String?
+  quantity          Int       @default(0)
+  lowStockThreshold Int?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  receptionItems    ReceptionItem[]
+  distributionItems DistributionItem[]
+}
+
+model Reception {
+  id                Int             @id @default(autoincrement())
+  reference         String          @unique
+  referenceNumber   String?
+  referenceDate     DateTime?
+  notes             String?
+  supplier          Entity?         @relation(fields: [supplierId], references: [id])
+  supplierId        Int?
+  user              User            @relation(fields: [userId], references: [id])
+  userId            Int
+  createdAt         DateTime        @default(now())
+  items             ReceptionItem[]
+}
+
+model ReceptionItem {
+  id          Int       @id @default(autoincrement())
+  reception   Reception @relation(fields: [receptionId], references: [id])
+  receptionId Int
+  item        Item      @relation(fields: [itemId], references: [id])
+  itemId      Int
+  quantity    Int
+}
+
+model Distribution {
+  id         Int               @id @default(autoincrement())
+  reference  String            @unique
+  user       User              @relation(fields: [userId], references: [id])
+  userId     Int
+  beneficiary Entity?           @relation(fields: [beneficiaryId], references: [id])
+  beneficiaryId Int?
+  createdAt  DateTime          @default(now())
+  items      DistributionItem[]
+}
+
+model DistributionItem {
+  id             Int          @id @default(autoincrement())
+  distribution   Distribution @relation(fields: [distributionId], references: [id])
+  distributionId Int
+  item           Item         @relation(fields: [itemId], references: [id])
+  itemId         Int
+  quantity       Int
+}
+
+model Log {
+  id        Int      @id @default(autoincrement())
+  action    String
+  table     String
+  recordId  Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    Int?
+  createdAt DateTime @default(now())
+}
+
+model Entity {
+  id              Int       @id @default(autoincrement())
+  name            String
+  type            EntityType
+  phone           String
+  unitHead        String?
+  unitHeadPhone   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  employees       Employee[]
+  distributions   Distribution[]
+  receptionsSent  Reception[]  // جهات مرسلة
+}
+
+model Employee {
+  id        Int     @id @default(autoincrement())
+  entity    Entity  @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId  Int
+  rank      String
+  name      String
+  surname   String
+  number    String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  STORE_KEEPER
+  USER
+}
+
+enum EntityType {
+  SUPPLIER
+  BENEFICIARY
+}
