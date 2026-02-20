@@ -10,7 +10,7 @@ router.use(authGuard)
 router.post('/', roleGuard(['ADMIN','STORE_KEEPER']), async (req, res) => {
   try {
     const userId = (req as any).user.id
-    const { reference, items, referenceNumber, referenceDate, supplierId, notes } = req.body
+    const { reference, items, referenceNumber, referenceType, referenceDate, supplierId, notes } = req.body
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'يرجى إضافة تجهيز واحد على الأقل' })
@@ -23,6 +23,7 @@ router.post('/', roleGuard(['ADMIN','STORE_KEEPER']), async (req, res) => {
 
     const reception = await receptionService.createReception(userId, finalReference, items, {
       referenceNumber,
+      referenceType,
       referenceDate: referenceDate ? new Date(referenceDate) : undefined,
       supplierId: supplierId ? parseInt(supplierId) : undefined,
       notes
@@ -32,6 +33,11 @@ router.post('/', roleGuard(['ADMIN','STORE_KEEPER']), async (req, res) => {
     console.error('Reception error:', err.message)
     res.status(400).json({ error: err.message })
   }
+})
+
+router.get('/reference-types', authGuard, async (req, res) => {
+  const types = await receptionService.getReferenceTypes()
+  res.json({ data: types })
 })
 
 router.get('/recent', authGuard, async (req, res) => {

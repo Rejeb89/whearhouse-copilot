@@ -17,6 +17,8 @@ model User {
   receptions Reception[]
   distributions Distribution[]
   logs      Log[]
+  createdReceipts  DeliveryReceipt[] @relation("ReceiptCreator")
+  approvedReceipts DeliveryReceipt[] @relation("ReceiptApprover")
 }
 
 model Item {
@@ -37,6 +39,7 @@ model Reception {
   id                Int             @id @default(autoincrement())
   reference         String          @unique
   referenceNumber   String?
+  referenceType     String?         // نوع المرجع: فاتورة، توصيل، إيصال، إلخ
   referenceDate     DateTime?
   notes             String?
   supplier          Entity?         @relation(fields: [supplierId], references: [id])
@@ -57,26 +60,34 @@ model ReceptionItem {
 }
 
 model Distribution {
-  id            Int               @id @default(autoincrement())
-  reference     String            @unique
-  notes         String?
-  user          User              @relation(fields: [userId], references: [id])
-  userId        Int
-  beneficiary   Entity?           @relation(fields: [beneficiaryId], references: [id])
-  beneficiaryId Int?
-  assignedTo    Employee?         @relation(fields: [assignedToId], references: [id])
-  assignedToId  Int?
-  createdAt     DateTime          @default(now())
-  items         DistributionItem[]
+  id              Int               @id @default(autoincrement())
+  reference       String            @unique
+  referenceType   String?
+  referenceNumber String?
+  referenceDate   DateTime?
+  deliveredByName String?
+  notes           String?
+  user            User              @relation(fields: [userId], references: [id])
+  userId          Int
+  beneficiary     Entity?           @relation(fields: [beneficiaryId], references: [id])
+  beneficiaryId   Int?
+  assignedTo      Employee?         @relation(fields: [assignedToId], references: [id])
+  assignedToId    Int?
+  createdAt       DateTime          @default(now())
+  items           DistributionItem[]
+  receipt         DeliveryReceipt?
 }
 
 model DistributionItem {
-  id             Int          @id @default(autoincrement())
-  distribution   Distribution @relation(fields: [distributionId], references: [id])
+  id             Int            @id @default(autoincrement())
+  distribution   Distribution   @relation(fields: [distributionId], references: [id])
   distributionId Int
-  item           Item         @relation(fields: [itemId], references: [id])
+  item           Item           @relation(fields: [itemId], references: [id])
   itemId         Int
   quantity       Int
+  serialNumber   String?
+  condition      ItemCondition  @default(NEW)
+  notes          String?
 }
 
 model Log {
@@ -128,6 +139,18 @@ enum EntityType {
   BENEFICIARY
 }
 
+enum ReceiptStatus {
+  DRAFT
+  APPROVED
+  CANCELLED
+}
+
+enum ItemCondition {
+  NEW
+  USED
+  NEEDS_MAINTENANCE
+}
+
 model AuditLog {
   id          Int      @id @default(autoincrement())
   action      String
@@ -138,4 +161,58 @@ model AuditLog {
   details     String?
   ip          String?
   createdAt   DateTime @default(now())
+}
+
+enum BudgetState {
+  active
+  expired
+  closed
+}
+
+model Budget {
+  id          Int           @id @default(autoincrement())
+  name        String
+  department  String
+  amount      Float
+  startDate   String
+  endDate     String
+  status      BudgetState   @default(active)
+  notes       String?
+  createdBy   String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  expenses    BudgetExpense[]
+}
+
+model BudgetExpense {
+  id            Int      @id @default(autoincrement())
+  budget        Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  budgetId      Int
+  date          String
+  supplier      String
+  invoiceNumber String?
+  amount        Float
+  notes         String?
+  attachments   String   @default("[]")
+  addedBy       String?
+  addedAt       DateTime @default(now())
+}
+
+model DeliveryReceipt {
+  id             Int           @id @default(autoincrement())
+  serialNumber   String        @unique
+  distribution   Distribution  @relation(fields: [distributionId], references: [id])
+  distributionId Int           @unique
+  status         ReceiptStatus @default(DRAFT)
+  issuedAt       DateTime      @default(now())
+  approvedAt     DateTime?
+  approvedById   Int?
+  approvedBy     User?         @relation("ReceiptApprover", fields: [approvedById], references: [id])
+  cancelledAt    DateTime?
+  cancelledById  Int?
+  cancelledByEmail String?
+  createdById    Int
+  createdBy      User          @relation("ReceiptCreator", fields: [createdById], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }

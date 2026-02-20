@@ -1,11 +1,11 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import { AuthContext } from '../context/AuthContext'
 import DistributeItemModal from '../components/DistributeItemModal'
 import { Truck, AlertCircle, User, Package, TrendingDown, TrendingUp, BarChart3, LogOut, X, Search, CalendarDays } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import LowStockChordChart from '../components/LowStockChordChart'
 
 const fetchItems = async () => (await client.get('/items')).data.data
 const fetchDistributions = async () => (await client.get('/distributions/recent')).data.data
@@ -39,17 +39,19 @@ export default function Dashboard() {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
 
   useEffect(() => {
-    const alerts = (items || []).filter((it: any) => (it.lowStockThreshold ?? 5) >= it.quantity)
+    const alerts = (items || []).filter((it: any) => (it.category || '').trim() !== 'اثاث قار' && (it.lowStockThreshold ?? 5) >= it.quantity)
     setLowAlerts(alerts)
   }, [items])
 
-  const loadCalendarEvents = () => {
-    if (typeof localStorage === 'undefined') {
+  const eventsStorageKey = user ? `calendar-events-${user.id}` : 'calendar-events-guest'
+
+  const loadCalendarEvents = useCallback(() => {
+    if (typeof window === 'undefined') {
       setCalendarEvents([])
       return
     }
 
-    const payload = localStorage.getItem('calendar-events')
+    const payload = localStorage.getItem(eventsStorageKey)
     if (!payload) {
       setCalendarEvents([])
       return
@@ -60,8 +62,9 @@ export default function Dashboard() {
       setCalendarEvents(parsed)
     } catch (err) {
       console.error('failed parsing calendar events', err)
+      setCalendarEvents([])
     }
-  }
+  }, [eventsStorageKey])
 
   useEffect(() => {
     loadCalendarEvents()
@@ -70,7 +73,11 @@ export default function Dashboard() {
       return
     }
 
-    const handleStorageChange = () => loadCalendarEvents()
+    const handleStorageChange = (event: StorageEvent | Event) => {
+      if ('key' in event && event.key && event.key !== eventsStorageKey) return
+      loadCalendarEvents()
+    }
+
     window.addEventListener('calendar-events-updated', handleStorageChange)
     window.addEventListener('storage', handleStorageChange)
 
@@ -78,7 +85,7 @@ export default function Dashboard() {
       window.removeEventListener('calendar-events-updated', handleStorageChange)
       window.removeEventListener('storage', handleStorageChange)
     }
-  }, [])
+  }, [eventsStorageKey, loadCalendarEvents])
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -123,12 +130,6 @@ export default function Dashboard() {
     navigate('/login')
   }
 
-  const chartData = lowAlerts.map((item: any) => ({
-    name: item.name,
-    quantity: item.quantity,
-    threshold: item.lowStockThreshold || 5
-  }))
-
   const upcomingEvents = useMemo(() => {
     const nowDate = new Date()
     return calendarEvents
@@ -139,9 +140,29 @@ export default function Dashboard() {
 
   return (
     <div dir="rtl" className="space-y-6">
-      <div className="flex flex-col gap-1 mb-6">
-        <p className="text-sm text-gray-500">مرحبا بك</p>
-        <h1 className="text-3xl font-bold text-gray-800">لوحة التحكم</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm text-gray-500">مرحبا بك</p>
+          <h1 className="text-3xl font-bold text-gray-800">لوحة التحكم</h1>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate('/receptions')}
+            className="flex items-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-all text-green-700 hover:shadow-sm"
+            title="الدخل اليومي"
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span className="text-xs font-medium">دخل</span>
+          </button>
+          <button
+            onClick={() => navigate('/distributions')}
+            className="flex items-center gap-2 px-3 py-2 bg-orange-50 hover:bg-orange-100 rounded-lg border border-orange-200 transition-all text-orange-700 hover:shadow-sm"
+            title="الخرج اليومي"
+          >
+            <TrendingDown className="w-4 h-4" />
+            <span className="text-xs font-medium">خرج</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
@@ -209,6 +230,8 @@ export default function Dashboard() {
         </div>
       </div>
 
+
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800">
@@ -216,17 +239,7 @@ export default function Dashboard() {
             الأصناف المنخفضة
           </h3>
           {lowAlerts.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="quantity" fill="#ef4444" name="الكمية الحالية" />
-                <Bar dataKey="threshold" fill="#fbbf24" name="حد التنبيه" />
-              </BarChart>
-            </ResponsiveContainer>
+            <LowStockChordChart items={lowAlerts} width={460} height={400} />
           ) : (
             <div className="text-center py-12 text-gray-500">
               <AlertCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -238,21 +251,53 @@ export default function Dashboard() {
         <section className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800">
             <TrendingDown className="w-5 h-5 text-green-600" />
-            التوزيعات الأخيرة
+            عمليات التسليم الأخيرة
           </h3>
           {distributions.length > 0 ? (
-            <ul className="space-y-3">
-              {distributions.map((d: any) => (
-                <li key={d.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                  <span className="font-semibold text-gray-700">{d.reference}</span>
-                  <span className="text-sm text-gray-500">{new Date(d.createdAt).toLocaleString('en-GB')}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-right border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-gray-200 bg-gray-50">
+                    <th className="px-4 py-3 font-semibold text-gray-700">اسم التجهيز</th>
+                    <th className="px-4 py-3 font-semibold text-gray-700">الوحدة المنتفعة</th>
+                    <th className="px-4 py-3 font-semibold text-gray-700">الكمية الموزعة</th>
+                    <th className="px-4 py-3 font-semibold text-gray-700">الكمية المتبقية</th>
+                    <th className="px-4 py-3 font-semibold text-gray-700">تاريخ التسليم</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {distributions.flatMap((d: any) =>
+                    d.items.map((di: any, idx: number) => (
+                      <tr key={`${d.id}-${idx}`} className="border-b border-gray-100 hover:bg-blue-50 transition">
+                        <td className="px-4 py-3 font-medium text-gray-800">{di.item.name}</td>
+                        <td className="px-4 py-3 text-gray-700">{d.beneficiary?.name || 'غير محدد'}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-block px-2 py-1 bg-orange-100 text-orange-700 rounded font-semibold">
+                            {di.quantity}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`inline-block px-2 py-1 rounded font-semibold ${
+                            di.item.quantity === 0 
+                              ? 'bg-red-100 text-red-700' 
+                              : di.item.quantity < (di.item.lowStockThreshold || 5)
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-green-100 text-green-700'
+                          }`}>
+                            {di.item.quantity}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{new Date(d.createdAt).toLocaleString('ar-TN', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
               <Truck className="w-10 h-10 mx-auto mb-2 opacity-50" />
-              <p>لا توجد توزيعات حديثة</p>
+              <p>لا توجد عملية تسليم حديثة</p>
             </div>
           )}
         </section>

@@ -16,7 +16,7 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body
     const { user, token } = await login(email, password)
-    res.json({ data: { user: { id: user.id, email: user.email, role: user.role }, token } })
+    res.json({ data: { user: { id: user.id, email: user.email, role: user.role, name: user.name }, token } })
   } catch (err: any) {
     res.status(401).json({ error: err.message })
   }

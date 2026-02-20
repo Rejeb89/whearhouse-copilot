@@ -12,6 +12,9 @@ import entitiesRoutes from './routes/entities'
 import employeesRoutes from './routes/employees'
 import auditRoutes from './routes/audit'
 import dataRoutes from './routes/data'
+import searchRoutes from './routes/search'
+import budgetsRoutes from './routes/budgets'
+import receiptsRoutes from './routes/receipts'
 import prisma from './prisma'
 
 const app = express()
@@ -29,6 +32,9 @@ app.use('/api/entities', entitiesRoutes)
 app.use('/api/employees', employeesRoutes)
 app.use('/api/audit', auditRoutes)
 app.use('/api/data', dataRoutes)
+app.use('/api/search', searchRoutes)
+app.use('/api/budgets', budgetsRoutes)
+app.use('/api/receipts', receiptsRoutes)
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
 

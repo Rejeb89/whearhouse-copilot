@@ -6,6 +6,7 @@ COPY package.json package-lock.json* ./
 RUN npm install
 RUN npm rebuild bcrypt --build-from-source || true
 COPY . .
+RUN npx prisma generate
 RUN npm run build
 
 FROM node:18-bullseye-slim

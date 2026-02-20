@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { createLog } from './logService'
 import { adjustStock } from './itemService'
 
-export const createReception = async (userId: number, reference: string, items: { itemId?: number; itemName?: string; category?: string; quantity: number; lowStockThreshold?: number }[], data?: { referenceNumber?: string; referenceDate?: Date; supplierId?: number; notes?: string }) => {
+export const createReception = async (userId: number, reference: string, items: { itemId?: number; itemName?: string; category?: string; quantity: number; lowStockThreshold?: number }[], data?: { referenceNumber?: string; referenceType?: string; referenceDate?: Date; supplierId?: number; notes?: string }) => {
   try {
     return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const reception = await tx.reception.create({ 
@@ -11,6 +11,7 @@ export const createReception = async (userId: number, reference: string, items: 
           reference, 
           userId,
           referenceNumber: data?.referenceNumber,
+          referenceType: data?.referenceType,
           referenceDate: data?.referenceDate,
           supplierId: data?.supplierId,
           notes: data?.notes
@@ -62,6 +63,16 @@ export const createReception = async (userId: number, reference: string, items: 
     }
     throw error
   }
+}
+
+export const getReferenceTypes = async () => {
+  const types = await prisma.reception.findMany({
+    where: { referenceType: { not: null } },
+    select: { referenceType: true },
+    distinct: ['referenceType'],
+    orderBy: { referenceType: 'asc' }
+  })
+  return types.map((t: any) => t.referenceType).filter(Boolean)
 }
 
 export const recentReceptions = (limit = 10) => prisma.reception.findMany({ orderBy: { createdAt: 'desc' }, take: limit, include: { items: { include: { item: true } }, supplier: true } })

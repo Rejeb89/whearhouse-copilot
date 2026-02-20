@@ -1,7 +1,7 @@
 import React, { useContext } from 'react'
 import { Link } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
-import { LayoutDashboard, Package, TrendingUp, TrendingDown, Building2, CalendarDays, FileText, Settings } from 'lucide-react'
+import { LayoutDashboard, Package, TrendingUp, TrendingDown, Building2, CalendarDays, FileText, Settings, Wallet } from 'lucide-react'
 
 const Sidebar: React.FC = () => {
   const { user } = useContext(AuthContext)
@@ -29,13 +29,13 @@ const Sidebar: React.FC = () => {
           <li>
             <Link to="/receptions" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
               <TrendingUp className="w-4 h-4" />
-              الاستقبالات
+              الدخل اليومي
             </Link>
           </li>
           <li>
             <Link to="/distributions" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
               <TrendingDown className="w-4 h-4" />
-              التوزيعات
+              الخرج اليومي
             </Link>
           </li>
           <li>
@@ -52,6 +52,12 @@ const Sidebar: React.FC = () => {
           </li>
           {user?.role === 'ADMIN' && (
             <>
+              <li>
+                <Link to="/budgets" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
+                  <Wallet className="w-4 h-4" />
+                  الاعتمادات المالية
+                </Link>
+              </li>
               <li>
                 <Link to="/logs" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
                   <FileText className="w-4 h-4" />

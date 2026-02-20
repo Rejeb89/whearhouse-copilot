@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import {
@@ -10,6 +10,7 @@ import {
   Pencil,
   Trash2
 } from 'lucide-react'
+import { AuthContext } from '../context/AuthContext'
 
 const fetchItems = async () => (await client.get('/items')).data.data || []
 
@@ -37,6 +38,7 @@ const formatTime = (date: Date) => date.toTimeString().slice(0, 5)
 const getEventDateTime = (event: CalendarEvent) => new Date(`${event.date}T${event.time}`)
 
 export default function Calendar() {
+  const { user } = useContext(AuthContext)
   const { data: items = [] } = useQuery(['items'], fetchItems)
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -57,19 +59,41 @@ export default function Calendar() {
   const notifiedRef = useRef<string[]>([])
   const [errorMessage, setErrorMessage] = useState('')
 
-  useEffect(() => {
-    const payload = localStorage.getItem('calendar-events')
-    if (payload) {
-      setEvents(JSON.parse(payload))
-    }
-  }, [])
+  const eventsStorageKey = user ? `calendar-events-${user.id}` : 'calendar-events-guest'
+  const hasLoadedRef = useRef(false)
 
+  // Load events from user-scoped storage key on mount or when user changes
   useEffect(() => {
-    localStorage.setItem('calendar-events', JSON.stringify(events))
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('calendar-events-updated'))
+    hasLoadedRef.current = false
+    if (typeof window === 'undefined') {
+      setEvents([])
+      hasLoadedRef.current = true
+      return
     }
-  }, [events])
+
+    const payload = localStorage.getItem(eventsStorageKey)
+    if (!payload) {
+      setEvents([])
+      hasLoadedRef.current = true
+      return
+    }
+
+    try {
+      setEvents(JSON.parse(payload))
+    } catch (err) {
+      console.error('failed parsing calendar events', err)
+      setEvents([])
+    }
+    hasLoadedRef.current = true
+  }, [eventsStorageKey])
+
+  // Persist events only after initial load to avoid overwriting with empty array
+  useEffect(() => {
+    if (!hasLoadedRef.current) return
+    if (typeof window === 'undefined') return
+    localStorage.setItem(eventsStorageKey, JSON.stringify(events))
+    window.dispatchEvent(new Event('calendar-events-updated'))
+  }, [events, eventsStorageKey])
 
   useEffect(() => {
     const interval = setInterval(() => {

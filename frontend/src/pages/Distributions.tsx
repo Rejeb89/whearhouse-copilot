@@ -1,7 +1,8 @@
-﻿import React, { useMemo, useState } from 'react'
+﻿import React, { useMemo, useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
-import { Check, Loader2, Plus, Search, TrendingDown, UserCheck } from 'lucide-react'
+import { Check, Loader2, Plus, Search, UserCheck } from 'lucide-react'
 
 interface Item {
   id: number
@@ -36,11 +37,21 @@ interface NewEmployeeState {
 }
 
 export default function Distributions() {
+  const location = useLocation()
+
   // Item
   const [itemSearch, setItemSearch] = useState('')
   const [selectedItem, setSelectedItem] = useState<Item | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [notes, setNotes] = useState('')
+
+  useEffect(() => {
+    const pre = (location.state as any)?.preselectedItem
+    if (pre) {
+      setSelectedItem(pre)
+      setItemSearch(pre.name)
+    }
+  }, [])
 
   // Beneficiary
   const [beneficiarySearch, setBeneficiarySearch] = useState('')
@@ -192,16 +203,15 @@ export default function Distributions() {
 
   return (
     <div dir="rtl" className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-600">تسجيل توزيع تجهيزات من المخزون</p>
-          <h1 className="text-2xl font-semibold">التوزيعات</h1>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-gray-700">
-          <TrendingDown className="w-5 h-5 text-green-600" />
-          <span>توزيع تجهيز يخصم الكمية من المخزون مباشرة</span>
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold">خرج يومي</h1>
+        <p className="text-sm text-gray-600">تسجيل توزيع تجهيزات من المخزون</p>
       </div>
+
+      {/* <div className="flex items-center gap-3 text-sm text-gray-700">
+        <TrendingDown className="w-5 h-5 text-green-600" />
+        <span>توزيع تجهيز يخصم الكمية من المخزون مباشرة</span>
+      </div> */}
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* ===== Main form (left 2/3) ===== */}

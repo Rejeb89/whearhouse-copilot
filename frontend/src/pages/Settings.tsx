@@ -583,6 +583,21 @@ function AuditTab() {
 
 // ─── Data Management Tab ─────────────────────────────────────────────────────
 
+// Arabic labels for each data table key
+const TABLE_LABELS: Record<string, { label: string; icon: string }> = {
+  users:             { label: 'المستخدمون',          icon: '👤' },
+  items:             { label: 'الأصناف',              icon: '📦' },
+  entities:          { label: 'الجهات',               icon: '🏢' },
+  employees:         { label: 'الموظفون',             icon: '👷' },
+  receptions:        { label: 'الاستقبالات',          icon: '📥' },
+  receptionItems:    { label: 'تفاصيل الاستقبال',     icon: '📋' },
+  distributions:     { label: 'عمليات التسليم',       icon: '📤' },
+  distributionItems: { label: 'تفاصيل التسليم',       icon: '📄' },
+  logs:              { label: 'السجلات',              icon: '🗂️' },
+  budgets:           { label: 'الاعتمادات المالية',   icon: '💰' },
+  budgetExpenses:    { label: 'مصاريف الاعتمادات',    icon: '🧾' },
+}
+
 function DataTab() {
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery(['dbStats'], fetchDbStats, { refetchInterval: 30000 })
   const [exportLoading, setExportLoading] = useState(false)
@@ -591,12 +606,13 @@ function DataTab() {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importPreview, setImportPreview] = useState<any | null>(null)
   const [importError, setImportError] = useState('')
+  const [importResult, setImportResult] = useState<Record<string, number> | null>(null)
   const [toast, setToast] = useState<{ type: 'error' | 'success'; message: string }>({ type: 'success', message: '' })
   const [confirmReplace, setConfirmReplace] = useState(false)
 
   const showToast = (type: 'error' | 'success', message: string) => {
     setToast({ type, message })
-    setTimeout(() => setToast({ type: 'success', message: '' }), 4000)
+    setTimeout(() => setToast({ type: 'success', message: '' }), 5000)
   }
 
   // ── Export ────────────────────────────────────────────────────────────────
@@ -604,7 +620,8 @@ function DataTab() {
     setExportLoading(true)
     try {
       const res = await client.get('/data/export')
-      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' })
+      const json = JSON.stringify(res.data, null, 2)
+      const blob = new Blob([json], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -613,7 +630,7 @@ function DataTab() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-      showToast('success', 'تم تصدير البيانات بنجاح — تحقق من المجلد الافتراضي للتنزيلات')
+      showToast('success', 'تم تنزيل نسخة احتياطية بنجاح ✓')
     } catch (err: any) {
       showToast('error', err?.response?.data?.error ?? 'فشل التصدير')
     } finally {
@@ -627,21 +644,32 @@ function DataTab() {
     setImportFile(file)
     setImportPreview(null)
     setImportError('')
+    setImportResult(null)
+    setConfirmReplace(false)
     if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
       try {
         const parsed = JSON.parse(ev.target?.result as string)
-        if (!parsed?.data) {
-          setImportError('الملف لا يحتوي على بيانات صالحة (يجب أن يحتوي على حقل data)')
+        if (!parsed?.data || typeof parsed.data !== 'object') {
+          setImportError('الملف لا يحتوي على بيانات صالحة — تأكد أنه ملف نسخة احتياطية صحيح')
           return
         }
         setImportPreview(parsed)
       } catch {
-        setImportError('الملف ليس JSON صالحاً')
+        setImportError('الملف ليس JSON صالحاً أو تالف')
       }
     }
     reader.readAsText(file)
+  }
+
+  // ── Reset file ────────────────────────────────────────────────────────────
+  const resetImport = () => {
+    setImportFile(null)
+    setImportPreview(null)
+    setImportError('')
+    setImportResult(null)
+    setConfirmReplace(false)
   }
 
   // ── Import ────────────────────────────────────────────────────────────────
@@ -653,34 +681,34 @@ function DataTab() {
     }
     setImportLoading(true)
     setImportError('')
+    setImportResult(null)
     try {
       const res = await client.post('/data/import', { data: importPreview.data, mode: importMode })
-      const { stats } = res.data.data
-      const summary = Object.entries(stats)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join('، ')
-      showToast('success', `تم الاستيراد بنجاح — ${summary}`)
-      setImportFile(null)
-      setImportPreview(null)
-      setConfirmReplace(false)
+      const { stats: importStats } = res.data.data
+      setImportResult(importStats)
+      const total = Object.values(importStats as Record<string, number>).reduce((a, b) => a + b, 0)
+      showToast('success', `تم الاستيراد بنجاح — ${total} سجل إجمالاً ✓`)
+      resetImport()
       refetchStats()
     } catch (err: any) {
-      setImportError(err?.response?.data?.error ?? 'فشل الاستيراد')
+      setImportError(err?.response?.data?.error ?? 'فشل الاستيراد — تحقق من الملف وحاول مجدداً')
     } finally {
       setImportLoading(false)
     }
   }
 
-  const statRows = stats
-    ? [
-        { label: 'الأصناف', key: 'items', icon: '📦' },
-        { label: 'المستخدمون', key: 'users', icon: '👤' },
-        { label: 'الجهات', key: 'entities', icon: '🏢' },
-        { label: 'الموظفون', key: 'employees', icon: '👷' },
-        { label: 'الاستقبالات', key: 'receptions', icon: '📥' },
-        { label: 'التوزيعات', key: 'distributions', icon: '📤' },
-      ]
-    : []
+  const statRows = [
+    { label: 'الأصناف',              key: 'items',             icon: '📦', color: 'bg-blue-50   border-blue-100  text-blue-700'  },
+    { label: 'المستخدمون',           key: 'users',             icon: '👤', color: 'bg-purple-50 border-purple-100 text-purple-700'},
+    { label: 'الجهات',               key: 'entities',          icon: '🏢', color: 'bg-orange-50 border-orange-100 text-orange-700'},
+    { label: 'الموظفون',             key: 'employees',         icon: '👷', color: 'bg-teal-50   border-teal-100  text-teal-700'  },
+    { label: 'الاستقبالات',          key: 'receptions',        icon: '📥', color: 'bg-green-50  border-green-100 text-green-700' },
+    { label: 'عمليات التسليم',       key: 'distributions',     icon: '📤', color: 'bg-red-50    border-red-100   text-red-700'   },
+    { label: 'تفاصيل الاستقبال',     key: 'receptionItems',    icon: '📋', color: 'bg-slate-50 border-slate-100 text-slate-700'},
+    { label: 'تفاصيل التسليم',       key: 'distributionItems', icon: '📄', color: 'bg-slate-50 border-slate-100 text-slate-700'},
+    { label: 'الاعتمادات المالية',   key: 'budgets',           icon: '💰', color: 'bg-yellow-50 border-yellow-100 text-yellow-700'},
+    { label: 'مصاريف الاعتمادات',   key: 'budgetExpenses',    icon: '🧾', color: 'bg-amber-50  border-amber-100  text-amber-700' },
+  ]
 
   return (
     <div className="space-y-6">
@@ -688,7 +716,7 @@ function DataTab() {
         <Alert type={toast.type} message={toast.message} onDismiss={() => setToast({ type: 'success', message: '' })} />
       )}
 
-      {/* Database stats */}
+      {/* ── Database Stats ── */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-slate-800 flex items-center gap-2">
@@ -697,66 +725,79 @@ function DataTab() {
           </h2>
           <button
             onClick={() => refetchStats()}
-            className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+            className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+            title="تحديث"
           >
             <RefreshCw className={`w-4 h-4 ${statsLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {statRows.map(({ label, key, icon }) => (
-            <div key={key} className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {statRows.map(({ label, key, icon, color }) => (
+            <div key={key} className={`border rounded-xl p-4 text-center ${color}`}>
               <div className="text-2xl mb-1">{icon}</div>
-              <div className="text-2xl font-bold text-slate-800">
-                {statsLoading ? '…' : (stats?.[key as keyof typeof stats] ?? 0)}
+              <div className="text-2xl font-bold">
+                {statsLoading ? '…' : ((stats as any)?.[key] ?? 0)}
               </div>
-              <div className="text-xs text-slate-500 mt-0.5">{label}</div>
+              <div className="text-xs mt-0.5 opacity-80">{label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Export */}
+      {/* ── Export ── */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-        <h2 className="text-base font-semibold text-slate-800 flex items-center gap-2 mb-1">
-          <Download className="w-5 h-5 text-green-600" />
-          تصدير البيانات
-        </h2>
-        <p className="text-sm text-slate-500 mb-5">
-          تنزيل نسخة احتياطية كاملة من جميع بيانات التطبيق (أصناف، مستخدمون، جهات، موظفون، استقبالات، توزيعات، سجلات) بصيغة JSON.
-        </p>
-        <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-100 rounded-xl mb-5">
-          <Info className="w-5 h-5 text-green-600 shrink-0" />
-          <p className="text-sm text-green-700">احتفظ بالنسخة الاحتياطية في مكان آمن. لا تتضمن كلمات المرور للمستخدمين.</p>
+        <div className="flex items-start gap-3 mb-4">
+          <div className="p-2 bg-green-100 rounded-lg shrink-0">
+            <Download className="w-5 h-5 text-green-700" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-slate-800">تصدير نسخة احتياطية</h2>
+            <p className="text-sm text-slate-500 mt-0.5">
+              تنزيل كامل البيانات (أصناف، مستخدمون، جهات، موظفون، استقبالات، توزيعات، سجلات) بصيغة JSON
+            </p>
+          </div>
         </div>
+
+        <div className="flex items-center gap-3 p-3.5 bg-amber-50 border border-amber-200 rounded-lg mb-5 text-sm text-amber-700">
+          <Info className="w-4 h-4 shrink-0" />
+          <span>كلمات المرور غير مُصدَّرة لأسباب أمنية. عند الاستيراد ستكون كلمة المرور الافتراضية: <strong dir="ltr">admin123</strong></span>
+        </div>
+
         <button
           onClick={handleExport}
           disabled={exportLoading}
-          className="flex items-center gap-2 bg-green-600 text-white rounded-lg px-5 py-2.5 text-sm font-medium hover:bg-green-700 active:bg-green-800 disabled:opacity-60 transition-colors shadow-sm"
+          className="flex items-center gap-2 bg-green-600 text-white rounded-lg px-5 py-2.5 text-sm font-semibold hover:bg-green-700 active:bg-green-800 disabled:opacity-60 transition-colors shadow-sm"
         >
-          <Download className="w-4 h-4" />
-          {exportLoading ? 'جارٍ التصدير...' : 'تنزيل نسخة احتياطية (JSON)'}
+          {exportLoading ? (
+            <><RefreshCw className="w-4 h-4 animate-spin" /> جارٍ التصدير...</>
+          ) : (
+            <><Download className="w-4 h-4" /> تنزيل نسخة احتياطية (JSON)</>
+          )}
         </button>
       </div>
 
-      {/* Import */}
+      {/* ── Import ── */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-        <h2 className="text-base font-semibold text-slate-800 flex items-center gap-2 mb-1">
-          <Upload className="w-5 h-5 text-blue-600" />
-          استيراد البيانات
-        </h2>
-        <p className="text-sm text-slate-500 mb-5">
-          استيراد بيانات من ملف JSON تم تصديره مسبقاً. يمكنك الدمج مع البيانات الحالية أو الاستبدال الكامل.
-        </p>
+        <div className="flex items-start gap-3 mb-5">
+          <div className="p-2 bg-blue-100 rounded-lg shrink-0">
+            <Upload className="w-5 h-5 text-blue-700" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-slate-800">استيراد نسخة احتياطية</h2>
+            <p className="text-sm text-slate-500 mt-0.5">
+              استيراد بيانات من ملف JSON تم تنزيله مسبقاً. يتم الحفاظ على جميع المعرّفات الأصلية لضمان سلامة الروابط.
+            </p>
+          </div>
+        </div>
 
         {/* Mode selector */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+          {/* Merge */}
           <button
             type="button"
             onClick={() => { setImportMode('merge'); setConfirmReplace(false) }}
             className={`flex items-start gap-3 p-4 rounded-xl border-2 text-right transition-colors ${
-              importMode === 'merge'
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-slate-200 hover:border-slate-300 bg-white'
+              importMode === 'merge' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300 bg-white'
             }`}
           >
             <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
@@ -765,17 +806,19 @@ function DataTab() {
               {importMode === 'merge' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
             </div>
             <div>
-              <p className={`text-sm font-medium ${importMode === 'merge' ? 'text-blue-700' : 'text-slate-700'}`}>دمج (موصى به)</p>
-              <p className="text-xs text-slate-500 mt-0.5">إضافة وتحديث البيانات دون حذف الموجود</p>
+              <p className={`text-sm font-semibold ${importMode === 'merge' ? 'text-blue-700' : 'text-slate-700'}`}>
+                دمج <span className="font-normal text-xs opacity-70">(موصى به)</span>
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">إضافة وتحديث البيانات دون حذف الموجود حالياً</p>
             </div>
           </button>
+
+          {/* Replace */}
           <button
             type="button"
             onClick={() => { setImportMode('replace'); setConfirmReplace(false) }}
             className={`flex items-start gap-3 p-4 rounded-xl border-2 text-right transition-colors ${
-              importMode === 'replace'
-                ? 'border-red-500 bg-red-50'
-                : 'border-slate-200 hover:border-slate-300 bg-white'
+              importMode === 'replace' ? 'border-red-500 bg-red-50' : 'border-slate-200 hover:border-slate-300 bg-white'
             }`}
           >
             <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
@@ -784,29 +827,43 @@ function DataTab() {
               {importMode === 'replace' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
             </div>
             <div>
-              <p className={`text-sm font-medium ${importMode === 'replace' ? 'text-red-700' : 'text-slate-700'}`}>استبدال كامل</p>
-              <p className="text-xs text-slate-500 mt-0.5">حذف جميع البيانات وإعادة الاستيراد ⚠ لا يمكن التراجع</p>
+              <p className={`text-sm font-semibold ${importMode === 'replace' ? 'text-red-700' : 'text-slate-700'}`}>
+                استبدال كامل <span className="text-xs">⚠</span>
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">حذف جميع البيانات الحالية ثم إعادة الاستيراد من الملف</p>
             </div>
           </button>
         </div>
 
-        {/* File drop zone */}
-        <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-slate-300 rounded-xl p-8 cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-colors mb-4">
-          <FileJson className="w-10 h-10 text-slate-300" />
+        {/* File picker */}
+        <label className="relative flex flex-col items-center justify-center gap-3 border-2 border-dashed border-slate-300 rounded-xl p-8 cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-colors mb-4 group">
+          <FileJson className="w-10 h-10 text-slate-300 group-hover:text-blue-400 transition-colors" />
           <div className="text-center">
             <p className="text-sm font-medium text-slate-700">
-              {importFile ? importFile.name : 'اسحب ملف JSON هنا أو انقر للاختيار'}
+              {importFile ? (
+                <span className="text-blue-600 flex items-center gap-1.5 justify-center">
+                  <CheckCircle className="w-4 h-4" />
+                  {importFile.name}
+                </span>
+              ) : (
+                'اسحب ملف JSON هنا أو انقر للاختيار'
+              )}
             </p>
-            <p className="text-xs text-slate-400 mt-1">ملفات .json فقط</p>
+            <p className="text-xs text-slate-400 mt-1">ملفات .json فقط — نسخ احتياطية هذا التطبيق</p>
           </div>
-          <input
-            type="file"
-            accept=".json,application/json"
-            className="hidden"
-            onChange={handleFileChange}
-          />
+          <input type="file" accept=".json,application/json" className="hidden" onChange={handleFileChange} />
+          {importFile && (
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); resetImport() }}
+              className="absolute top-3 left-3 p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </label>
 
+        {/* Error */}
         {importError && (
           <Alert type="error" message={importError} onDismiss={() => setImportError('')} />
         )}
@@ -817,49 +874,91 @@ function DataTab() {
             <p className="text-xs font-semibold text-slate-600 mb-3 flex items-center gap-1.5">
               <CheckCircle className="w-4 h-4 text-green-500" />
               معاينة الملف
+              {importPreview.exportedAt && (
+                <span className="font-normal text-slate-400 mr-auto">
+                  تاريخ التصدير: {new Date(importPreview.exportedAt).toLocaleString('en-GB')}
+                </span>
+              )}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(importPreview.data as Record<string, any[]>).map(([key, arr]) => (
-                <div key={key} className="bg-white border border-slate-100 rounded-lg px-3 py-2 text-xs">
-                  <span className="font-medium text-slate-700">{key}</span>
-                  <span className="text-slate-400 mr-2">{Array.isArray(arr) ? arr.length : '—'} سجل</span>
-                </div>
-              ))}
+              {Object.entries(importPreview.data as Record<string, any[]>).map(([key, arr]) => {
+                const meta = TABLE_LABELS[key]
+                return (
+                  <div key={key} className="bg-white border border-slate-100 rounded-lg px-3 py-2.5 flex items-center gap-2">
+                    <span className="text-xl">{meta?.icon ?? '📁'}</span>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-700">{meta?.label ?? key}</p>
+                      <p className="text-xs text-slate-400">{Array.isArray(arr) ? arr.length : '—'} سجل</p>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-            {importPreview.exportedAt && (
-              <p className="text-xs text-slate-400 mt-3">
-                تاريخ التصدير: {new Date(importPreview.exportedAt).toLocaleString('en-GB')}
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+              <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700">
+                ستكون كلمة مرور جميع المستخدمين المستوردين: <strong dir="ltr">admin123</strong> — يُنصح بتغييرها بعد الاستيراد
               </p>
-            )}
-          </div>
-        )}
-
-        {/* Replace confirmation banner */}
-        {confirmReplace && importMode === 'replace' && (
-          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl mb-4">
-            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-red-700">تأكيد الاستبدال الكامل</p>
-              <p className="text-xs text-red-600 mt-0.5">سيتم حذف جميع الأصناف والجهات الحالية واستبدالها بالبيانات الجديدة. هذا الإجراء لا يمكن التراجع عنه.</p>
             </div>
           </div>
         )}
 
+        {/* Replace confirmation warning */}
+        {confirmReplace && importMode === 'replace' && (
+          <div className="flex items-start gap-3 p-4 bg-red-50 border-2 border-red-300 rounded-xl mb-4">
+            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-red-700">تحذير: سيتم حذف جميع البيانات الحالية!</p>
+              <p className="text-xs text-red-600 mt-1">
+                سيُحذف كل شيء (أصناف، جهات، موظفون، استقبالات، توزيعات، سجلات، مستخدمون) واستبداله بالبيانات الجديدة.
+                <strong> لا يمكن التراجع عن هذا الإجراء.</strong>
+              </p>
+              <p className="text-xs text-red-600 mt-1">اضغط مرة أخرى للتأكيد والمتابعة.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Import result */}
+        {importResult && (
+          <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4">
+            <p className="text-sm font-semibold text-green-700 mb-3 flex items-center gap-1.5">
+              <CheckCircle className="w-4 h-4" />
+              تم الاستيراد بنجاح
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {Object.entries(importResult).map(([key, count]) => {
+                const meta = TABLE_LABELS[key]
+                return (
+                  <div key={key} className="bg-white border border-green-100 rounded-lg px-3 py-2 flex items-center gap-2">
+                    <span className="text-lg">{meta?.icon ?? '✅'}</span>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-700">{meta?.label ?? key}</p>
+                      <p className="text-xs text-green-600">{count} سجل</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Submit button */}
         <button
           onClick={handleImport}
           disabled={!importPreview || !!importError || importLoading}
-          className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium disabled:opacity-50 transition-colors shadow-sm ${
+          className={`flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold disabled:opacity-50 transition-colors shadow-sm ${
             confirmReplace
               ? 'bg-red-600 text-white hover:bg-red-700'
               : 'bg-blue-600 text-white hover:bg-blue-700'
           }`}
         >
-          <Upload className="w-4 h-4" />
-          {importLoading
-            ? 'جارٍ الاستيراد...'
-            : confirmReplace
-            ? 'تأكيد الاستبدال الكامل'
-            : 'استيراد البيانات'}
+          {importLoading ? (
+            <><RefreshCw className="w-4 h-4 animate-spin" /> جارٍ الاستيراد...</>
+          ) : confirmReplace ? (
+            <><AlertTriangle className="w-4 h-4" /> تأكيد الاستبدال الكامل</>
+          ) : (
+            <><Upload className="w-4 h-4" /> استيراد البيانات</>
+          )}
         </button>
       </div>
     </div>

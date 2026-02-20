@@ -20,6 +20,24 @@ export const updateItem = async (id: number, data: any) => {
 }
 
 export const deleteItem = async (id: number) => {
+  // Check if item has any distribution items
+  const distributionCount = await prisma.distributionItem.count({
+    where: { itemId: id }
+  })
+  
+  if (distributionCount > 0) {
+    throw new Error(`لا يمكن حذف هذا التجهيز. يوجد ${distributionCount} عملية توزيع مرتبطة به`)
+  }
+
+  // Check if item has any reception items
+  const receptionCount = await prisma.receptionItem.count({
+    where: { itemId: id }
+  })
+  
+  if (receptionCount > 0) {
+    throw new Error(`لا يمكن حذف هذا التجهيز. يوجد ${receptionCount} عملية استقبال مرتبطة به`)
+  }
+
   await prisma.item.delete({ where: { id } })
   await createLog('DELETE', 'Item', id, null)
   return true

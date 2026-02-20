@@ -14,6 +14,7 @@ interface ReceptionFormState {
   category: string
   quantity: number
   lowStockThreshold: number
+  referenceType: string
   referenceNumber: string
   referenceDate: string
   notes: string
@@ -25,6 +26,7 @@ export default function Receptions() {
     category: '',
     quantity: 1,
     lowStockThreshold: 5,
+    referenceType: '',
     referenceNumber: '',
     referenceDate: '',
     notes: ''
@@ -43,13 +45,19 @@ export default function Receptions() {
     { refetchInterval: 10000 }
   )
 
+  const { data: referenceTypes = [] } = useQuery<string[]>(
+    ['reference-types'],
+    async () => (await client.get('/receptions/reference-types')).data.data,
+    { refetchInterval: 30000 }
+  )
+
   const filteredSuppliers = useMemo(() => {
     const term = supplierSearch.trim().toLowerCase()
     if (!term) return suppliers
     return suppliers.filter((s) => s.name.toLowerCase().includes(term) || (s.phone || '').toLowerCase().includes(term))
   }, [supplierSearch, suppliers])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setForm((prev) => ({
       ...prev,
@@ -70,6 +78,7 @@ export default function Receptions() {
       setSubmitting(true)
       await client.post('/receptions', {
         referenceNumber: form.referenceNumber || undefined,
+        referenceType: form.referenceType || undefined,
         referenceDate: form.referenceDate || undefined,
         supplierId: selectedSupplier?.id,
         notes: form.notes || undefined,
@@ -83,7 +92,7 @@ export default function Receptions() {
         ]
       })
       setSuccess('تم تسجيل الاستلام بنجاح وتمت إضافة الكمية إلى المخزون')
-      setForm({ itemName: '', category: '', quantity: 1, lowStockThreshold: 5, referenceNumber: '', referenceDate: '', notes: '' })
+      setForm({ itemName: '', category: '', quantity: 1, lowStockThreshold: 5, referenceType: '', referenceNumber: '', referenceDate: '', notes: '' })
       setSelectedSupplier(null)
       setSupplierSearch('')
       setSupplierPhone('')
@@ -125,13 +134,13 @@ export default function Receptions() {
     <div dir="rtl" className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
+          <h1 className="text-2xl font-semibold">دخل يومي</h1>
           <p className="text-sm text-gray-600">تسجيل تجهيزات جديدة في المخزون</p>
-          <h1 className="text-2xl font-semibold">الاستقبالات</h1>
         </div>
-        <div className="flex items-center gap-3 text-sm text-gray-700">
+        {/* <div className="flex items-center gap-3 text-sm text-gray-700">
           <Truck className="w-5 h-5 text-blue-600" />
           <span>إدخال تجهيز جديد يرفع المخزون مباشرة</span>
-        </div>
+        </div> */}
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -185,6 +194,23 @@ export default function Receptions() {
                 className="w-full border p-2 rounded"
                 placeholder="مثال: 5"
               />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">نوع المرجع</label>
+              <input
+                type="text"
+                name="referenceType"
+                value={form.referenceType}
+                onChange={handleChange}
+                list="referenceTypesList"
+                className="w-full border p-2 rounded"
+                placeholder="اختر نوع المرجع أو أضف جديد"
+              />
+              <datalist id="referenceTypesList">
+                {referenceTypes.map((type) => (
+                  <option key={type} value={type} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="block text-sm mb-1">رقم المرجع</label>
