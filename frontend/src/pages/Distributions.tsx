@@ -1,8 +1,9 @@
-﻿import React, { useMemo, useState, useEffect } from 'react'
+﻿import React, { useMemo, useState, useEffect, useCallback, useContext } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
-import { Check, Loader2, Plus, Search, UserCheck } from 'lucide-react'
+import { AuthContext } from '../context/AuthContext'
+import { Check, Loader2, Plus, Search, UserCheck, RefreshCw, Info } from 'lucide-react'
 
 interface Item {
   id: number
@@ -38,6 +39,7 @@ interface NewEmployeeState {
 
 export default function Distributions() {
   const location = useLocation()
+  const { user } = useContext(AuthContext)
 
   // Item
   const [itemSearch, setItemSearch] = useState('')
@@ -65,6 +67,18 @@ export default function Distributions() {
   const [showAddEmployee, setShowAddEmployee] = useState(false)
   const [newEmployee, setNewEmployee] = useState<NewEmployeeState>({ rank: '', name: '', surname: '', number: '', phone: '' })
   const [addingEmployee, setAddingEmployee] = useState(false)
+
+  // Receipt reference fields
+  const [referenceType, setReferenceType] = useState('')
+  const [referenceNumber, setReferenceNumber] = useState('')
+  const [referenceDate, setReferenceDate] = useState('')
+  const [deliveredByName, setDeliveredByName] = useState(user?.name || user?.email || '')
+  const [refAutoFilled, setRefAutoFilled] = useState(false)
+  const [loadingRef, setLoadingRef] = useState(false)
+
+  // Per-item receipt fields
+  const [itemSerialNumber, setItemSerialNumber] = useState('')
+  const [itemCondition, setItemCondition] = useState<'NEW' | 'USED' | 'NEEDS_MAINTENANCE'>('NEW')
 
   // Form state
   const [submitting, setSubmitting] = useState(false)
@@ -116,6 +130,25 @@ export default function Distributions() {
     setItemSearch(item.name)
   }
 
+  // Auto-fill reference fields from the latest reception when item changes
+  useEffect(() => {
+    if (!selectedItem) return
+    setRefAutoFilled(false)
+    setLoadingRef(true)
+    client.get(`/receptions/by-item/${selectedItem.id}`)
+      .then(res => {
+        const r = res.data.data
+        if (r) {
+          setReferenceType(r.referenceType || '')
+          setReferenceNumber(r.referenceNumber || '')
+          setReferenceDate(r.referenceDate ? r.referenceDate.split('T')[0] : '')
+          setRefAutoFilled(true)
+        }
+      })
+      .catch(() => { /* silent */ })
+      .finally(() => setLoadingRef(false))
+  }, [selectedItem?.id])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -131,10 +164,19 @@ export default function Distributions() {
     try {
       setSubmitting(true)
       await client.post('/distributions', {
-        items: [{ itemId: selectedItem.id, quantity }],
+        items: [{
+          itemId: selectedItem.id,
+          quantity,
+          serialNumber: itemSerialNumber || undefined,
+          condition: itemCondition,
+        }],
         beneficiaryId: selectedBeneficiary.id,
         assignedToId: selectedEmployee.id,
-        notes: notes || undefined
+        notes: notes || undefined,
+        referenceType: referenceType || undefined,
+        referenceNumber: referenceNumber || undefined,
+        referenceDate: referenceDate || undefined,
+        deliveredByName: deliveredByName || undefined,
       })
       setSuccess('تم تسجيل التوزيع بنجاح وتم خصم الكمية من المخزون')
       setSelectedItem(null)
@@ -143,6 +185,13 @@ export default function Distributions() {
       setNotes('')
       setSelectedEmployee(null)
       setEmployeeSearch('')
+      setItemSerialNumber('')
+      setItemCondition('NEW')
+      setReferenceType('')
+      setReferenceNumber('')
+      setReferenceDate('')
+      setDeliveredByName(user?.name || user?.email || '')
+      setRefAutoFilled(false)
     } catch (err: any) {
       setError(err?.response?.data?.error || 'تعذر حفظ التوزيع')
     } finally {
@@ -225,7 +274,7 @@ export default function Distributions() {
               <input
                 type="text"
                 value={itemSearch}
-                onChange={e => { setItemSearch(e.target.value); setSelectedItem(null) }}
+                onChange={e => { setItemSearch(e.target.value); setSelectedItem(null); setRefAutoFilled(false) }}
                 placeholder="ابحث باسم التجهيز أو الصنف..."
                 className="w-full border p-2 pr-8 rounded"
               />
@@ -296,6 +345,90 @@ export default function Distributions() {
                 الكمية المطلوبة تتجاوز المخزون المتاح ({selectedItem.quantity})
               </p>
             )}
+          </div>
+
+          {/* Per-item receipt fields */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm mb-1">الرقم التسلسلي للتجهيز</label>
+              <input
+                type="text"
+                value={itemSerialNumber}
+                onChange={e => setItemSerialNumber(e.target.value)}
+                className="w-full border p-2 rounded text-sm"
+                placeholder="SN-XXXXXXX (اختياري)"
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">حالة التجهيز</label>
+              <select
+                value={itemCondition}
+                onChange={e => setItemCondition(e.target.value as any)}
+                className="w-full border p-2 rounded text-sm"
+              >
+                <option value="NEW">جديد</option>
+                <option value="USED">مستعمل</option>
+                <option value="NEEDS_MAINTENANCE">يحتاج صيانة</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Reference section */}
+          <div className="border-t border-dashed border-gray-200 pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <p className="text-xs font-semibold text-gray-500">بيانات الوصل / المرجع</p>
+              {loadingRef && (
+                <span className="flex items-center gap-1 text-xs text-blue-500">
+                  <RefreshCw className="w-3 h-3 animate-spin" /> جارٍ الجلب...
+                </span>
+              )}
+              {refAutoFilled && !loadingRef && (
+                <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                  <Info className="w-3 h-3" /> مجلوبة من الدخل اليومي
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm mb-1">نوع المرجع</label>
+                <input
+                  type="text"
+                  value={referenceType}
+                  onChange={e => { setReferenceType(e.target.value); setRefAutoFilled(false) }}
+                  className={`w-full border p-2 rounded text-sm ${refAutoFilled && referenceType ? 'border-green-300 bg-green-50' : ''}`}
+                  placeholder="أمر خدمة / قرار ..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">رقم المرجع</label>
+                <input
+                  type="text"
+                  value={referenceNumber}
+                  onChange={e => { setReferenceNumber(e.target.value); setRefAutoFilled(false) }}
+                  className={`w-full border p-2 rounded text-sm ${refAutoFilled && referenceNumber ? 'border-green-300 bg-green-50' : ''}`}
+                  placeholder="2024/XXXX"
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">تاريخ المرجع</label>
+                <input
+                  type="date"
+                  value={referenceDate}
+                  onChange={e => { setReferenceDate(e.target.value); setRefAutoFilled(false) }}
+                  className={`w-full border p-2 rounded text-sm ${refAutoFilled && referenceDate ? 'border-green-300 bg-green-50' : ''}`}
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">اسم المسلِّم</label>
+                <input
+                  type="text"
+                  value={deliveredByName}
+                  onChange={e => setDeliveredByName(e.target.value)}
+                  className="w-full border p-2 rounded text-sm"
+                  placeholder="الاسم الكامل للمسلِّم"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Notes */}

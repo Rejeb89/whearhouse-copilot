@@ -12,6 +12,8 @@ const createSchema = z.object({
   password: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
   name: z.string().min(1, 'الاسم مطلوب').optional(),
   role: z.enum(['ADMIN', 'STORE_KEEPER', 'USER']).optional(),
+  personalNumber: z.string().optional(),
+  securityUnit: z.string().optional(),
 })
 
 const updateSchema = z.object({
@@ -19,6 +21,8 @@ const updateSchema = z.object({
   password: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل').optional().or(z.literal('')),
   name: z.string().min(1, 'الاسم مطلوب').optional(),
   role: z.enum(['ADMIN', 'STORE_KEEPER', 'USER']).optional(),
+  personalNumber: z.string().optional(),
+  securityUnit: z.string().optional(),
 })
 
 router.get('/', async (req, res) => {

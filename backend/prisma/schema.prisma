@@ -13,6 +13,8 @@ model User {
   name      String?
   password  String
   role      Role     @default(USER)
+  personalNumber String?
+  securityUnit   String?
   createdAt DateTime @default(now())
   receptions Reception[]
   distributions Distribution[]
@@ -57,6 +59,7 @@ model ReceptionItem {
   item        Item      @relation(fields: [itemId], references: [id])
   itemId      Int
   quantity    Int
+  adminNumber String?
 }
 
 model Distribution {

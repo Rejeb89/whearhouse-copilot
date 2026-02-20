@@ -1,17 +1,33 @@
 import React, { useContext } from 'react'
 import { Link } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
-import { LayoutDashboard, Package, TrendingUp, TrendingDown, Building2, CalendarDays, FileText, Settings, Wallet } from 'lucide-react'
+import { LayoutDashboard, Package, TrendingUp, TrendingDown, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck } from 'lucide-react'
 
 const Sidebar: React.FC = () => {
   const { user } = useContext(AuthContext)
 
   return (
     <aside className="w-56 bg-white border-l" dir="rtl">
-      <div className="p-4 font-bold flex items-center gap-2">
+      <div className="hidden p-4 font-bold flex items-center gap-2">
         <Package className="w-6 h-6" />
         نظام إدارة المستودع
       </div>
+      {/* National Guard Logo - Center */}
+      <div className="flex justify-center py-8 px-4">
+        <img
+          src="/logo.png"
+          alt="شعار الحرس الوطني"
+          className="h-24 w-24 object-contain"
+        />
+      </div>
+
+      {/* Current Security Unit */}
+      {user?.securityUnit && (
+        <div className="text-center px-4 pb-4 -mt-6 border-b-2 border-slate-300">
+          <p className="text-sm font-semibold text-slate-800">{user.securityUnit}</p>
+        </div>
+      )}
+
       <nav className="p-2">
         <ul className="space-y-1">
           <li>
@@ -48,6 +64,12 @@ const Sidebar: React.FC = () => {
             <Link to="/calendar" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
               <CalendarDays className="w-4 h-4" />
               الرزنامة
+            </Link>
+          </li>
+          <li>
+            <Link to="/receipts" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
+              <ClipboardCheck className="w-4 h-4" />
+              وصولات التسليم
             </Link>
           </li>
           {user?.role === 'ADMIN' && (

@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { createLog } from './logService'
 import { adjustStock } from './itemService'
 
-export const createReception = async (userId: number, reference: string, items: { itemId?: number; itemName?: string; category?: string; quantity: number; lowStockThreshold?: number }[], data?: { referenceNumber?: string; referenceType?: string; referenceDate?: Date; supplierId?: number; notes?: string }) => {
+export const createReception = async (userId: number, reference: string, items: { itemId?: number; itemName?: string; category?: string; quantity: number; lowStockThreshold?: number; adminNumber?: string }[], data?: { referenceNumber?: string; referenceType?: string; referenceDate?: Date; supplierId?: number; notes?: string }) => {
   try {
     return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const reception = await tx.reception.create({ 
@@ -49,7 +49,7 @@ export const createReception = async (userId: number, reference: string, items: 
         }
         
         if (itemId) {
-          await tx.receptionItem.create({ data: { receptionId: reception.id, itemId, quantity: it.quantity } })
+          await tx.receptionItem.create({ data: { receptionId: reception.id, itemId, quantity: it.quantity, adminNumber: it.adminNumber } })
           await tx.item.update({ where: { id: itemId }, data: { quantity: { increment: it.quantity } } })
         }
       }
@@ -73,6 +73,27 @@ export const getReferenceTypes = async () => {
     orderBy: { referenceType: 'asc' }
   })
   return types.map((t: any) => t.referenceType).filter(Boolean)
+}
+
+export const getLatestReceptionByItem = async (itemId: number) => {
+  const receptionItem = await prisma.receptionItem.findFirst({
+    where: { itemId },
+    orderBy: { reception: { createdAt: 'desc' } },
+    include: {
+      reception: {
+        select: {
+          referenceType: true,
+          referenceNumber: true,
+          referenceDate: true,
+          reference: true,
+          notes: true,
+          supplier: { select: { name: true } },
+          createdAt: true,
+        }
+      }
+    }
+  })
+  return receptionItem?.reception ?? null
 }
 
 export const recentReceptions = (limit = 10) => prisma.reception.findMany({ orderBy: { createdAt: 'desc' }, take: limit, include: { items: { include: { item: true } }, supplier: true } })

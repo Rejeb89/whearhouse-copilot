@@ -7,7 +7,7 @@ const router = express.Router()
 
 router.use(authGuard)
 
-router.post('/', roleGuard(['ADMIN','STORE_KEEPER']), async (req, res) => {
+router.post('/', roleGuard(['ADMIN', 'STORE_KEEPER', 'USER']), async (req, res) => {
   try {
     const userId = (req as any).user.id
     const { items, beneficiaryId, assignedToId, notes, referenceType, referenceNumber, referenceDate, deliveredByName } = req.body

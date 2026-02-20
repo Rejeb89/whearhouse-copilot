@@ -55,7 +55,7 @@ const AUDIT_ACTION_COLORS: Record<string, string> = {
   DELETE_USER: 'bg-red-100 text-red-700',
 }
 
-const EMPTY_FORM = { name: '', email: '', password: '', role: 'USER' as string }
+const EMPTY_FORM = { name: '', email: '', password: '', role: 'USER' as string, personalNumber: '', securityUnit: '' }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -113,7 +113,7 @@ function UserModal({ open, editing, onClose, onSaved }: UserModalProps) {
     if (open) {
       setForm(
         editing
-          ? { name: editing.name ?? '', email: editing.email, password: '', role: editing.role }
+          ? { name: editing.name ?? '', email: editing.email, password: '', role: editing.role, personalNumber: editing.personalNumber ?? '', securityUnit: editing.securityUnit ?? '' }
           : EMPTY_FORM,
       )
       setError('')
@@ -137,7 +137,7 @@ function UserModal({ open, editing, onClose, onSaved }: UserModalProps) {
     setLoading(true)
     setError('')
     try {
-      const payload: any = { name: form.name, email: form.email, role: form.role }
+      const payload: any = { name: form.name, email: form.email, role: form.role, personalNumber: form.personalNumber || undefined, securityUnit: form.securityUnit || undefined }
       if (form.password) payload.password = form.password
       if (editing) await updateUser(editing.id, payload)
       else await createUser({ ...payload, password: form.password })
@@ -178,6 +178,27 @@ function UserModal({ open, editing, onClose, onSaved }: UserModalProps) {
               placeholder="مثال: أحمد علي"
               className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">الرقم الشخصي</label>
+              <input
+                value={form.personalNumber}
+                onChange={(e) => setForm({ ...form, personalNumber: e.target.value })}
+                placeholder="XXXXXXX"
+                className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">الوحدة الأمنية الحالية</label>
+              <input
+                value={form.securityUnit}
+                onChange={(e) => setForm({ ...form, securityUnit: e.target.value })}
+                placeholder="اسم الوحدة"
+                className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           </div>
 
           <div>
@@ -404,6 +425,8 @@ function UsersTab() {
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="text-right px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wide">الاسم</th>
                 <th className="text-right px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wide">البريد الإلكتروني</th>
+                <th className="text-right px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wide">الرقم الشخصي</th>
+                <th className="text-right px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wide">الوحدة الأمنية</th>
                 <th className="text-right px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wide">الدور</th>
                 <th className="text-right px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wide">تاريخ الإنشاء</th>
                 <th className="text-center px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wide">الإجراءات</th>
@@ -412,14 +435,14 @@ function UsersTab() {
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-slate-400">
+                  <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
                     جارٍ التحميل...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-slate-400">
+                  <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
                     <Users className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     لا يوجد مستخدمون مطابقون
                   </td>
@@ -436,6 +459,12 @@ function UsersTab() {
                       </div>
                     </td>
                     <td className="px-5 py-4 text-slate-500" dir="ltr">{u.email}</td>
+                    <td className="px-5 py-4">
+                      {u.personalNumber
+                        ? <span className="font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-xs">{u.personalNumber}</span>
+                        : <span className="text-slate-300 text-xs">—</span>}
+                    </td>
+                    <td className="px-5 py-4 text-slate-600 text-sm">{u.securityUnit || <span className="text-slate-300 text-xs">—</span>}</td>
                     <td className="px-5 py-4">
                       <RoleBadge role={u.role} />
                     </td>

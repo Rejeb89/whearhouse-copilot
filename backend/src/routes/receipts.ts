@@ -18,22 +18,22 @@ router.get('/', async (req, res) => {
   }
 })
 
-// Get receipt by ID
-router.get('/:id', async (req, res) => {
+// Get receipt by distribution ID  (must be before /:id to avoid shadowing)
+router.get('/distribution/:distId', async (req, res) => {
   try {
-    const receipt = await receiptService.getReceiptById(parseInt(req.params.id))
-    if (!receipt) return res.status(404).json({ error: 'الوصل غير موجود' })
+    const receipt = await receiptService.getReceiptByDistribution(parseInt(req.params.distId))
+    if (!receipt) return res.status(404).json({ error: 'لا يوجد وصل لهذه العملية' })
     res.json({ data: receipt })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
   }
 })
 
-// Get receipt by distribution ID
-router.get('/distribution/:distId', async (req, res) => {
+// Get receipt by ID
+router.get('/:id', async (req, res) => {
   try {
-    const receipt = await receiptService.getReceiptByDistribution(parseInt(req.params.distId))
-    if (!receipt) return res.status(404).json({ error: 'لا يوجد وصل لهذه العملية' })
+    const receipt = await receiptService.getReceiptById(parseInt(req.params.id))
+    if (!receipt) return res.status(404).json({ error: 'الوصل غير موجود' })
     res.json({ data: receipt })
   } catch (err: any) {
     res.status(500).json({ error: err.message })

@@ -128,7 +128,14 @@ export default function Items() {
   }
 
   return (
-    <div dir="rtl" className="space-y-4">
+    <div dir="rtl" className="space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm text-gray-500">إدارة المستودع</p>
+          <h1 className="text-3xl font-bold text-gray-800">التجهيزات</h1>
+        </div>
+      </div>
 
       {/* ── Search Bar ── */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">

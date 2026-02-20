@@ -13,6 +13,7 @@ import Calendar from './pages/Calendar'
 import Logs from './pages/Logs'
 import Settings from './pages/Settings'
 import Budgets from './pages/Budgets'
+import Receipts from './pages/Receipts'
 import Layout from './components/Layout'
 
 const PrivateRoute: React.FC<{ roles?: string[]; children: JSX.Element }> = ({ roles, children }) => {
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="/logs" element={<PrivateRoute roles={["ADMIN"]} children={<Logs />} />} />
             <Route path="/settings" element={<PrivateRoute roles={["ADMIN"]} children={<Settings />} />} />
             <Route path="/budgets" element={<PrivateRoute roles={["ADMIN"]} children={<Budgets />} />} />
+            <Route path="/receipts" element={<PrivateRoute children={<Receipts />} />} />
           </Routes>
         </Layout>
       </BrowserRouter>

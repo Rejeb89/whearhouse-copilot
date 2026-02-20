@@ -14,6 +14,7 @@ interface ReceptionFormState {
   category: string
   quantity: number
   lowStockThreshold: number
+  adminNumber: string
   referenceType: string
   referenceNumber: string
   referenceDate: string
@@ -26,6 +27,7 @@ export default function Receptions() {
     category: '',
     quantity: 1,
     lowStockThreshold: 5,
+    adminNumber: '',
     referenceType: '',
     referenceNumber: '',
     referenceDate: '',
@@ -87,12 +89,13 @@ export default function Receptions() {
             itemName: form.itemName,
             category: form.category,
             quantity: form.quantity,
-            lowStockThreshold: form.lowStockThreshold
+            lowStockThreshold: form.category.trim().replace(/[أإآ]/g, 'ا') === 'اثاث قار' ? 0 : form.lowStockThreshold,
+            adminNumber: form.adminNumber || undefined
           }
         ]
       })
       setSuccess('تم تسجيل الاستلام بنجاح وتمت إضافة الكمية إلى المخزون')
-      setForm({ itemName: '', category: '', quantity: 1, lowStockThreshold: 5, referenceType: '', referenceNumber: '', referenceDate: '', notes: '' })
+      setForm({ itemName: '', category: '', quantity: 1, lowStockThreshold: 5, adminNumber: '', referenceType: '', referenceNumber: '', referenceDate: '', notes: '' })
       setSelectedSupplier(null)
       setSupplierSearch('')
       setSupplierPhone('')
@@ -180,6 +183,7 @@ export default function Receptions() {
                 required
               />
             </div>
+            {form.category.trim().replace(/[أإآ]/g, 'ا') !== 'اثاث قار' && (
             <div>
               <label className="block text-sm mb-1 flex items-center gap-1">
                 حد التنبيه الأدنى
@@ -195,6 +199,25 @@ export default function Receptions() {
                 placeholder="مثال: 5"
               />
             </div>
+            )}
+            {/* الرقم الإداري — يظهر فقط عند صنف أثاث قار */}
+            {form.category.trim().replace(/[أإآ]/g, 'ا') === 'اثاث قار' && (
+              <div className="md:col-span-2">
+                <label className="block text-sm mb-1 font-semibold text-blue-700 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
+                  الرقم الإداري
+                  <span className="text-xs font-normal text-gray-400">(خاص بأثاث قار)</span>
+                </label>
+                <input
+                  type="text"
+                  name="adminNumber"
+                  value={form.adminNumber}
+                  onChange={handleChange}
+                  className="w-full border-2 border-blue-300 focus:border-blue-500 p-2 rounded bg-blue-50 focus:bg-white transition"
+                  placeholder="أدخل الرقم الإداري للتجهيز"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-sm mb-1">نوع المرجع</label>
               <input

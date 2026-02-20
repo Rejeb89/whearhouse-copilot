@@ -40,6 +40,17 @@ router.get('/reference-types', authGuard, async (req, res) => {
   res.json({ data: types })
 })
 
+router.get('/by-item/:itemId', async (req, res) => {
+  try {
+    const itemId = parseInt(req.params.itemId)
+    if (isNaN(itemId)) return res.status(400).json({ error: 'معرف التجهيز غير صالح' })
+    const reception = await receptionService.getLatestReceptionByItem(itemId)
+    res.json({ data: reception })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 router.get('/recent', authGuard, async (req, res) => {
   const list = await receptionService.recentReceptions()
   res.json({ data: list })

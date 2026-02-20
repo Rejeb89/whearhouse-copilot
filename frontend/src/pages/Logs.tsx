@@ -3,12 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell, Legend, AreaChart, Area, LineChart, Line,
 } from 'recharts'
 import {
   FileText, BarChart3, PieChart as PieIcon, Download, FileSpreadsheet,
   Calendar, Filter, RefreshCw, Search, TrendingUp, Activity,
   Clock, ChevronLeft, ChevronRight, AlertCircle, X,
+  Users, Award, Zap, CalendarDays, ArrowUpRight, Hash,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -432,13 +433,10 @@ export default function Logs() {
   return (
     <div dir="rtl" className="space-y-6">
       {/* Page header */}
-      <div className="flex items-start gap-4">
-        <div className="p-3 bg-slate-100 rounded-xl">
-          <Activity className="w-6 h-6 text-slate-700" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">سجلات النشاط والتقارير</h1>
-          <p className="text-sm text-slate-500 mt-0.5">تتبع جميع العمليات، عرض الإحصائيات، وتنزيل التقارير</p>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm text-gray-500">تتبع ومراقبة</p>
+          <h1 className="text-3xl font-bold text-gray-800">سجلات النشاط والتقارير</h1>
         </div>
       </div>
 
@@ -681,7 +679,8 @@ export default function Logs() {
           {/* Summary cards */}
           {stats && (
             <>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* ── 6 KPI Cards ── */}
+              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 <StatCard
                   label="إجمالي السجلات"
                   value={stats.totalLogs.toLocaleString('en-US')}
@@ -689,7 +688,7 @@ export default function Logs() {
                   color="bg-gradient-to-br from-blue-50 to-blue-100 text-blue-800 border-blue-200"
                 />
                 <StatCard
-                  label="سجلات هذا الشهر"
+                  label="هذا الشهر"
                   value={stats.totalThisMonth.toLocaleString('en-US')}
                   icon={<TrendingUp className="w-5 h-5 text-green-700" />}
                   color="bg-gradient-to-br from-green-50 to-green-100 text-green-800 border-green-200"
@@ -706,6 +705,21 @@ export default function Logs() {
                   icon={<BarChart3 className="w-5 h-5 text-purple-700" />}
                   color="bg-gradient-to-br from-purple-50 to-purple-100 text-purple-800 border-purple-200"
                 />
+                <StatCard
+                  label="أعلى شهر نشاطاً"
+                  value={(() => {
+                    const peak = stats.monthlyData?.reduce((a: any, b: any) => (b.count > a.count ? b : a), { count: 0, month: '—' })
+                    return peak?.month ?? '—'
+                  })()}
+                  icon={<Award className="w-5 h-5 text-rose-700" />}
+                  color="bg-gradient-to-br from-rose-50 to-rose-100 text-rose-800 border-rose-200"
+                />
+                <StatCard
+                  label="متوسط يومي"
+                  value={(stats.totalLogs / (() => { const n = new Date(); return statsYear === n.getFullYear() ? Math.ceil((n.getTime() - new Date(n.getFullYear(), 0, 0).getTime()) / 86400000) : 365 })()).toFixed(1)}
+                  icon={<Zap className="w-5 h-5 text-cyan-700" />}
+                  color="bg-gradient-to-br from-cyan-50 to-cyan-100 text-cyan-800 border-cyan-200"
+                />
               </div>
 
               {/* Monthly bar chart */}
@@ -715,7 +729,13 @@ export default function Logs() {
                   توزيع الأنشطة شهرياً — {statsYear}
                 </h2>
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={stats.monthlyData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <AreaChart data={stats.monthlyData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
@@ -723,8 +743,8 @@ export default function Logs() {
                       contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }}
                       formatter={(v: any) => [`${v} سجل`, 'العدد']}
                     />
-                    <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="عدد السجلات" />
-                  </BarChart>
+                    <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2.5} fill="url(#colorCount)" name="عدد السجلات" dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
 
@@ -787,46 +807,85 @@ export default function Logs() {
                 </div>
               </div>
 
-              {/* Top table breakdown */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <h2 className="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-slate-500" />
-                  تفصيل الأنشطة لعام {statsYear}
-                </h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-slate-50 border-b text-slate-600 text-xs uppercase">
-                        <th className="text-right px-4 py-3 font-semibold">الجدول</th>
-                        <th className="text-right px-4 py-3 font-semibold">عدد العمليات</th>
-                        <th className="text-right px-4 py-3 font-semibold">النسبة</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {stats.byTable.map((row: any, idx: number) => {
-                        const total = stats.byTable.reduce((s: number, r: any) => s + r.count, 0)
-                        const pct = total > 0 ? ((row.count / total) * 100).toFixed(1) : '0'
-                        return (
-                          <tr key={row.table} className="hover:bg-slate-50">
-                            <td className="px-4 py-3 font-medium text-slate-700">{TABLE_LABELS[row.table] ?? row.table}</td>
-                            <td className="px-4 py-3 font-semibold text-slate-800">{row.count.toLocaleString('en-US')}</td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1 bg-slate-100 rounded-full h-2">
-                                  <div
-                                    className="h-2 rounded-full"
-                                    style={{ width: `${pct}%`, backgroundColor: CHART_PALETTE[idx % CHART_PALETTE.length] }}
-                                  />
-                                </div>
-                                <span className="text-xs text-slate-500 w-10 text-left">{pct}%</span>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+              {/* Tables + Actions breakdown side by side */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* By Table */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                  <h2 className="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                    <Hash className="w-5 h-5 text-slate-500" />
+                    تفصيل حسب الجدول — {statsYear}
+                  </h2>
+                  <div className="space-y-3">
+                    {stats.byTable.map((row: any, idx: number) => {
+                      const total = stats.byTable.reduce((s: number, r: any) => s + r.count, 0)
+                      const pct = total > 0 ? ((row.count / total) * 100).toFixed(1) : '0'
+                      return (
+                        <div key={row.table}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="font-medium text-slate-700">{TABLE_LABELS[row.table] ?? row.table}</span>
+                            <span className="text-slate-500 font-semibold">{row.count.toLocaleString('en-US')} <span className="text-slate-400 font-normal">({pct}%)</span></span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-2.5">
+                            <div
+                              className="h-2.5 rounded-full transition-all duration-500"
+                              style={{ width: `${pct}%`, backgroundColor: CHART_PALETTE[idx % CHART_PALETTE.length] }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
+
+                {/* By Action */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                  <h2 className="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-slate-500" />
+                    تفصيل حسب نوع الإجراء — {statsYear}
+                  </h2>
+                  <div className="space-y-3">
+                    {stats.byAction.map((row: any, idx: number) => {
+                      const total = stats.byAction.reduce((s: number, r: any) => s + r.count, 0)
+                      const pct = total > 0 ? ((row.count / total) * 100).toFixed(1) : '0'
+                      return (
+                        <div key={row.action}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="font-medium text-slate-700 flex items-center gap-2">
+                              <ActionBadge action={row.action} />
+                            </span>
+                            <span className="text-slate-500 font-semibold">{row.count.toLocaleString('en-US')} <span className="text-slate-400 font-normal">({pct}%)</span></span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-2.5">
+                            <div
+                              className="h-2.5 rounded-full transition-all duration-500"
+                              style={{ width: `${pct}%`, backgroundColor: ACTION_COLORS[row.action] ?? CHART_PALETTE[idx % CHART_PALETTE.length] }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Monthly trend line chart */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <h2 className="text-base font-semibold text-slate-800 mb-5 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-green-600" />
+                  منحنى النمو الشهري — {statsYear}
+                </h2>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={stats.monthlyData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }}
+                      formatter={(v: any) => [`${v} سجل`, 'العدد']}
+                    />
+                    <Line type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2.5} dot={{ r: 5, fill: '#22c55e' }} activeDot={{ r: 7 }} name="عدد السجلات" />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </>
           )}
@@ -925,7 +984,7 @@ export default function Logs() {
                   ))}
               </div>
 
-              {/* Monthly bar chart of report */}
+              {/* Operations breakdown chart */}
               {Object.keys(reportData.summary).length > 0 && (
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                   <h2 className="text-base font-semibold text-slate-800 mb-5 flex items-center gap-2">
@@ -937,7 +996,6 @@ export default function Logs() {
                       data={Object.entries(reportData.summary).map(([action, count]) => ({
                         action: ACTION_LABELS[action] ?? action,
                         count,
-                        fill: ACTION_COLORS[action] ?? '#3b82f6',
                       }))}
                       margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
                     >
@@ -954,6 +1012,146 @@ export default function Logs() {
                   </ResponsiveContainer>
                 </div>
               )}
+
+              {/* Deep analytics from logs */}
+              {(() => {
+                const logs: Log[] = reportData.logs
+
+                // Top counterparties
+                const cpMap: Record<string, number> = {}
+                logs.forEach((l) => { if (l.counterparty) cpMap[l.counterparty] = (cpMap[l.counterparty] ?? 0) + 1 })
+                const topCPs = Object.entries(cpMap).sort((a, b) => b[1] - a[1]).slice(0, 6)
+
+                // Top items distributed
+                const itemMap: Record<string, number> = {}
+                logs.filter((l) => l.table === 'Distribution' && l.equipmentNames).forEach((l) => {
+                  l.equipmentNames!.forEach((name) => { itemMap[name] = (itemMap[name] ?? 0) + 1 })
+                })
+                const topItems = Object.entries(itemMap).sort((a, b) => b[1] - a[1]).slice(0, 6)
+
+                // Top active users
+                const userMap: Record<string, number> = {}
+                logs.forEach((l) => { const name = l.user?.name ?? l.user?.email; if (name) userMap[name] = (userMap[name] ?? 0) + 1 })
+                const topUsers = Object.entries(userMap).sort((a, b) => b[1] - a[1]).slice(0, 5)
+
+                // Daily activity map
+                const dayMap: Record<string, number> = {}
+                logs.forEach((l) => {
+                  const day = new Date(l.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })
+                  dayMap[day] = (dayMap[day] ?? 0) + 1
+                })
+                const dailyData = Object.entries(dayMap)
+                  .map(([date, count]) => ({ date, count }))
+                  .sort((a, b) => a.date.localeCompare(b.date))
+
+                return (
+                  <div className="space-y-6">
+                    {/* Daily activity chart */}
+                    {dailyData.length > 1 && (
+                      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                        <h2 className="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                          <CalendarDays className="w-5 h-5 text-indigo-600" />
+                          النشاط اليومي — {reportData.monthName} {reportData.year}
+                        </h2>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <AreaChart data={dailyData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                            <defs>
+                              <linearGradient id="dailyGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="date" tick={{ fontSize: 9 }} interval={Math.floor(dailyData.length / 8)} />
+                            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                            <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} formatter={(v: any) => [`${v} عملية`, 'اليوم']} />
+                            <Area type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={2} fill="url(#dailyGrad)" name="العمليات" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                    {/* Top counterparties + top items */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {topCPs.length > 0 && (
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                          <h2 className="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                            <Users className="w-4 h-4 text-blue-500" />
+                            أكثر الجهات تعاملاً
+                          </h2>
+                          <div className="space-y-2.5">
+                            {topCPs.map(([name, count], idx) => {
+                              const max = topCPs[0][1]
+                              return (
+                                <div key={name}>
+                                  <div className="flex justify-between text-xs mb-1">
+                                    <span className="font-medium text-slate-700 truncate max-w-[70%]">{name}</span>
+                                    <span className="text-slate-500 font-semibold">{count} عملية</span>
+                                  </div>
+                                  <div className="w-full bg-slate-100 rounded-full h-2">
+                                    <div className="h-2 rounded-full bg-blue-500 transition-all" style={{ width: `${(count / max) * 100}%` }} />
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {topItems.length > 0 && (
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                          <h2 className="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                            <ArrowUpRight className="w-4 h-4 text-green-500" />
+                            أكثر التجهيزات صرفاً
+                          </h2>
+                          <div className="space-y-2.5">
+                            {topItems.map(([name, count]) => {
+                              const max = topItems[0][1]
+                              return (
+                                <div key={name}>
+                                  <div className="flex justify-between text-xs mb-1">
+                                    <span className="font-medium text-slate-700 truncate max-w-[70%]">{name}</span>
+                                    <span className="text-slate-500 font-semibold">{count} سجل</span>
+                                  </div>
+                                  <div className="w-full bg-slate-100 rounded-full h-2">
+                                    <div className="h-2 rounded-full bg-green-500 transition-all" style={{ width: `${(count / max) * 100}%` }} />
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Top active users in month */}
+                    {topUsers.length > 0 && (
+                      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                        <h2 className="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                          <Award className="w-4 h-4 text-amber-500" />
+                          أكثر المستخدمين نشاطاً في {reportData.monthName}
+                        </h2>
+                        <div className="divide-y divide-slate-100">
+                          {topUsers.map(([name, count], idx) => (
+                            <div key={name} className="flex items-center justify-between py-3">
+                              <div className="flex items-center gap-3">
+                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                  idx === 0 ? 'bg-amber-100 text-amber-700' :
+                                  idx === 1 ? 'bg-slate-200 text-slate-600' :
+                                  idx === 2 ? 'bg-orange-100 text-orange-700' :
+                                  'bg-slate-100 text-slate-500'
+                                }`}>{idx + 1}</span>
+                                <span className="text-sm font-medium text-slate-700">{name}</span>
+                              </div>
+                              <span className="text-sm font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">{count} عملية</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* Detailed log table preview */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
