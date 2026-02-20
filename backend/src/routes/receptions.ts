@@ -11,7 +11,17 @@ router.post('/', roleGuard(['ADMIN','STORE_KEEPER']), async (req, res) => {
   try {
     const userId = (req as any).user.id
     const { reference, items, referenceNumber, referenceDate, supplierId, notes } = req.body
-    const reception = await receptionService.createReception(userId, reference, items, {
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'يرجى إضافة تجهيز واحد على الأقل' })
+    }
+
+    // توليد مرجع فريد تلقائياً إذا لم يُرسل
+    const finalReference = (reference && reference.trim())
+      ? reference.trim()
+      : `RCPT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+
+    const reception = await receptionService.createReception(userId, finalReference, items, {
       referenceNumber,
       referenceDate: referenceDate ? new Date(referenceDate) : undefined,
       supplierId: supplierId ? parseInt(supplierId) : undefined,
@@ -19,6 +29,7 @@ router.post('/', roleGuard(['ADMIN','STORE_KEEPER']), async (req, res) => {
     })
     res.json({ data: reception })
   } catch (err: any) {
+    console.error('Reception error:', err.message)
     res.status(400).json({ error: err.message })
   }
 })

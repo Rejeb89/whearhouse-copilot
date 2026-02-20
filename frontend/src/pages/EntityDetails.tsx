@@ -213,7 +213,7 @@ export default function EntityDetails() {
                       <div>
                         <p className="font-semibold text-gray-900">المرجع: {dist.reference}</p>
                         <p className="text-sm text-gray-500">
-                          {new Date(dist.createdAt).toLocaleString()}
+                          {new Date(dist.createdAt).toLocaleString('en-GB')}
                         </p>
                       </div>
                     </div>

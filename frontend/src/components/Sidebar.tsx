@@ -1,16 +1,10 @@
 import React, { useContext } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
-import { LayoutDashboard, Package, TrendingUp, TrendingDown, Building2, Users, FileText, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Package, TrendingUp, TrendingDown, Building2, CalendarDays, FileText, Settings } from 'lucide-react'
 
 const Sidebar: React.FC = () => {
-  const { user, logout } = useContext(AuthContext)
-  const navigate = useNavigate()
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
+  const { user } = useContext(AuthContext)
 
   return (
     <aside className="w-56 bg-white border-l" dir="rtl">
@@ -29,7 +23,7 @@ const Sidebar: React.FC = () => {
           <li>
             <Link to="/items" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
               <Package className="w-4 h-4" />
-              الأصناف
+              التجهيزات
             </Link>
           </li>
           <li>
@@ -50,14 +44,14 @@ const Sidebar: React.FC = () => {
               الجهات
             </Link>
           </li>
+          <li>
+            <Link to="/calendar" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
+              <CalendarDays className="w-4 h-4" />
+              الرزنامة
+            </Link>
+          </li>
           {user?.role === 'ADMIN' && (
             <>
-              <li>
-                <Link to="/users" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
-                  <Users className="w-4 h-4" />
-                  المستخدمون
-                </Link>
-              </li>
               <li>
                 <Link to="/logs" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
                   <FileText className="w-4 h-4" />
@@ -74,13 +68,7 @@ const Sidebar: React.FC = () => {
           )}
         </ul>
       </nav>
-      <div className="mt-auto p-4">
-        <div className="text-sm">{user?.email}</div>
-        <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-red-600 mt-2">
-          <LogOut className="w-4 h-4" />
-          تسجيل الخروج
-        </button>
-      </div>
+
     </aside>
   )
 }

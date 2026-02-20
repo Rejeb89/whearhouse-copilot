@@ -7,12 +7,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useContext(AuthContext)
 
   return (
-    <div className="flex flex-row-reverse h-screen">
+    <div className="flex h-screen">
       {user && <Sidebar />}
-      <main className={`${user ? 'flex-1' : 'w-full'} flex flex-col overflow-auto`}>
-        {user && <TopBar />}
-        <div className="flex-1 p-6 overflow-auto">{children}</div>
-      </main>
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <TopBar />
+        <main className="flex-1 overflow-auto p-6">{children}</main>
+      </div>
     </div>
   )
 }

@@ -4,45 +4,64 @@ import { createLog } from './logService'
 import { adjustStock } from './itemService'
 
 export const createReception = async (userId: number, reference: string, items: { itemId?: number; itemName?: string; category?: string; quantity: number; lowStockThreshold?: number }[], data?: { referenceNumber?: string; referenceDate?: Date; supplierId?: number; notes?: string }) => {
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const reception = await tx.reception.create({ 
-      data: { 
-        reference, 
-        userId,
-        referenceNumber: data?.referenceNumber,
-        referenceDate: data?.referenceDate,
-        supplierId: data?.supplierId,
-        notes: data?.notes
-      } 
-    })
-    
-    for (const it of items) {
-      let itemId = it.itemId
+  try {
+    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const reception = await tx.reception.create({ 
+        data: { 
+          reference, 
+          userId,
+          referenceNumber: data?.referenceNumber,
+          referenceDate: data?.referenceDate,
+          supplierId: data?.supplierId,
+          notes: data?.notes
+        } 
+      })
       
-      // إذا لم يكن الـ itemId موجوداً، ننشئ عنصر جديد
-      if (!itemId && it.itemName) {
-        const newItem = await tx.item.create({
-          data: {
-            name: it.itemName,
-            category: it.category || 'بدون صنف',
-            lowStockThreshold: it.lowStockThreshold || 0,
-            quantity: 0,
-            sku: `SKU-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+      for (const it of items) {
+        let itemId = it.itemId
+        
+        if (!itemId && it.itemName) {
+          // البحث عن تجهيز موجود بنفس الاسم والصنف
+          const existingItem = await tx.item.findFirst({
+            where: {
+              name: { equals: it.itemName, mode: 'insensitive' },
+              category: it.category || 'بدون صنف'
+            }
+          })
+          
+          if (existingItem) {
+            // تجهيز موجود: نستخدمه وتُضاف الكمية
+            itemId = existingItem.id
+          } else {
+            // تجهيز جديد: إنشاؤه
+            const newItem = await tx.item.create({
+              data: {
+                name: it.itemName,
+                category: it.category || 'بدون صنف',
+                lowStockThreshold: it.lowStockThreshold ?? 5,
+                quantity: 0,
+                sku: `SKU-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+              }
+            })
+            itemId = newItem.id
           }
-        })
-        itemId = newItem.id
+        }
+        
+        if (itemId) {
+          await tx.receptionItem.create({ data: { receptionId: reception.id, itemId, quantity: it.quantity } })
+          await tx.item.update({ where: { id: itemId }, data: { quantity: { increment: it.quantity } } })
+        }
       }
       
-      if (itemId) {
-        await tx.receptionItem.create({ data: { receptionId: reception.id, itemId: itemId, quantity: it.quantity } })
-        // increase stock
-        await tx.item.update({ where: { id: itemId }, data: { quantity: { increment: it.quantity } } })
-      }
+      await createLog('CREATE', 'Reception', reception.id, userId)
+      return reception
+    })
+  } catch (error: any) {
+    if (error?.code === 'P2002' && error?.meta?.target?.includes('reference')) {
+      throw new Error('رقم المرجع مستخدم مسبقاً، يرجى استخدام مرجع مختلف')
     }
-    
-    await createLog('CREATE', 'Reception', reception.id, userId)
-    return reception
-  })
+    throw error
+  }
 }
 
 export const recentReceptions = (limit = 10) => prisma.reception.findMany({ orderBy: { createdAt: 'desc' }, take: limit, include: { items: { include: { item: true } }, supplier: true } })

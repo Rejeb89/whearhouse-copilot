@@ -57,14 +57,17 @@ model ReceptionItem {
 }
 
 model Distribution {
-  id         Int               @id @default(autoincrement())
-  reference  String            @unique
-  user       User              @relation(fields: [userId], references: [id])
-  userId     Int
-  beneficiary Entity?           @relation(fields: [beneficiaryId], references: [id])
+  id            Int               @id @default(autoincrement())
+  reference     String            @unique
+  notes         String?
+  user          User              @relation(fields: [userId], references: [id])
+  userId        Int
+  beneficiary   Entity?           @relation(fields: [beneficiaryId], references: [id])
   beneficiaryId Int?
-  createdAt  DateTime          @default(now())
-  items      DistributionItem[]
+  assignedTo    Employee?         @relation(fields: [assignedToId], references: [id])
+  assignedToId  Int?
+  createdAt     DateTime          @default(now())
+  items         DistributionItem[]
 }
 
 model DistributionItem {
@@ -101,16 +104,17 @@ model Entity {
 }
 
 model Employee {
-  id        Int     @id @default(autoincrement())
-  entity    Entity  @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  entityId  Int
-  rank      String
-  name      String
-  surname   String
-  number    String
-  phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int            @id @default(autoincrement())
+  entity        Entity         @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId      Int
+  rank          String
+  name          String
+  surname       String
+  number        String
+  phone         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  distributions Distribution[]
 }
 
 enum Role {
@@ -122,4 +126,16 @@ enum Role {
 enum EntityType {
   SUPPLIER
   BENEFICIARY
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  action      String
+  entity      String
+  entityId    Int?
+  actorEmail  String?
+  actorId     Int?
+  details     String?
+  ip          String?
+  createdAt   DateTime @default(now())
 }

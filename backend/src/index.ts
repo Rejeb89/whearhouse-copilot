@@ -10,11 +10,14 @@ import distributionsRoutes from './routes/distributions'
 import logsRoutes from './routes/logs'
 import entitiesRoutes from './routes/entities'
 import employeesRoutes from './routes/employees'
+import auditRoutes from './routes/audit'
+import dataRoutes from './routes/data'
 import prisma from './prisma'
 
 const app = express()
 app.use(cors())
-app.use(bodyParser.json())
+app.use(bodyParser.json({ limit: '50mb' }))
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 
 app.use('/api/auth', authRoutes)
 app.use('/api/users', usersRoutes)
@@ -24,8 +27,16 @@ app.use('/api/distributions', distributionsRoutes)
 app.use('/api/logs', logsRoutes)
 app.use('/api/entities', entitiesRoutes)
 app.use('/api/employees', employeesRoutes)
+app.use('/api/audit', auditRoutes)
+app.use('/api/data', dataRoutes)
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
+
+// Global error handler – returns JSON so the frontend always sees a structured error
+app.use((err: any, _req: any, res: any, _next: any) => {
+  console.error('[ERROR]', err?.message ?? err)
+  res.status(err?.status ?? 500).json({ error: err?.message ?? 'Internal Server Error' })
+})
 
 const start = async () => {
   await prisma.$connect()

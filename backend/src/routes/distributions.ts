@@ -10,10 +10,19 @@ router.use(authGuard)
 router.post('/', roleGuard(['ADMIN','STORE_KEEPER']), async (req, res) => {
   try {
     const userId = (req as any).user.id
-    const { reference, items, beneficiaryId } = req.body
-    const distribution = await distributionService.createDistribution(userId, reference, items, beneficiaryId)
+    const { items, beneficiaryId, assignedToId, notes } = req.body
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'يرجى إضافة تجهيز واحد على الأقل' })
+    }
+
+    const reference = `DIST-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+    const distribution = await distributionService.createDistribution(
+      userId, reference, items, beneficiaryId, assignedToId, notes
+    )
     res.json({ data: distribution })
   } catch (err: any) {
+    console.error('Distribution POST error:', err)
     res.status(400).json({ error: err.message })
   }
 })

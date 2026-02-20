@@ -8,7 +8,8 @@ import Receptions from './pages/Receptions'
 import Distributions from './pages/Distributions'
 import Entities from './pages/Entities'
 import EntityDetails from './pages/EntityDetails'
-import Users from './pages/Users'
+// import Users from './pages/Users'
+import Calendar from './pages/Calendar'
 import Logs from './pages/Logs'
 import Settings from './pages/Settings'
 import Layout from './components/Layout'
@@ -40,7 +41,8 @@ export default function App() {
             <Route path="/distributions" element={<PrivateRoute children={<Distributions />} />} />
             <Route path="/entities" element={<PrivateRoute children={<Entities />} />} />
             <Route path="/entities/:id" element={<PrivateRoute children={<EntityDetails />} />} />
-            <Route path="/users" element={<PrivateRoute roles={["ADMIN"]} children={<Users />} />} />
+            <Route path="/calendar" element={<PrivateRoute children={<Calendar />} />} />
+            {/* <Route path="/users" element={<PrivateRoute roles={["ADMIN"]} children={<Users />} />} /> */}
             <Route path="/logs" element={<PrivateRoute roles={["ADMIN"]} children={<Logs />} />} />
             <Route path="/settings" element={<PrivateRoute roles={["ADMIN"]} children={<Settings />} />} />
           </Routes>

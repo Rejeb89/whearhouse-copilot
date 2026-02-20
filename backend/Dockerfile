@@ -13,4 +13,4 @@ WORKDIR /usr/src/app
 ENV NODE_ENV=production
 COPY --from=builder /usr/src/app .
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma migrate deploy || npx prisma db push && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/index.js"]

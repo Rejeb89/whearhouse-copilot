@@ -2,9 +2,18 @@ import prisma from '../prisma'
 import type { Prisma } from '@prisma/client'
 import { createLog } from './logService'
 
-export const createDistribution = async (userId: number, reference: string, items: { itemId: number; quantity: number }[], beneficiaryId?: number) => {
+export const createDistribution = async (
+  userId: number,
+  reference: string,
+  items: { itemId: number; quantity: number }[],
+  beneficiaryId?: number,
+  assignedToId?: number,
+  notes?: string
+) => {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const distribution = await tx.distribution.create({ data: { reference, userId, beneficiaryId } })
+    const distribution = await tx.distribution.create({
+      data: { reference, userId, beneficiaryId, assignedToId: assignedToId ?? null, notes: notes ?? null }
+    })
     for (const it of items) {
       const item = await tx.item.findUnique({ where: { id: it.itemId } })
       if (!item) throw new Error('Item not found')

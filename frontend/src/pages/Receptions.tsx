@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react'
+﻿import React, { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
-import { Check, Loader2, Plus, Search, Truck, Package, ClipboardList, Calendar, StickyNote } from 'lucide-react'
+import { Check, Loader2, Plus, Search, Truck } from 'lucide-react'
 
 interface Supplier {
   id: number
@@ -13,7 +13,7 @@ interface ReceptionFormState {
   itemName: string
   category: string
   quantity: number
-  reference: string
+  lowStockThreshold: number
   referenceNumber: string
   referenceDate: string
   notes: string
@@ -24,7 +24,7 @@ export default function Receptions() {
     itemName: '',
     category: '',
     quantity: 1,
-    reference: '',
+    lowStockThreshold: 5,
     referenceNumber: '',
     referenceDate: '',
     notes: ''
@@ -53,7 +53,7 @@ export default function Receptions() {
     const { name, value } = e.target
     setForm((prev) => ({
       ...prev,
-      [name]: name === 'quantity' ? Math.max(1, Number(value) || 1) : value
+      [name]: (name === 'quantity' || name === 'lowStockThreshold') ? Math.max(0, Number(value) || 0) : value
     }))
   }
 
@@ -61,15 +61,14 @@ export default function Receptions() {
     e.preventDefault()
     setError(null)
     setSuccess(null)
-    if (!form.itemName.trim() || !form.category.trim() || !form.reference.trim()) {
-      setError('يرجى تعبئة اسم التجهيز، صنف التجهيز والمرجع')
+    if (!form.itemName.trim() || !form.category.trim()) {
+      setError('يرجى تعبئة اسم التجهيز وصنف التجهيز')
       return
     }
 
     try {
       setSubmitting(true)
       await client.post('/receptions', {
-        reference: form.reference,
         referenceNumber: form.referenceNumber || undefined,
         referenceDate: form.referenceDate || undefined,
         supplierId: selectedSupplier?.id,
@@ -79,12 +78,12 @@ export default function Receptions() {
             itemName: form.itemName,
             category: form.category,
             quantity: form.quantity,
-            lowStockThreshold: 0
+            lowStockThreshold: form.lowStockThreshold
           }
         ]
       })
       setSuccess('تم تسجيل الاستلام بنجاح وتمت إضافة الكمية إلى المخزون')
-      setForm({ itemName: '', category: '', quantity: 1, reference: '', referenceNumber: '', referenceDate: '', notes: '' })
+      setForm({ itemName: '', category: '', quantity: 1, lowStockThreshold: 5, referenceNumber: '', referenceDate: '', notes: '' })
       setSelectedSupplier(null)
       setSupplierSearch('')
       setSupplierPhone('')
@@ -125,8 +124,8 @@ export default function Receptions() {
   return (
     <div dir="rtl" className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Package className="w-7 h-7 text-blue-600" />
+        <div>
+          <p className="text-sm text-gray-600">تسجيل تجهيزات جديدة في المخزون</p>
           <h1 className="text-2xl font-semibold">الاستقبالات</h1>
         </div>
         <div className="flex items-center gap-3 text-sm text-gray-700">
@@ -137,13 +136,9 @@ export default function Receptions() {
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <section className="lg:col-span-2 bg-white p-5 rounded shadow space-y-4">
-          <div className="flex gap-4 mb-4">
-            <ClipboardList className="w-5 h-5 text-gray-500" />
-            <span className="text-sm text-gray-500">أدخل بيانات التجهيزات</span>
-          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm mb-1 flex items-center gap-1"><Package className="w-4 h-4 text-blue-400" /> اسم التجهيز</label>
+              <label className="block text-sm mb-1">اسم التجهيز</label>
               <input
                 type="text"
                 name="itemName"
@@ -154,7 +149,7 @@ export default function Receptions() {
               />
             </div>
             <div>
-              <label className="block text-sm mb-1 flex items-center gap-1"><ClipboardList className="w-4 h-4 text-green-400" /> صنف التجهيز</label>
+              <label className="block text-sm mb-1">صنف التجهيز</label>
               <input
                 type="text"
                 name="category"
@@ -165,7 +160,7 @@ export default function Receptions() {
               />
             </div>
             <div>
-              <label className="block text-sm mb-1 flex items-center gap-1"><StickyNote className="w-4 h-4 text-yellow-400" /> الكمية</label>
+              <label className="block text-sm mb-1">الكمية</label>
               <input
                 type="number"
                 name="quantity"
@@ -177,19 +172,22 @@ export default function Receptions() {
               />
             </div>
             <div>
-              <label className="block text-sm mb-1 flex items-center gap-1"><ClipboardList className="w-4 h-4 text-purple-400" /> المرجع</label>
+              <label className="block text-sm mb-1 flex items-center gap-1">
+                حد التنبيه الأدنى
+                <span className="text-xs text-gray-400">(تنبيه عند انخفاض الكمية)</span>
+              </label>
               <input
-                type="text"
-                name="reference"
-                value={form.reference}
+                type="number"
+                name="lowStockThreshold"
+                min={0}
+                value={form.lowStockThreshold}
                 onChange={handleChange}
                 className="w-full border p-2 rounded"
-                placeholder="مثال: إذن بسحب"
-                required
+                placeholder="مثال: 5"
               />
             </div>
             <div>
-              <label className="block text-sm mb-1 flex items-center gap-1"><ClipboardList className="w-4 h-4 text-gray-400" /> رقم المرجع</label>
+              <label className="block text-sm mb-1">رقم المرجع</label>
               <input
                 type="text"
                 name="referenceNumber"
@@ -200,7 +198,7 @@ export default function Receptions() {
               />
             </div>
             <div>
-              <label className="block text-sm mb-1 flex items-center gap-1"><Calendar className="w-4 h-4 text-blue-400" /> تاريخ المرجع</label>
+              <label className="block text-sm mb-1">تاريخ المرجع</label>
               <input
                 type="date"
                 name="referenceDate"
@@ -211,7 +209,7 @@ export default function Receptions() {
             </div>
           </div>
           <div>
-            <label className="block text-sm mb-1 flex items-center gap-1"><StickyNote className="w-4 h-4 text-pink-400" /> الملاحظات</label>
+            <label className="block text-sm mb-1">الملاحظات</label>
             <textarea
               name="notes"
               value={form.notes}
