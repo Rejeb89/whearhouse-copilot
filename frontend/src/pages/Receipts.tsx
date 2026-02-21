@@ -57,27 +57,10 @@ const conditionLabel: Record<string, string> = {
 const fetchReceipts = async () => (await client.get('/receipts')).data.data
 const fetchReceiptById = async (id: number) => (await client.get(`/receipts/${id}`)).data.data
 
-// ─── QR Code canvas generation ────────────────────────────────────────────────
-function useQRCode(text: string) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  React.useEffect(() => {
-    if (!canvasRef.current || !text) return
-    // Simple QR using a small inline encoder is complex; use image API fallback
-    const img = new Image()
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(text)}&color=1e3a5f&bgcolor=ffffff`
-    img.onload = () => {
-      const ctx = canvasRef.current?.getContext('2d')
-      if (ctx && canvasRef.current) { ctx.drawImage(img, 0, 0, 140, 140) }
-    }
-  }, [text])
-  return canvasRef
-}
-
 // ─── Print-ready Receipt Component ───────────────────────────────────────────
 const ReceiptPrintTemplate = React.forwardRef<HTMLDivElement, { receipt: Receipt }>(
   ({ receipt }, ref) => {
     const d = receipt.distribution
-    const qrUrl = `${window.location.origin}/receipts?id=${receipt.id}`
 
     return (
       <div
@@ -199,7 +182,7 @@ const ReceiptPrintTemplate = React.forwardRef<HTMLDivElement, { receipt: Receipt
           </div>
         )}
 
-        {/* Signatures + QR */}
+        {/* Signatures */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '32px' }}>
           {['إمضاء المسلِّم', 'إمضاء المستلم', 'إمضاء المصادق'].map(label => (
             <div key={label} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', textAlign: 'center' }}>
@@ -210,22 +193,10 @@ const ReceiptPrintTemplate = React.forwardRef<HTMLDivElement, { receipt: Receipt
           ))}
         </div>
 
-        {/* Footer with QR */}
-        <div style={{ marginTop: '24px', borderTop: '1px solid #e2e8f0', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <div>
-            <div style={{ fontSize: '10px', color: '#9ca3af' }}>رقم الوصل: {receipt.serialNumber}</div>
-            <div style={{ fontSize: '10px', color: '#9ca3af' }}>تاريخ الطباعة: {new Date().toLocaleString('ar-TN')}</div>
-            <div style={{ fontSize: '10px', color: '#9ca3af', direction: 'ltr', marginTop: '4px' }}>{qrUrl}</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrUrl)}&color=1e3a5f`}
-              alt="QR"
-              style={{ width: '80px', height: '80px' }}
-            />
-            <div style={{ fontSize: '9px', color: '#9ca3af', marginTop: '2px' }}>رمز QR للتحقق</div>
-          </div>
+        {/* Footer */}
+        <div style={{ marginTop: '24px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+          <div style={{ fontSize: '10px', color: '#9ca3af' }}>رقم الوصل: {receipt.serialNumber}</div>
+          <div style={{ fontSize: '10px', color: '#9ca3af' }}>تاريخ الطباعة: {new Date().toLocaleString('ar-TN')}</div>
         </div>
       </div>
     )

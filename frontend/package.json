@@ -8,31 +8,32 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.14.1",
-    "@tanstack/react-query": "^4.35.0",
-    "axios": "^1.4.0",
-    "lucide-react": "^0.257.0",
+    "@fontsource/cairo": "^5.2.7",
     "@radix-ui/react-icons": "^1.0.0",
-    "classnames": "^2.3.2",
-    "recharts": "^2.10.0",
-    "xlsx": "^0.18.5",
-    "jspdf": "^2.5.1",
+    "@tanstack/react-query": "^4.35.0",
     "@visx/chord": "^3.3.0",
     "@visx/group": "^3.3.0",
     "@visx/scale": "^3.5.0",
+    "axios": "^1.4.0",
+    "classnames": "^2.3.2",
     "d3-chord": "^3.0.1",
     "d3-shape": "^3.2.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1",
+    "lucide-react": "^0.257.0",
     "qrcode": "^1.5.3",
-    "html2canvas": "^1.4.1"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.14.1",
+    "recharts": "^2.10.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "typescript": "^5.1.6",
-    "vite": "^5.0.0",
     "@vitejs/plugin-react": "^4.0.0",
-    "tailwindcss": "^3.4.7",
+    "autoprefixer": "^10.4.14",
     "postcss": "^8.4.21",
-    "autoprefixer": "^10.4.14"
+    "tailwindcss": "^3.4.7",
+    "typescript": "^5.1.6",
+    "vite": "^5.0.0"
   }
 }
