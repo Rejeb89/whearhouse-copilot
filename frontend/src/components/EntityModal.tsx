@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import client from '../api/client'
 
-type EntityCategory = 'الادارات المركزية' | 'الوحدات المتنفعة' | 'جهات مختلفة'
+type EntityCategory = string
 
-const CATEGORIES: { value: EntityCategory; label: string; type: 'SUPPLIER' | 'BENEFICIARY' }[] = [
-  { value: 'الادارات المركزية', label: 'الادارات المركزية', type: 'SUPPLIER' },
-  { value: 'الوحدات المتنفعة', label: 'الوحدات المتنفعة', type: 'BENEFICIARY' },
-  { value: 'جهات مختلفة',      label: 'جهات مختلفة',      type: 'BENEFICIARY' },
+const CATEGORIES: { value: string; label: string; type: 'SUPPLIER' | 'BENEFICIARY' }[] = [
+  { value: 'الادارات المركزية', label: 'إدارة مركزية',    type: 'SUPPLIER'     },
+  { value: 'الوحدات المتنفعة',  label: 'وحدة متنفعة',      type: 'BENEFICIARY'  },
+  { value: 'مزود',               label: 'مزود',               type: 'SUPPLIER'     },
+  { value: 'أخرى',               label: 'أخرى',               type: 'SUPPLIER'     },
 ]
 
 interface Entity {
@@ -28,7 +29,8 @@ interface EntityModalProps {
 }
 
 export default function EntityModal({ isOpen, onClose, onSuccess, entity }: EntityModalProps) {
-  const [category, setCategory] = useState<EntityCategory | ''>('')
+  const [category, setCategory] = useState<string>('')
+  const [originalCategory, setOriginalCategory] = useState<string>('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [unitHead, setUnitHead] = useState('')
@@ -36,13 +38,11 @@ export default function EntityModal({ isOpen, onClose, onSuccess, entity }: Enti
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const selectedCat = CATEGORIES.find(c => c.value === category)
-
   useEffect(() => {
     if (entity) {
-      // map stored category or fall back from type
-      const cat = entity.category as EntityCategory | undefined
-      setCategory(cat && CATEGORIES.find(c => c.value === cat) ? cat : (entity.type === 'SUPPLIER' ? 'الادارات المركزية' : 'الوحدات المتنفعة'))
+      const cat = entity.category || ''
+      setOriginalCategory(cat)
+      setCategory(cat)
       setName(entity.name)
       setPhone(entity.phone)
       setUnitHead(entity.unitHead || '')
@@ -54,6 +54,7 @@ export default function EntityModal({ isOpen, onClose, onSuccess, entity }: Enti
 
   const resetForm = () => {
     setCategory('')
+    setOriginalCategory('')
     setName('')
     setPhone('')
     setUnitHead('')
@@ -65,7 +66,7 @@ export default function EntityModal({ isOpen, onClose, onSuccess, entity }: Enti
     e.preventDefault()
     setError(null)
 
-    if (!category) {
+    if (!entity && !category) {
       setError('يجب اختيار نوع الجهة')
       return
     }
@@ -90,10 +91,11 @@ export default function EntityModal({ isOpen, onClose, onSuccess, entity }: Enti
 
     setLoading(true)
     try {
-      const entityType = selectedCat?.type || 'BENEFICIARY'
+      const entityType = CATEGORIES.find(c => c.value === category)?.type || entity?.type || 'SUPPLIER'
       if (entity) {
         await client.put(`/entities/${entity.id}`, {
           name,
+          type: entityType,
           category,
           phone,
           unitHead: category === 'الوحدات المتنفعة' ? unitHead : null,
@@ -136,9 +138,8 @@ export default function EntityModal({ isOpen, onClose, onSuccess, entity }: Enti
             <label className="block text-sm font-medium mb-1 text-foreground">تصنيف الجهة</label>
             <select
               value={category}
-              onChange={(e) => setCategory(e.target.value as EntityCategory | '')}
+              onChange={(e) => setCategory(e.target.value)}
               className="w-full border border-border bg-background text-foreground p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
-              disabled={!!entity}
             >
               <option value="">اختر تصنيف الجهة</option>
               {CATEGORIES.map(c => (
@@ -150,7 +151,6 @@ export default function EntityModal({ isOpen, onClose, onSuccess, entity }: Enti
           {category && (
             <>
               <div>
-                <label className="block text-sm font-medium mb-1 text-foreground">اسم الجهة</label>
                 <input
                   type="text"
                   value={name}

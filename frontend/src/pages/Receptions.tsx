@@ -53,6 +53,7 @@ export default function Receptions() {
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [addingSupplier, setAddingSupplier] = useState(false)
+  const [supplierType, setSupplierType] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -169,16 +170,22 @@ export default function Receptions() {
       setError('يرجى إدخال اسم الجهة المرسلة')
       return
     }
+    if (!supplierType) {
+      setError('يرجى تحديد نوع الجهة')
+      return
+    }
     try {
       setAddingSupplier(true)
       const res = await client.post('/entities', {
         name,
         type: 'SUPPLIER',
+        category: supplierType,
         phone: supplierPhone.trim() || 'غير متوفر'
       })
       setSelectedSupplier(res.data.data)
       setSupplierSearch('')
       setSupplierPhone('')
+      setSupplierType('')
       await refetchSuppliers()
       setSuccess('تمت إضافة الجهة المرسلة وربطها بالاستلام')
     } catch (err: any) {
@@ -546,6 +553,16 @@ export default function Receptions() {
               placeholder="هاتف الجهة (عند إضافة جديدة)"
               className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
+            <select
+              value={supplierType}
+              onChange={(e) => setSupplierType(e.target.value)}
+              className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">اختر نوع الجهة</option>
+              <option value="الادارات المركزية">إدارة مركزية</option>
+              <option value="مزود">مزود</option>
+              <option value="أخرى">أخرى</option>
+            </select>
             <button
               type="button"
               onClick={handleAddSupplier}
@@ -568,7 +585,12 @@ export default function Receptions() {
               <button
                 key={s.id}
                 type="button"
-                onClick={() => setSelectedSupplier(s)}
+                onClick={() => {
+                  setSelectedSupplier(s)
+                  setSupplierSearch('')
+                  setSupplierPhone('')
+                  setSupplierType('')
+                }}
                 className={`w-full text-right p-3 hover:bg-muted/50 flex items-center justify-between transition ${
                   selectedSupplier?.id === s.id ? 'bg-primary/10 border-r-4 border-primary' : ''
                 }`}

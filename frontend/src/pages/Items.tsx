@@ -7,6 +7,7 @@ import {
   Package, AlertTriangle, AlertCircle, ChevronLeft, BarChart2,
   Layers, Hash, Calendar, User, TrendingDown, TrendingUp, ArrowRight,
   Edit2, Trash2, X, Save, Search, Clock, Filter, SlidersHorizontal, Download,
+  Monitor, Smartphone, Wifi, HardDrive, Shield, Wrench, Truck, Book, Sofa, Cpu,
 } from 'lucide-react'
 import Receptions from './Receptions'
 import Distributions from './Distributions'
@@ -15,6 +16,30 @@ import { Receipt, ReceiptPrintTemplate, downloadPDF } from '../components/Receip
 const fetchItems = async () => (await client.get('/items')).data.data
 const fetchItemHistory = async (itemId: number) =>
   (await client.get(`/items/${itemId}/history`)).data.data
+
+const categoryIconRules: Array<{ matcher: RegExp; Icon: React.ComponentType<React.SVGProps<SVGSVGElement>> }> = [
+  { matcher: /أثاث|كرسي|طاولة|مكتب|سقْف/i, Icon: Sofa },
+  { matcher: /حاسوب|كمبيوتر|laptop|desktop|pc|حاسبة|نظام/i, Icon: Monitor },
+  { matcher: /محمول|هاتف|جوال|smartphone|mobile/i, Icon: Smartphone },
+  { matcher: /شبكة|راوتر|wifi|switch|network/i, Icon: Wifi },
+  { matcher: /هارد|تخزين|ssd|usb|قرص/i, Icon: HardDrive },
+  { matcher: /أمان|حماية|security|درع/i, Icon: Shield },
+  { matcher: /أدوات|صيانة|tool|wrench/i, Icon: Wrench },
+  { matcher: /مركبة|سيارة|شاحنة|truck|عربة/i, Icon: Truck },
+  { matcher: /برمجيات|system|software|cpu|برنامج/i, Icon: Cpu },
+  { matcher: /مستند|doc|كتاب|book/i, Icon: Book },
+]
+
+const getCategoryIcon = (
+  category?: string,
+  options?: { sizeClass?: string; colorClass?: string }
+) => {
+  const normalized = (category || '').toLowerCase()
+  const rule = categoryIconRules.find(r => r.matcher.test(normalized))
+  const Icon = rule?.Icon ?? Package
+  const { sizeClass = 'w-5 h-5', colorClass = 'text-primary' } = options || {}
+  return <Icon className={`${sizeClass} ${colorClass}`} />
+}
 
 type View = 'categories' | 'category-items' | 'item-report'
 type PageTab = 'items' | 'receptions' | 'distributions' | 'lowStock'
@@ -418,7 +443,7 @@ export default function Items() {
                         <button onClick={() => { setSelectedItem(it); setView('item-report') }} className="w-full text-right p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div className={`p-2 rounded-lg transition ${low ? 'bg-red-100 group-hover:bg-red-200' : 'bg-green-100 group-hover:bg-green-200'}`}>
-                              <Package className={`w-5 h-5 ${low ? 'text-red-600' : 'text-green-600'}`} />
+                              {getCategoryIcon(it.category, { colorClass: low ? 'text-red-600' : 'text-green-600' })}
                             </div>
                             <div className="flex items-center gap-1 text-muted-foreground/50 group-hover:text-primary transition text-xs">
                               <BarChart2 className="w-4 h-4" /> تقرير
@@ -486,7 +511,7 @@ export default function Items() {
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="p-2 rounded-lg bg-muted group-hover:bg-muted transition">
-                          <Layers className="w-5 h-5 text-primary" />
+                          {getCategoryIcon(cat, { sizeClass: 'w-6 h-6', colorClass: 'text-primary' })}
                         </div>
                         <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-primary/60 transition mt-1" />
                       </div>
@@ -531,7 +556,7 @@ export default function Items() {
                   <button onClick={() => openItemReport(it)} className="w-full text-right p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className={`p-2 rounded-lg transition ${low ? 'bg-red-100 group-hover:bg-red-200' : 'bg-green-100 group-hover:bg-green-200'}`}>
-                        <Package className={`w-5 h-5 ${low ? 'text-red-600' : 'text-green-600'}`} />
+                        {getCategoryIcon(it.category, { colorClass: low ? 'text-red-600' : 'text-green-600' })}
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground/50 group-hover:text-primary transition text-xs">
                         <BarChart2 className="w-4 h-4" /> تقرير
@@ -581,7 +606,7 @@ export default function Items() {
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-xl bg-muted shrink-0">
-                  <Package className="w-7 h-7 text-primary" />
+                  {getCategoryIcon(selectedItem.category, { sizeClass: 'w-7 h-7', colorClass: 'text-primary' })}
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-foreground">{selectedItem.name}</h2>

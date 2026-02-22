@@ -2,6 +2,7 @@ import express from 'express'
 import { authGuard } from '../middleware/authGuard'
 import { roleGuard } from '../middleware/roleGuard'
 import * as receiptService from '../services/receiptService'
+import prisma from '../prisma'
 
 const router = express.Router()
 router.use(authGuard)
@@ -59,6 +60,20 @@ router.patch('/:id/cancel', roleGuard(['ADMIN', 'STORE_KEEPER']), async (req, re
     res.json({ data: receipt })
   } catch (err: any) {
     res.status(400).json({ error: err.message })
+  }
+})
+
+// Upload signed attachment
+router.patch('/:id/signed-attachment', async (req, res) => {
+  try {
+    const { signedAttachment } = req.body
+    const receipt = await (prisma as any).deliveryReceipt.update({
+      where: { id: parseInt(req.params.id) },
+      data: { signedAttachment: signedAttachment ? JSON.stringify(signedAttachment) : null },
+    })
+    res.json({ data: receipt })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
   }
 })
 

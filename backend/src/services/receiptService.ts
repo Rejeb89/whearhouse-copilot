@@ -75,6 +75,12 @@ export const listReceipts = (page = 1, limit = 20) =>
         include: {
           beneficiary: { select: { id: true, name: true } },
           assignedTo: { select: { id: true, name: true, surname: true, rank: true } },
+          user: { select: { id: true, email: true, name: true } },
+          items: {
+            include: {
+              item: { select: { id: true, name: true, sku: true, category: true } },
+            },
+          },
         },
       },
       createdBy: { select: { id: true, email: true, name: true } },

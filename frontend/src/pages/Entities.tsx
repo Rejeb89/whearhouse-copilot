@@ -28,24 +28,49 @@ export default function Entities() {
   const [showModal, setShowModal] = useState(false)
   const [editingEntity, setEditingEntity] = useState<Entity | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('الادارات المركزية')
+  const [distributionCounts, setDistributionCounts] = useState<{ [key: number]: number }>({})
 
   const { data: entities = [], refetch } = useQuery(['entities'], async () => {
     const res = await client.get('/entities')
     return res.data.data
   }, { refetchInterval: 5000 })
 
-  const tabEntities = entities.filter((e: Entity) => {
+  // Load distribution counts for all entities
+  React.useEffect(() => {
+    const loadDistributionCounts = async () => {
+      const counts: { [key: number]: number } = {}
+      for (const entity of entities) {
+        try {
+          const res = await client.get(`/entities/${entity.id}/distributions-count`)
+          counts[entity.id] = res.data.data.distributionCount
+        } catch (err) {
+          counts[entity.id] = 0
+        }
+      }
+      setDistributionCounts(counts)
+    }
+    if (entities.length > 0) loadDistributionCounts()
+  }, [entities])
+
+  const isAdminCentral = (e: Entity) => {
     const cat = e.category || ''
-    if (activeTab === 'الادارات المركزية') return cat === 'الادارات المركزية' || (cat === '' && e.type === 'SUPPLIER')
-    if (activeTab === 'الوحدات المتنفعة')  return cat === 'الوحدات المتنفعة'  || (cat === '' && e.type === 'BENEFICIARY')
-    return cat === 'جهات مختلفة' || cat === 'OTHER'
+    return cat === 'الادارات المركزية' || cat === 'إدارة مركزية' || (cat === '' && e.type === 'SUPPLIER')
+  }
+  const isBeneficiary = (e: Entity) => {
+    const cat = e.category || ''
+    return cat === 'الوحدات المتنفعة' || (cat === '' && e.type === 'BENEFICIARY')
+  }
+
+  const tabEntities = entities.filter((e: Entity) => {
+    if (activeTab === 'الادارات المركزية') return isAdminCentral(e)
+    if (activeTab === 'الوحدات المتنفعة')  return isBeneficiary(e)
+    return !isAdminCentral(e) && !isBeneficiary(e)
   })
 
   const countFor = (tab: TabKey) => entities.filter((e: Entity) => {
-    const cat = e.category || ''
-    if (tab === 'الادارات المركزية') return cat === 'الادارات المركزية' || (cat === '' && e.type === 'SUPPLIER')
-    if (tab === 'الوحدات المتنفعة')  return cat === 'الوحدات المتنفعة'  || (cat === '' && e.type === 'BENEFICIARY')
-    return cat === 'جهات مختلفة' || cat === 'OTHER'
+    if (tab === 'الادارات المركزية') return isAdminCentral(e)
+    if (tab === 'الوحدات المتنفعة')  return isBeneficiary(e)
+    return !isAdminCentral(e) && !isBeneficiary(e)
   }).length
 
   const handleAddEntity = () => { setEditingEntity(null); setShowModal(true) }
@@ -57,8 +82,8 @@ export default function Entities() {
       try {
         await client.delete(`/entities/${id}`)
         refetch()
-      } catch {
-        alert('خطأ في حذف الجهة')
+      } catch (err: any) {
+        alert(err?.response?.data?.error || 'خطأ في حذف الجهة')
       }
     }
   }
@@ -83,10 +108,10 @@ export default function Entities() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition -mb-px ${
               activeTab === tab.key
-                ? 'border-primary text-primary bg-primary/5'
-                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             {tab.icon}
@@ -128,7 +153,13 @@ export default function Entities() {
                     </button>
                     <button
                       onClick={() => handleDeleteEntity(entity.id)}
-                      className="text-xs px-2.5 py-1 text-destructive border border-destructive/30 rounded-md hover:bg-destructive/10 transition"
+                      disabled={distributionCounts[entity.id] > 0}
+                      title={distributionCounts[entity.id] > 0 ? `مرتبطة بـ ${distributionCounts[entity.id]} عملية خرج` : ''}
+                      className={`text-xs px-2.5 py-1 border rounded-md transition ${
+                        distributionCounts[entity.id] > 0
+                          ? 'text-muted-foreground border-muted-foreground/30 bg-muted/20 cursor-not-allowed opacity-50'
+                          : 'text-destructive border-destructive/30 hover:bg-destructive/10'
+                      }`}
                     >
                       حذف
                     </button>

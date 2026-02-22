@@ -4,6 +4,7 @@ export const createEntity = async (data: {
   name: string
   type: 'SUPPLIER' | 'BENEFICIARY'
   category?: string
+  subCategory?: string
   phone: string
   unitHead?: string
   unitHeadPhone?: string
@@ -13,6 +14,7 @@ export const createEntity = async (data: {
       name: data.name,
       type: data.type,
       category: data.category || 'OTHER',
+      subCategory: data.subCategory,
       phone: data.phone,
       unitHead: data.unitHead,
       unitHeadPhone: data.unitHeadPhone,
@@ -35,7 +37,9 @@ export const getEntityById = async (id: number) => {
 
 export const updateEntity = async (id: number, data: {
   name?: string
+  type?: 'SUPPLIER' | 'BENEFICIARY'
   category?: string
+  subCategory?: string
   phone?: string
   unitHead?: string
   unitHeadPhone?: string
@@ -44,7 +48,9 @@ export const updateEntity = async (id: number, data: {
     where: { id },
     data: {
       name: data.name,
+      type: data.type,
       category: data.category,
+      subCategory: data.subCategory,
       phone: data.phone,
       unitHead: data.unitHead,
       unitHeadPhone: data.unitHeadPhone,
@@ -53,7 +59,22 @@ export const updateEntity = async (id: number, data: {
 }
 
 export const deleteEntity = async (id: number) => {
+  // Check if entity has any distributions
+  const distributionCount = await prisma.distribution.count({
+    where: { beneficiaryId: id }
+  })
+  
+  if (distributionCount > 0) {
+    throw new Error(`لا يمكن حذف هذه الجهة لأنها مرتبطة بـ ${distributionCount} عملية خرج`)
+  }
+
   return prisma.entity.delete({
     where: { id }
+  })
+}
+
+export const getDistributionsCount = async (id: number) => {
+  return prisma.distribution.count({
+    where: { beneficiaryId: id }
   })
 }

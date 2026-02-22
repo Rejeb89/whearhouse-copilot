@@ -25,6 +25,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token])
 
   useEffect(() => {
+    if (token) {
+      client.get('/auth/me').then(res => {
+        setUser(res.data.data)
+      }).catch(() => {})
+    }
+  }, [])
+
+  useEffect(() => {
     if (user) localStorage.setItem('user', JSON.stringify(user))
     else localStorage.removeItem('user')
   }, [user])

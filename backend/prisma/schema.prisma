@@ -108,6 +108,7 @@ model Entity {
   name            String
   type            EntityType
   category        String    @default("OTHER")
+  subCategory     String?
   phone           String
   unitHead        String?
   unitHeadPhone   String?
@@ -174,18 +175,31 @@ enum BudgetState {
 }
 
 model Budget {
-  id          Int           @id @default(autoincrement())
-  name        String
-  department  String
-  amount      Float
-  startDate   String
-  endDate     String
-  status      BudgetState   @default(active)
+  id             Int              @id @default(autoincrement())
+  name           String
+  department     String
+  amount         Float
+  startDate      String
+  endDate        String
+  status         BudgetState      @default(active)
+  notes          String?
+  createdBy      String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  expenses       BudgetExpense[]
+  supplyRequests SupplyRequest[]
+}
+
+model SupplyRequest {
+  id          Int      @id @default(autoincrement())
+  budget      Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  budgetId    Int
+  title       String
+  supplier    String?
   notes       String?
+  attachments String   @default("[]")
   createdBy   String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  expenses    BudgetExpense[]
+  createdAt   DateTime @default(now())
 }
 
 model BudgetExpense {
@@ -215,6 +229,7 @@ model DeliveryReceipt {
   cancelledAt    DateTime?
   cancelledById  Int?
   cancelledByEmail String?
+  signedAttachment String?
   createdById    Int
   createdBy      User          @relation("ReceiptCreator", fields: [createdById], references: [id])
   createdAt      DateTime      @default(now())

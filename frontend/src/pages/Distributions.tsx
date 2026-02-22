@@ -1,9 +1,9 @@
-﻿import React, { useMemo, useState, useEffect, useCallback, useContext } from 'react'
+﻿import React, { useMemo, useState, useEffect, useCallback, useContext, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import { AuthContext } from '../context/AuthContext'
-import { Check, Loader2, Plus, Search, UserCheck, RefreshCw, Info } from 'lucide-react'
+import { Check, Loader2, Plus, Search, UserCheck, RefreshCw, Info, ChevronDown, X } from 'lucide-react'
 
 interface Item {
   id: number
@@ -17,6 +17,8 @@ interface Entity {
   id: number
   name: string
   phone?: string
+  category?: string
+  type?: string
 }
 
 interface Employee {
@@ -44,6 +46,8 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
   // Item
   const [itemSearch, setItemSearch] = useState('')
   const [selectedItem, setSelectedItem] = useState<Item | null>(null)
+  const [itemDropdownOpen, setItemDropdownOpen] = useState(false)
+  const itemInputRef = useRef<HTMLInputElement>(null)
   const [quantity, setQuantity] = useState(1)
   const [notes, setNotes] = useState('')
 
@@ -111,8 +115,9 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
 
   const filteredBeneficiaries = useMemo(() => {
     const term = beneficiarySearch.trim().toLowerCase()
-    if (!term) return beneficiaries
-    return beneficiaries.filter(b => b.name.toLowerCase().includes(term) || (b.phone || '').toLowerCase().includes(term))
+    const onlyBeneficiary = beneficiaries.filter(b => b.category === 'الوحدات المتنفعة')
+    if (!term) return onlyBeneficiary
+    return onlyBeneficiary.filter(b => b.name.toLowerCase().includes(term) || (b.phone || '').toLowerCase().includes(term))
   }, [beneficiarySearch, beneficiaries])
 
   const filteredEmployees = useMemo(() => {
@@ -208,6 +213,7 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
       const res = await client.post('/entities', {
         name,
         type: 'BENEFICIARY',
+        category: 'الوحدات المتنفعة',
         phone: beneficiaryPhone.trim() || 'غير متوفر'
       })
       setSelectedBeneficiary(res.data.data)
@@ -266,41 +272,59 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
         {/* ===== Main form (left 2/3) ===== */}
         <section className="lg:col-span-2 rounded-xl border border-border bg-card p-5 space-y-4">
 
-          {/* 1. Item name search */}
+          {/* 1. Item name combobox */}
           <div>
             <label className="block text-sm mb-1">اسم التجهيز</label>
             <div className="relative">
-              <Search className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground" />
               <input
+                ref={itemInputRef}
                 type="text"
                 value={itemSearch}
-                onChange={e => { setItemSearch(e.target.value); setSelectedItem(null); setRefAutoFilled(false) }}
+                onChange={e => { setItemSearch(e.target.value); setSelectedItem(null); setRefAutoFilled(false); setItemDropdownOpen(true) }}
+                onFocus={() => setItemDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setItemDropdownOpen(false), 180)}
                 placeholder="ابحث باسم التجهيز أو الصنف..."
-                className="w-full border border-input bg-background p-2 pr-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full border border-input bg-background p-2 pl-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
+              <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+              {itemSearch && (
+                <button
+                  type="button"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => { setItemSearch(''); setSelectedItem(null); setRefAutoFilled(false); itemInputRef.current?.focus() }}
+                  className="absolute left-7 top-2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-            {itemSearch && !selectedItem && (
-              <div className="rounded-lg border border-border mt-1 max-h-44 overflow-y-auto shadow-sm">
-                {loadingItems && <div className="p-2 text-sm text-muted-foreground">جاري التحميل...</div>}
-                {!loadingItems && filteredItems.length === 0 && (
-                  <div className="p-2 text-sm text-muted-foreground">لا توجد تجهيزات مطابقة</div>
-                )}
-                {filteredItems.map(item => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleSelectItem(item)}
-                    className="w-full text-right p-2 hover:bg-muted/50 flex justify-between items-center border-b border-border last:border-0 transition"
-                  >
-                    <div>
-                      <div className="font-semibold text-sm text-foreground">{item.name}</div>
-                      <div className="text-xs text-muted-foreground">{item.category || 'بدون صنف'}</div>
-                    </div>
-                    <div className={`text-xs font-semibold ${item.quantity === 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      {item.quantity === 0 ? 'نفذ المخزون' : `${item.quantity} متوفر`}
-                    </div>
-                  </button>
-                ))}
+            {itemDropdownOpen && (
+              <div className="relative z-50">
+                <div className="absolute w-full rounded-lg border border-border bg-card shadow-lg max-h-52 overflow-y-auto mt-1">
+                  {loadingItems && <div className="p-2 text-sm text-muted-foreground">جاري التحميل...</div>}
+                  {!loadingItems && filteredItems.length === 0 && (
+                    <div className="p-2 text-sm text-muted-foreground">لا توجد تجهيزات مطابقة</div>
+                  )}
+                  {filteredItems.map(item => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => { handleSelectItem(item); setItemDropdownOpen(false) }}
+                      className={`w-full text-right px-3 py-2 hover:bg-muted/60 flex justify-between items-center border-b border-border last:border-0 transition ${
+                        selectedItem?.id === item.id ? 'bg-primary/10 font-semibold' : ''
+                      }`}
+                    >
+                      <div>
+                        <div className="font-semibold text-sm text-foreground">{item.name}</div>
+                        <div className="text-xs text-muted-foreground">{item.category || 'بدون صنف'}</div>
+                      </div>
+                      <div className={`text-xs font-semibold ${item.quantity === 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {item.quantity === 0 ? 'نفذ المخزون' : `${item.quantity} متوفر`}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             {selectedItem && (

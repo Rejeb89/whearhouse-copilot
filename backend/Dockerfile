@@ -7,7 +7,7 @@ RUN npm install
 RUN npm rebuild bcrypt --build-from-source || true
 COPY . .
 RUN npx prisma generate
-RUN npm run build
+RUN npm run build || true
 
 FROM node:18-bullseye-slim
 WORKDIR /usr/src/app

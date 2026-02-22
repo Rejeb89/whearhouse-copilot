@@ -290,6 +290,82 @@ router.post('/import', async (req, res) => {
   }
 })
 
+//  CLEAR DATA (Keep Admin Users Only)
+// Deletes all data in correct FK dependency order, preserving admin users
+
+router.post('/clear-data', async (req, res) => {
+  try {
+    // Get all admin users before deletion
+    const adminUsers = await prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true, email: true, name: true, role: true },
+    })
+
+    if (adminUsers.length === 0) {
+      return res.status(400).json({ error: 'يجب أن يكون هناك مسؤول واحد على الأقل' })
+    }
+
+    // Delete all data in correct FK dependency order
+    await prisma.deliveryReceipt.deleteMany()
+    await prisma.distributionItem.deleteMany()
+    await prisma.receptionItem.deleteMany()
+    await prisma.distribution.deleteMany()
+    await prisma.reception.deleteMany()
+    await prisma.employee.deleteMany()
+    await prisma.entity.deleteMany()
+    await prisma.item.deleteMany()
+    await prisma.log.deleteMany()
+    await prisma.budgetExpense.deleteMany()
+    await prisma.budget.deleteMany()
+    await prisma.supplyRequest.deleteMany()
+    // Delete non-admin users
+    await prisma.user.deleteMany({
+      where: { role: { not: 'ADMIN' } },
+    })
+
+    // Reset PostgreSQL sequences
+    try {
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Item"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Entity"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Employee"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Reception"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"ReceptionItem"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Distribution"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"DistributionItem"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Log"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Budget"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"BudgetExpense"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"DeliveryReceipt"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"SupplyRequest"','id'), 1, false)`)
+    } catch (seqErr: any) {
+      console.error('[clear-data] sequence reset error:', seqErr.message)
+    }
+
+    const actor = (req as any).user
+    await createAuditLog({
+      action: 'CLEAR_DATA',
+      entity: 'System',
+      actorEmail: actor?.email,
+      actorId: actor?.id,
+      details: JSON.stringify({
+        cleared: true,
+        adminUsersPreserved: adminUsers.length,
+        preservedAdmins: adminUsers.map(u => u.email),
+      }),
+    })
+
+    res.json({
+      data: {
+        ok: true,
+        message: 'تم حذف جميع البيانات بنجاح (تم الاحتفاظ بـ ' + adminUsers.length + ' مسؤول)',
+        preservedAdmins: adminUsers,
+      },
+    })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 //  DATABASE STATS 
 
 router.get('/stats', async (_req, res) => {

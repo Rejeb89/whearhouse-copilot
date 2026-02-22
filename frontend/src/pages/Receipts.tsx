@@ -1,10 +1,10 @@
-import React, { useContext, useRef, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import { AuthContext } from '../context/AuthContext'
 import {
   FileText, CheckCircle, XCircle, Download, Eye, Search,
-  Printer, AlertTriangle, Clock, ChevronRight, X, Package
+  Printer, AlertTriangle, Clock, ChevronRight, X, Package, Paperclip, Upload, ImageIcon
 } from 'lucide-react'
 import { Receipt, conditionLabel, downloadPDF, ReceiptPrintTemplate } from '../components/ReceiptPrintTemplate'
 
@@ -30,7 +30,27 @@ export default function Receipts() {
   const [printVisible, setPrintVisible] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
 
+  // Signed attachment: local map receiptId → parsed attachment
+  const [signedAtts, setSignedAtts] = useState<Record<number, {name: string; data: string; type: string}>>( {})
+  const [uploadingId, setUploadingId] = useState<number | null>(null)
+  const signedFileRef = useRef<HTMLInputElement>(null)
+  const [activeUploadId, setActiveUploadId] = useState<number | null>(null)
+
   const { data: receipts = [], isLoading } = useQuery<Receipt[]>(['receipts'], fetchReceipts, { refetchInterval: 15000 })
+
+  // Seed signedAtts from list data
+  useEffect(() => {
+    if (!receipts.length) return
+    setSignedAtts(prev => {
+      const next = { ...prev }
+      receipts.forEach((r: any) => {
+        if (r.signedAttachment && !next[r.id]) {
+          try { next[r.id] = JSON.parse(r.signedAttachment) } catch { /* ignore */ }
+        }
+      })
+      return next
+    })
+  }, [receipts])
   const { data: selectedReceipt, isLoading: loadingDetail } = useQuery<Receipt>(
     ['receipt', selectedId],
     () => fetchReceiptById(selectedId!),
@@ -58,6 +78,31 @@ export default function Receipts() {
     await new Promise(r => setTimeout(r, 500))
     await downloadPDF('receipt-print-area', `${selectedReceipt.serialNumber}.pdf`)
     setPrintVisible(false)
+  }
+
+  const handleSignedFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || activeUploadId === null) return
+    e.target.value = ''
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      const att = { name: file.name, data: ev.target?.result as string, type: file.type }
+      setUploadingId(activeUploadId)
+      try {
+        await client.patch(`/receipts/${activeUploadId}/signed-attachment`, { signedAttachment: att })
+        setSignedAtts(prev => ({ ...prev, [activeUploadId]: att }))
+        qc.invalidateQueries(['receipts'])
+      } finally {
+        setUploadingId(null)
+        setActiveUploadId(null)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const downloadAtt = (att: {name: string; data: string}) => {
+    const a = document.createElement('a'); a.href = att.data; a.download = att.name
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
   }
 
   return (
@@ -113,32 +158,65 @@ export default function Receipts() {
         ) : (
           <table className="w-full text-sm text-right">
             <thead>
-              <tr className="border-b border-border bg-muted/50 text-xs text-muted-foreground font-medium">
-                <th className="px-4 py-3">رقم الوصل</th>
-                <th className="px-4 py-3">الجهة</th>
-                <th className="px-4 py-3">المستلم</th>
-                <th className="px-4 py-3">تاريخ الإصدار</th>
-                <th className="px-4 py-3">الحالة</th>
-                <th className="px-4 py-3">إجراءات</th>
-              </tr>
+                <tr className="border-b border-border bg-muted/50 text-xs text-muted-foreground font-medium">
+                  <th className="px-4 py-3">رقم الوصل</th>
+                  <th className="px-4 py-3">اسم التجهيز</th>
+                  <th className="px-4 py-3">الجهة المنتفعة</th>
+                  <th className="px-4 py-3">المستلم</th>
+                  <th className="px-4 py-3">القائم بالتسليم</th>
+                  <th className="px-4 py-3">تاريخ الإصدار</th>
+                  <th className="px-4 py-3">الوصل بعد الامضاء</th>
+                  <th className="px-4 py-3">إجراءات</th>
+                </tr>
             </thead>
             <tbody>
               {filtered.map(r => {
-                const st = statusLabel[r.status]
                 return (
                   <tr key={r.id} className="border-b border-border hover:bg-muted/50 transition">
                     <td className="px-4 py-3 font-mono font-semibold text-primary">{r.serialNumber}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {(r.distribution.items || []).map(i => i.item.name).filter(Boolean).join(', ') || '—'}
+                    </td>
                     <td className="px-4 py-3 text-foreground">{r.distribution.beneficiary?.name || '—'}</td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
                       {r.distribution.assignedTo
                         ? `${r.distribution.assignedTo.rank} ${r.distribution.assignedTo.name} ${r.distribution.assignedTo.surname}`
                         : '—'}
                     </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      {r.distribution.deliveredByName || r.distribution.user?.name || r.distribution.user?.email || '—'}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(r.issuedAt).toLocaleDateString('ar-TN')}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${st.bg} ${st.color}`}>
-                        {st.icon} {st.label}
-                      </span>
+                      {(() => {
+                        const att = signedAtts[r.id]
+                        const isUploading = uploadingId === r.id
+                        if (att) {
+                          return (
+                            <div className="flex flex-col gap-1.5">
+                              {att.type?.startsWith('image/') ? (
+                                <img src={att.data} alt={att.name} className="w-14 h-14 object-cover rounded-lg border border-border cursor-pointer hover:opacity-90" onClick={() => window.open(att.data, '_blank')} title="عرض الصورة"/>
+                              ) : (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground"><Paperclip className="w-3.5 h-3.5"/><span className="truncate max-w-[90px]">{att.name}</span></div>
+                              )}
+                              <div className="flex gap-1">
+                                <button onClick={() => downloadAtt(att)} className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-primary/10 text-primary rounded hover:bg-primary/20 transition"><Download className="w-3 h-3"/>تحميل</button>
+                                <button onClick={() => { setActiveUploadId(r.id); signedFileRef.current?.click() }} className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-muted text-muted-foreground rounded hover:bg-muted/70 transition"><Upload className="w-3 h-3"/>تغيير</button>
+                              </div>
+                            </div>
+                          )
+                        }
+                        return (
+                          <button
+                            disabled={isUploading}
+                            onClick={() => { setActiveUploadId(r.id); signedFileRef.current?.click() }}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-dashed border-border rounded-lg text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition disabled:opacity-50"
+                          >
+                            {isUploading ? <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"/> : <Upload className="w-3.5 h-3.5"/>}
+                            {isUploading ? 'جارٍ...' : 'إرفاق'}
+                          </button>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <button
@@ -270,6 +348,34 @@ export default function Receipts() {
                     </div>
                   </div>
 
+                  {/* Signed Attachment */}
+                  {(() => {
+                    const att = selectedReceipt?.id ? signedAtts[selectedReceipt.id] : null
+                    return (
+                      <div className="rounded-lg border border-border bg-muted/30 p-4">
+                        <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5 text-primary"/>الوصل بعد الامضاء</p>
+                        {att ? (
+                          <div className="flex flex-col gap-2">
+                            {att.type?.startsWith('image/') ? (
+                              <img src={att.data} alt={att.name} className="max-h-64 rounded-lg border border-border object-contain cursor-pointer" onClick={() => window.open(att.data, '_blank')}/>
+                            ) : (
+                              <div className="flex items-center gap-2 text-sm text-foreground"><Paperclip className="w-4 h-4 text-muted-foreground"/>{att.name}</div>
+                            )}
+                            <div className="flex gap-2">
+                              <button onClick={() => downloadAtt(att)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition"><Download className="w-3.5 h-3.5"/>تحميل</button>
+                              <button onClick={() => { setActiveUploadId(selectedReceipt!.id); signedFileRef.current?.click() }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-muted text-muted-foreground rounded-lg hover:bg-muted/70 transition"><Upload className="w-3.5 h-3.5"/>تغيير الملف</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button onClick={() => { setActiveUploadId(selectedReceipt!.id); signedFileRef.current?.click() }}
+                            className="flex items-center gap-2 w-full border border-dashed border-border rounded-lg p-3 text-sm text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition">
+                            <Upload className="w-4 h-4"/>انقر لإرفاق صورة أو ملف PDF للوصل بعد الامضاء
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })()}
+
                   {/* Approval info */}
                   {selectedReceipt.approvedBy && (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-3">
@@ -296,6 +402,15 @@ export default function Receipts() {
           </div>
         </div>
       )}
+
+      {/* Hidden file input for signed attachment */}
+      <input
+        ref={signedFileRef}
+        type="file"
+        accept="image/*,.pdf,application/pdf"
+        className="hidden"
+        onChange={handleSignedFile}
+      />
 
       {/* Hidden Print Area */}
       {printVisible && selectedReceipt && (

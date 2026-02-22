@@ -101,6 +101,22 @@ export const getDistributionsByEntity = async (beneficiaryId: number) => {
           name: true,
         },
       },
+      assignedTo: {
+        select: {
+          id: true,
+          rank: true,
+          name: true,
+          surname: true,
+        },
+      },
+      receipt: {
+        select: {
+          id: true,
+          serialNumber: true,
+          status: true,
+          issuedAt: true,
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   })

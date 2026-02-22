@@ -1,5 +1,5 @@
 import React, { useContext } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
 import { LayoutDashboard, Package, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck, X } from 'lucide-react'
 
@@ -10,6 +10,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user } = useContext(AuthContext)
+  const location = useLocation()
 
   return (
     <>
@@ -42,36 +43,43 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div className="flex flex-row items-center gap-3 h-14 px-4 border-b border-border shrink-0">
           <img src="/logo.png" alt="شعار الحرس الوطني" className="h-9 w-9 object-contain shrink-0" />
           {user?.securityUnit && (
-            <p className="text-xs font-semibold text-foreground text-right leading-tight">{user.securityUnit}</p>
+            <p className="text-xs font-semibold text-foreground leading-tight">{user.securityUnit}</p>
           )}
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto p-2">
-          <ul className="space-y-0.5">
+        <nav className="flex-1 overflow-y-auto p-3">
+          <ul className="space-y-1">
             {[
-              { to: '/',             icon: <LayoutDashboard className="w-4 h-4" />, label: 'لوحة التحكم' },
-              { to: '/items',        icon: <Package className="w-4 h-4" />,         label: 'التجهيزات' },
-              { to: '/entities',     icon: <Building2 className="w-4 h-4" />,       label: 'الجهات' },
-              { to: '/calendar',     icon: <CalendarDays className="w-4 h-4" />,    label: 'الرزنامة' },
-              { to: '/receipts',     icon: <ClipboardCheck className="w-4 h-4" />,  label: 'وصولات التسليم' },
+              { to: '/',             icon: <LayoutDashboard className="w-5 h-5" />, label: 'لوحة التحكم' },
+              { to: '/items',        icon: <Package className="w-5 h-5" />,         label: 'التجهيزات' },
+              { to: '/entities',     icon: <Building2 className="w-5 h-5" />,       label: 'الجهات' },
+              { to: '/calendar',     icon: <CalendarDays className="w-5 h-5" />,    label: 'الرزنامة' },
+              { to: '/receipts',     icon: <ClipboardCheck className="w-5 h-5" />,  label: 'وصولات التسليم' },
               ...(user?.role === 'ADMIN' ? [
-                { to: '/budgets',  icon: <Wallet className="w-4 h-4" />,   label: 'الاعتمادات المالية' },
-                { to: '/logs',     icon: <FileText className="w-4 h-4" />,  label: 'السجلات' },
-                { to: '/settings', icon: <Settings className="w-4 h-4" />, label: 'الإعدادات' },
+                { to: '/budgets',  icon: <Wallet className="w-5 h-5" />,   label: 'الاعتمادات المالية' },
+                { to: '/logs',     icon: <FileText className="w-5 h-5" />,  label: 'السجلات' },
+                { to: '/settings', icon: <Settings className="w-5 h-5" />, label: 'الإعدادات' },
               ] : []),
-            ].map(({ to, icon, label }) => (
+            ].map(({ to, icon, label }) => {
+              const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
+              return (
               <li key={to}>
                 <Link
                   to={to}
                   onClick={onClose}
-                  className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                  className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-base font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground font-bold shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
                 >
                   {icon}
-                  {label}
+                  <span>{label}</span>
                 </Link>
               </li>
-            ))}
+              )
+            })}
           </ul>
         </nav>
 

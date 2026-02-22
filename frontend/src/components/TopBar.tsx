@@ -25,8 +25,19 @@ const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
     navigate('/login')
   }
 
-  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+  
+  const formatDateArabic = (date: Date) => {
+    const daysAr = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
+    const monthsAr = ['جانفي', 'فيفري', 'مارس', 'افريل', 'ماي', 'جوان', 'جويلية', 'اوت', 'سبتمبر', 'اكتوبر', 'نوفمبر', 'ديسمبر']
+    const day = daysAr[date.getDay()]
+    const month = monthsAr[date.getMonth()]
+    const dateNum = date.getDate()
+    const year = date.getFullYear()
+    return `${day} ${dateNum} ${month} ${year}`
+  }
+  
+  const dateStr = formatDateArabic(now)
 
   return (
     <header className="w-full flex items-center justify-between gap-4 px-6 h-14 border-b border-border bg-card shrink-0" dir="rtl">
@@ -40,8 +51,7 @@ const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
       </button>
 
       <div className="shrink-0 text-right">
-        <span className="text-sm font-semibold text-foreground">{timeStr}</span>
-        <div className="text-xs text-muted-foreground">{dateStr}</div>
+        <div className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">{timeStr}</span> {dateStr}</div>
       </div>
 
       <div className="relative shrink-0">

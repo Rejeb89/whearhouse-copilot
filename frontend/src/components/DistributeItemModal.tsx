@@ -113,6 +113,7 @@ export default function DistributeItemModal({ isOpen, onClose, onSuccess }: Dist
       const res = await client.post('/entities', {
         name: newBeneficiaryName,
         type: 'BENEFICIARY',
+        category: 'الوحدات المتنفعة',
         phone: '',
       })
       const newBeneficiary = res.data.data

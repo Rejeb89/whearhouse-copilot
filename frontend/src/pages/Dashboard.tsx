@@ -3,12 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import { AuthContext } from '../context/AuthContext'
 import DistributeItemModal from '../components/DistributeItemModal'
-import { Truck, AlertCircle, User, Package, TrendingDown, TrendingUp, BarChart3, LogOut, X, Search, CalendarDays } from 'lucide-react'
+import { Truck, AlertCircle, User, Package, TrendingDown, TrendingUp, BarChart3, LogOut, X, Search, CalendarDays, Wallet, DollarSign, PiggyBank, ArrowRightLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import LowStockChordChart from '../components/LowStockChordChart'
 
 const fetchItems = async () => (await client.get('/items')).data.data
 const fetchDistributions = async () => (await client.get('/distributions/recent')).data.data
+const fetchBudgets = async () => (await client.get('/budgets')).data.data
 
 type CalendarEvent = {
   id: string
@@ -28,6 +29,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const { data: items = [], refetch: refetchItems } = useQuery(['items'], fetchItems, { refetchInterval: 5000 })
   const { data: distributions = [], refetch: refetchDistributions } = useQuery(['distributions'], fetchDistributions, { refetchInterval: 5000 })
+  const { data: budgets = [] } = useQuery(['budgets'], fetchBudgets, { refetchInterval: 30000 })
   const [lowAlerts, setLowAlerts] = useState<any[]>([])
   const [showDistributeModal, setShowDistributeModal] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -321,40 +323,95 @@ export default function Dashboard() {
 
       </div>
 
-      {/* ── Upcoming Events ── */}
-      <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-        <div className="flex items-center justify-between p-6 pb-4 border-b border-border">
-          <div>
-            <h3 className="font-semibold text-foreground flex items-center gap-2">
-              <CalendarDays className="w-4 h-4" />
-              الأحداث القادمة
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">مزامنة من الرزنامة</p>
+      {/* ── Budget Statistics ── */}
+      {(() => {
+        const activeBudgets = (budgets as any[]).filter((b: any) => b.status === 'active')
+        const totalBudget = activeBudgets.reduce((s: number, b: any) => s + b.amount, 0)
+        const totalSpent = activeBudgets.reduce((s: number, b: any) => s + (b.spent ?? 0), 0)
+        const totalRemaining = totalBudget - totalSpent
+        const consumedPct = totalBudget > 0 ? Math.min(Math.round((totalSpent / totalBudget) * 100), 100) : 0
+        const fmt = (n: number) => n.toLocaleString('ar-DZ', { minimumFractionDigits: 0 })
+        return (
+          <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/budgets')}>
+            <div className="flex items-center justify-between p-6 pb-4 border-b border-border">
+              <div>
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Wallet className="w-4 h-4" />
+                  الاعتمادات المالية
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">ملخص الاعتمادات النشطة</p>
+              </div>
+              <span className="text-xs text-muted-foreground">عرض الكل ←</span>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3 shadow-sm">
+                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-muted-foreground font-medium">إجمالي الاعتمادات</p>
+                    <p className="text-sm font-bold text-foreground truncate">{fmt(totalBudget)} د.ت</p>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3 shadow-sm">
+                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <TrendingDown className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-muted-foreground font-medium">إجمالي المصاريف</p>
+                    <p className="text-sm font-bold text-foreground truncate">{fmt(totalSpent)} د.ت</p>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3 shadow-sm">
+                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <PiggyBank className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-muted-foreground font-medium">المتبقّي</p>
+                    <p className="text-sm font-bold text-foreground truncate">{fmt(totalRemaining)} د.ت</p>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3 shadow-sm">
+                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <ArrowRightLeft className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-muted-foreground font-medium">المستهلك</p>
+                    <p className="text-sm font-bold text-foreground">{consumedPct}%</p>
+                  </div>
+                </div>
+              </div>
+              {/* progress bars per active budget */}
+              {activeBudgets.length === 0 ? (
+                <p className="text-sm text-muted-foreground">لا توجد اعتمادات نشطة</p>
+              ) : (
+                <ul className="space-y-3">
+                  {activeBudgets.map((b: any) => {
+                    const sp = b.spent ?? 0
+                    const p = b.amount > 0 ? Math.min(Math.round((sp / b.amount) * 100), 100) : 0
+                    const danger = p >= 90
+                    const warn = p >= 70
+                    const barColor = danger ? 'bg-red-500' : warn ? 'bg-amber-500' : 'bg-blue-500'
+                    return (
+                      <li key={b.id} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-foreground truncate max-w-[60%]">{b.name}</p>
+                          <span className="text-xs text-muted-foreground">{fmt(sp)} / {fmt(b.amount)} د.ت</span>
+                        </div>
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${p}%` }} />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground text-left">{p}%</p>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
           </div>
-          <button onClick={() => navigate('/calendar')} className="text-xs text-muted-foreground hover:text-foreground transition-colors">عرض الكل</button>
-        </div>
-        <div className="p-6">
-          {upcomingEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">لا توجد أحداث مرتبة</p>
-          ) : (
-            <ul className="space-y-3">
-              {upcomingEvents.map((event) => (
-                <li key={event.id} className="flex items-start justify-between gap-4 rounded-lg border border-border p-4 hover:bg-muted/50 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{event.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{event.description || 'بدون وصف'}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">{event.linkedItemId ? '🔗 مرتبط بتجهيز' : event.linkedTransport ? '🚐 مرتبط بوسيلة نقل' : ''}</p>
-                  </div>
-                  <div className="text-left shrink-0">
-                    <p className="text-xs font-medium text-foreground">{event.date}</p>
-                    <p className="text-xs text-muted-foreground">{event.time}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
+        )
+      })()}
 
       <DistributeItemModal
         isOpen={showDistributeModal}

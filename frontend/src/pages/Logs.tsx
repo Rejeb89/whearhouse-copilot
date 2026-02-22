@@ -11,7 +11,7 @@ import {
   ChevronLeft, ChevronRight, X, Filter,
   DollarSign, Package, ArrowDownToLine, ArrowUpFromLine,
   ClipboardList, Layers, ShieldCheck, Clock, Eye,
-  AlertTriangle, CheckCircle2,
+  AlertTriangle, CheckCircle2, SlidersHorizontal, ChevronDown, ChevronUp,
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -62,8 +62,8 @@ const ACTION_LABELS: Record<string, string> = {
 const TABLE_LABELS: Record<string, string> = {
   User: 'مستخدمون',
   Item: 'أصناف',
-  Reception: 'مدخلات',
-  Distribution: 'مخرجات',
+  Reception: 'دخل',
+  Distribution: 'خرج',
   Entity: 'جهات',
   Employee: 'موظفون',
   Budget: 'اعتمادات',
@@ -251,15 +251,15 @@ function BudgetBar({ budget }: { budget: Budget }) {
         <div className="text-left shrink-0">
           <p className="text-xs text-muted-foreground">الرصيد المتبقي</p>
           <p className={`text-lg font-bold ${danger ? 'text-red-600' : warning ? 'text-yellow-600' : 'text-foreground'}`}>
-            {(budget.amount - spent).toLocaleString('ar-DZ')} دج
+            {(budget.amount - spent).toLocaleString('ar-DZ')} د.ت
           </p>
         </div>
       </div>
       <div className="space-y-1">
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>المصروف: {spent.toLocaleString('ar-DZ')} دج</span>
+          <span>المصروف: {spent.toLocaleString('ar-DZ')} د.ت</span>
           <span className="font-semibold">{pct.toFixed(1)}%</span>
-          <span>الاعتماد: {budget.amount.toLocaleString('ar-DZ')} دج</span>
+          <span>الاعتماد: {budget.amount.toLocaleString('ar-DZ')} د.ت</span>
         </div>
         <div className="h-2 rounded-full bg-muted overflow-hidden">
           <div
@@ -359,17 +359,35 @@ export default function Logs() {
   const [filterFrom,   setFilterFrom]   = useState('')
   const [filterTo,     setFilterTo]     = useState('')
   const [filterSearch, setFilterSearch] = useState('')
+  const [filterUser,   setFilterUser]   = useState('')
+  const [sortDir,      setSortDir]      = useState<'desc'|'asc'>('desc')
+  const [pageSize,     setPageSize]     = useState(50)
+  const [filtersOpen,  setFiltersOpen]  = useState(true)
   const [currentPage,  setCurrentPage]  = useState(1)
-  const PAGE_SIZE = 50
+
+  const applyDatePreset = (preset: 'today'|'week'|'month') => {
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
+    const today = fmt(now)
+    if (preset === 'today') { setFilterFrom(today); setFilterTo(today) }
+    else if (preset === 'week') {
+      const mon = new Date(now); mon.setDate(now.getDate() - now.getDay() + 1)
+      setFilterFrom(fmt(mon)); setFilterTo(today)
+    } else {
+      setFilterFrom(`${now.getFullYear()}-${pad(now.getMonth()+1)}-01`); setFilterTo(today)
+    }
+    setCurrentPage(1)
+  }
 
   const logsParams = useMemo(() => {
-    const p: Record<string, string> = { limit: String(PAGE_SIZE), page: String(currentPage) }
+    const p: Record<string, string> = { limit: String(pageSize), page: String(currentPage) }
     if (filterAction) p.action = filterAction
     if (filterTable)  p.table  = filterTable
     if (filterFrom)   p.from   = filterFrom
     if (filterTo)     p.to     = filterTo
     return p
-  }, [filterAction, filterTable, filterFrom, filterTo, currentPage])
+  }, [filterAction, filterTable, filterFrom, filterTo, currentPage, pageSize])
 
   // Queries
   const { data: logsData, isLoading: logsLoading, refetch: refetchLogs } =
@@ -397,7 +415,7 @@ export default function Logs() {
   // Derived values
   const logs: Log[]       = logsData?.data ?? []
   const logsMeta          = logsData?.meta ?? { total: 0, page: 1 }
-  const totalPages        = Math.ceil((logsMeta.total ?? 0) / PAGE_SIZE)
+  const totalPages        = Math.ceil((logsMeta.total ?? 0) / pageSize)
   const budgets: Budget[] = Array.isArray(budgetsRaw) ? budgetsRaw : (budgetsRaw?.data ?? [])
   const items: any[]      = Array.isArray(itemsRaw)   ? itemsRaw   : (itemsRaw?.data ?? [])
 
@@ -410,22 +428,36 @@ export default function Logs() {
   const budgetUtilPct  = totalBudgetAmt > 0 ? (totalSpent / totalBudgetAmt) * 100 : 0
   const todayLogs      = logs.filter(l => new Date(l.createdAt).toDateString() === now.toDateString()).length
 
-  // Client-side search
+  // Client-side search + user filter + sort
   const displayedLogs = useMemo(() => {
-    if (!filterSearch.trim()) return logs
-    const q = filterSearch.toLowerCase()
-    return logs.filter(l =>
-      l.action.toLowerCase().includes(q) ||
-      l.table.toLowerCase().includes(q) ||
-      String(l.recordId ?? '').includes(q) ||
-      (l.user?.email ?? '').toLowerCase().includes(q) ||
-      (l.user?.name ?? '').toLowerCase().includes(q) ||
-      (l.transactionType ?? '').toLowerCase().includes(q) ||
-      (l.equipmentNames?.join(', ') ?? '').toLowerCase().includes(q) ||
-      (l.counterparty ?? '').toLowerCase().includes(q) ||
-      (l.assignedTo ?? '').toLowerCase().includes(q),
-    )
-  }, [logs, filterSearch])
+    let result = [...logs]
+    if (filterSearch.trim()) {
+      const q = filterSearch.toLowerCase()
+      result = result.filter(l =>
+        l.action.toLowerCase().includes(q) ||
+        l.table.toLowerCase().includes(q) ||
+        String(l.recordId ?? '').includes(q) ||
+        (l.user?.email ?? '').toLowerCase().includes(q) ||
+        (l.user?.name ?? '').toLowerCase().includes(q) ||
+        (l.transactionType ?? '').toLowerCase().includes(q) ||
+        (l.equipmentNames?.join(', ') ?? '').toLowerCase().includes(q) ||
+        (l.counterparty ?? '').toLowerCase().includes(q) ||
+        (l.assignedTo ?? '').toLowerCase().includes(q),
+      )
+    }
+    if (filterUser.trim()) {
+      const u = filterUser.toLowerCase()
+      result = result.filter(l =>
+        (l.user?.name ?? '').toLowerCase().includes(u) ||
+        (l.user?.email ?? '').toLowerCase().includes(u)
+      )
+    }
+    result.sort((a, b) => {
+      const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      return sortDir === 'desc' ? -diff : diff
+    })
+    return result
+  }, [logs, filterSearch, filterUser, sortDir])
 
   const handleExcelCurrent = useCallback(async () => {
     setExportingExcel(true)
@@ -547,7 +579,7 @@ export default function Logs() {
             <KpiCard
               label="نسبة استهلاك الاعتمادات"
               value={`${budgetUtilPct.toFixed(1)}%`}
-              sub={`${totalSpent.toLocaleString('ar-DZ')} من ${totalBudgetAmt.toLocaleString('ar-DZ')} دج`}
+              sub={`${totalSpent.toLocaleString('ar-DZ')} من ${totalBudgetAmt.toLocaleString('ar-DZ')} د.ت`}
               icon={<Activity className="w-5 h-5 text-orange-600" />}
               accent="bg-orange-100"
             />
@@ -571,7 +603,7 @@ export default function Logs() {
             />
             <KpiCard
               label="الرصيد المتبقي الإجمالي"
-              value={`${(totalBudgetAmt - totalSpent).toLocaleString('ar-DZ')} دج`}
+              value={`${(totalBudgetAmt - totalSpent).toLocaleString('ar-DZ')} د.ت`}
               sub="للاعتمادات الفعّالة"
               icon={<DollarSign className="w-5 h-5 text-teal-600" />}
               accent="bg-teal-100"
@@ -704,90 +736,196 @@ export default function Logs() {
       {activeTab === 'audit' && (
         <div className="space-y-4 pt-2">
 
-          {/* Filter panel */}
-          <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-            <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              فلاتر البحث
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <input
-                  value={filterSearch}
-                  onChange={e => setFilterSearch(e.target.value)}
-                  placeholder="بحث عام…"
-                  className="w-full pr-9 pl-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
+          {/* ── Filter Panel ─────────────────────────────────────────── */}
+          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            {/* Header bar */}
+            <div
+              className="flex items-center justify-between px-5 py-3 cursor-pointer hover:bg-muted/40 transition-colors"
+              onClick={() => setFiltersOpen(v => !v)}
+            >
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">فلاتر البحث المتقدم</span>
+                {(filterAction || filterTable || filterFrom || filterTo || filterSearch || filterUser) && (
+                  <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                    {[filterAction, filterTable, filterFrom, filterTo, filterSearch, filterUser].filter(Boolean).length} فعّال
+                  </span>
+                )}
               </div>
-              {/* Action */}
-              <select
-                value={filterAction}
-                onChange={e => { setFilterAction(e.target.value); setCurrentPage(1) }}
-                className="text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                <option value="">كل العمليات</option>
-                {(meta?.actions ?? Object.keys(ACTION_LABELS)).map((a: string) => (
-                  <option key={a} value={a}>{ACTION_LABELS[a] ?? a}</option>
-                ))}
-              </select>
-              {/* Table */}
-              <select
-                value={filterTable}
-                onChange={e => { setFilterTable(e.target.value); setCurrentPage(1) }}
-                className="text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                <option value="">كل الجداول</option>
-                {(meta?.tables ?? Object.keys(TABLE_LABELS)).map((t: string) => (
-                  <option key={t} value={t}>{TABLE_LABELS[t] ?? t}</option>
-                ))}
-              </select>
-              {/* Date range */}
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={filterFrom}
-                  onChange={e => { setFilterFrom(e.target.value); setCurrentPage(1) }}
-                  className="flex-1 text-sm border border-border rounded-lg px-2 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-                <input
-                  type="date"
-                  value={filterTo}
-                  onChange={e => { setFilterTo(e.target.value); setCurrentPage(1) }}
-                  className="flex-1 text-sm border border-border rounded-lg px-2 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
+              {filtersOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
             </div>
-            {/* Toolbar */}
-            <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-border">
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  onClick={() => { setFilterAction(''); setFilterTable(''); setFilterFrom(''); setFilterTo(''); setFilterSearch(''); setCurrentPage(1) }}
-                  className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground"
-                >
-                  مسح الفلاتر
-                </button>
-                <button
-                  onClick={() => refetchLogs()}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  تحديث
-                </button>
+
+            {filtersOpen && (
+              <div className="border-t border-border px-5 pb-5 pt-4 space-y-4">
+                {/* Row 1: search + user */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      value={filterSearch}
+                      onChange={e => { setFilterSearch(e.target.value); setCurrentPage(1) }}
+                      placeholder="بحث عام (تجهيز، جهة، مكلف…)"
+                      className="w-full pr-9 pl-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                    {filterSearch && (
+                      <button onClick={() => setFilterSearch('')} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      value={filterUser}
+                      onChange={e => { setFilterUser(e.target.value); setCurrentPage(1) }}
+                      placeholder="تصفية حسب المستخدم…"
+                      className="w-full pr-9 pl-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                    {filterUser && (
+                      <button onClick={() => setFilterUser('')} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 2: Action chips */}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">نوع العملية</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(['', ...Object.keys(ACTION_LABELS)] as string[]).map(a => (
+                      <button
+                        key={a || '_all'}
+                        onClick={() => { setFilterAction(a); setCurrentPage(1) }}
+                        className={`text-xs px-3 py-1 rounded-full border transition-colors font-medium ${
+                          filterAction === a
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                        }`}
+                      >
+                        {a === '' ? 'الكل' : ACTION_LABELS[a] ?? a}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Row 3: Table/module chips */}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">الوحدة / القسم</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(['', ...Object.keys(TABLE_LABELS)] as string[]).map(t => (
+                      <button
+                        key={t || '_all'}
+                        onClick={() => { setFilterTable(t); setCurrentPage(1) }}
+                        className={`text-xs px-3 py-1 rounded-full border transition-colors font-medium ${
+                          filterTable === t
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                        }`}
+                      >
+                        {t === '' ? 'الكل' : TABLE_LABELS[t] ?? t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Row 4: date range + presets + page size */}
+                <div className="flex flex-wrap gap-3 items-end">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">الفترة الزمنية</p>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="date"
+                        value={filterFrom}
+                        onChange={e => { setFilterFrom(e.target.value); setCurrentPage(1) }}
+                        className="text-sm border border-border rounded-lg px-2.5 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                      <span className="text-xs text-muted-foreground">إلى</span>
+                      <input
+                        type="date"
+                        value={filterTo}
+                        onChange={e => { setFilterTo(e.target.value); setCurrentPage(1) }}
+                        className="text-sm border border-border rounded-lg px-2.5 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">اختصارات</p>
+                    <div className="flex gap-1.5">
+                      {[{k:'today',l:'اليوم'},{k:'week',l:'هذا الأسبوع'},{k:'month',l:'هذا الشهر'}].map(p => (
+                        <button
+                          key={p.k}
+                          onClick={() => applyDatePreset(p.k as any)}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border border-border hover:bg-muted hover:text-foreground text-muted-foreground transition-colors"
+                        >{p.l}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mr-auto">
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">عدد الصفوف</p>
+                    <select
+                      value={pageSize}
+                      onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1) }}
+                      className="text-sm border border-border rounded-lg px-2.5 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    >
+                      {[25,50,100,200].map(n => <option key={n} value={n}>{n} سطر</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Actions bar */}
+                <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-border">
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => { setFilterAction(''); setFilterTable(''); setFilterFrom(''); setFilterTo(''); setFilterSearch(''); setFilterUser(''); setCurrentPage(1) }}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground"
+                    >
+                      <X className="w-3.5 h-3.5" /> مسح كل الفلاتر
+                    </button>
+                    <button
+                      onClick={() => refetchLogs()}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" /> تحديث
+                    </button>
+                    <button
+                      onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground"
+                    >
+                      {sortDir === 'desc' ? '↓ الأحدث أولاً' : '↑ الأقدم أولاً'}
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleExcelCurrent}
+                      disabled={exportingExcel || displayedLogs.length === 0}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5" />
+                      {exportingExcel ? 'جاري التصدير…' : `Excel (${displayedLogs.length})`}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setExportingPDF(true)
+                        try {
+                          const summary: Record<string, number> = {}
+                          displayedLogs.forEach(l => { summary[l.action] = (summary[l.action] ?? 0) + 1 })
+                          await exportPDF(displayedLogs, 'سجل العمليات', summary, `سجل-عمليات-${new Date().toISOString().slice(0,10)}.pdf`)
+                        } finally { setExportingPDF(false) }
+                      }}
+                      disabled={exportingPDF || displayedLogs.length === 0}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      {exportingPDF ? 'جاري التصدير…' : `PDF (${displayedLogs.length})`}
+                    </button>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={handleExcelCurrent}
-                disabled={exportingExcel}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-                {exportingExcel ? 'جاري التصدير…' : 'تصدير Excel'}
-              </button>
-            </div>
+            )}
           </div>
 
-          {/* Metadata pills */}
+          {/* ── Summary chips ──────────────────────────────────────────── */}
           <div className="flex items-center gap-3 flex-wrap">
             {[
               { label: 'إجمالي النتائج', value: logsMeta.total },
@@ -798,10 +936,15 @@ export default function Logs() {
                 {label}: <strong className="text-foreground">{value}</strong>
               </span>
             ))}
+            {(filterAction || filterTable || filterFrom || filterTo || filterSearch || filterUser) && (
+              <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full">
+                الفلاتر مفعّلة — النتائج مصفّاة
+              </span>
+            )}
           </div>
 
-          {/* Desktop table */}
-          <div className="hidden sm:block rounded-xl border border-border bg-card overflow-hidden">
+          {/* ── Desktop Table ─────────────────────────────────────────── */}
+          <div className="hidden sm:block rounded-xl border border-border bg-card overflow-hidden shadow-sm">
             {logsLoading ? (
               <div className="h-40 flex items-center justify-center">
                 <div className="flex items-center gap-3 text-muted-foreground">
@@ -812,54 +955,83 @@ export default function Logs() {
             ) : displayedLogs.length === 0 ? (
               <div className="h-40 flex flex-col items-center justify-center text-muted-foreground gap-2">
                 <FileText className="w-8 h-8 opacity-40" />
-                <p className="text-sm">لا توجد سجلات تطابق الفلاتر</p>
+                <p className="text-sm">لا توجد سجلات تطابق الفلاتر المحددة</p>
+                <button onClick={() => { setFilterAction(''); setFilterTable(''); setFilterFrom(''); setFilterTo(''); setFilterSearch(''); setFilterUser('') }} className="text-xs text-primary underline">مسح الفلاتر</button>
               </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    {['#','الإجراء','الوحدة','التجهيز','الجهة','المكلف','المستخدم','التاريخ',''].map((h, i) => (
-                      <th key={i} className={`text-right px-4 py-3 text-xs font-semibold text-muted-foreground ${i === 8 ? 'w-10 px-2' : ''}`}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {displayedLogs.map(log => (
-                    <tr key={log.id} className="hover:bg-muted/30 transition-colors group">
-                      <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{log.id}</td>
-                      <td className="px-4 py-3"><ActionBadge action={log.action} /></td>
-                      <td className="px-4 py-3 text-xs text-foreground">{TABLE_LABELS[log.table] ?? log.table}</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground max-w-[150px] truncate">
-                        {log.equipmentNames?.slice(0, 2).join('، ') ?? '—'}
-                        {(log.equipmentNames?.length ?? 0) > 2 && (
-                          <span className="text-primary mr-1">+{log.equipmentNames!.length - 2}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-foreground max-w-[130px] truncate">{log.counterparty ?? '—'}</td>
-                      <td className="px-4 py-3 text-xs text-foreground max-w-[110px] truncate">{log.assignedTo ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        <p className="text-xs font-medium text-foreground">{log.user?.name ?? '—'}</p>
-                        <p className="text-xs text-muted-foreground">{log.user?.email ?? ''}</p>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap font-mono">
-                        {new Date(log.createdAt).toLocaleString('en-GB')}
-                      </td>
-                      <td className="px-2 py-3 text-center">
-                        <button
-                          onClick={() => setActiveLogDetails(log)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="border-b border-border bg-muted/70 backdrop-blur-sm">
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground w-16">#</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">الإجراء</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">الوحدة</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">نوع المعاملة</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">التجهيز / الصنف</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">الجهة</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">المكلف بالسحب</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">المستخدم</th>
+                      <th
+                        className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground"
+                        onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+                      >
+                        التاريخ {sortDir === 'desc' ? '↓' : '↑'}
+                      </th>
+                      <th className="px-2 py-3 w-10"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {displayedLogs.map((log, idx) => (
+                      <tr key={log.id} className={`hover:bg-primary/5 transition-colors group ${idx % 2 === 0 ? '' : 'bg-muted/20'}`}>
+                        <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{log.id}</td>
+                        <td className="px-4 py-3"><ActionBadge action={log.action} /></td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs font-medium bg-muted px-2 py-0.5 rounded-md text-foreground">
+                            {TABLE_LABELS[log.table] ?? log.table}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {log.transactionType ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full border border-border bg-card text-foreground">{log.transactionType}</span>
+                          ) : <span className="text-xs text-muted-foreground/40">—</span>}
+                        </td>
+                        <td className="px-4 py-3 max-w-[170px]">
+                          {log.equipmentNames && log.equipmentNames.length > 0 ? (
+                            <div className="space-y-0.5">
+                              <p className="text-xs text-foreground truncate">{log.equipmentNames[0]}</p>
+                              {log.equipmentNames.length > 1 && (
+                                <p className="text-xs text-primary">+{log.equipmentNames.length - 1} آخر</p>
+                              )}
+                            </div>
+                          ) : <span className="text-xs text-muted-foreground/40">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-foreground max-w-[140px] truncate">{log.counterparty ?? <span className="text-muted-foreground/40">—</span>}</td>
+                        <td className="px-4 py-3 text-xs text-foreground max-w-[120px] truncate">{log.assignedTo ?? <span className="text-muted-foreground/40">—</span>}</td>
+                        <td className="px-4 py-3">
+                          <p className="text-xs font-medium text-foreground">{log.user?.name ?? '—'}</p>
+                          <p className="text-xs text-muted-foreground truncate max-w-[130px]">{log.user?.email ?? ''}</p>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap font-mono">
+                          {new Date(log.createdAt).toLocaleString('en-GB')}
+                        </td>
+                        <td className="px-2 py-3 text-center">
+                          <button
+                            onClick={() => setActiveLogDetails(log)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+                            title="عرض التفاصيل"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 
-          {/* Mobile cards */}
+          {/* ── Mobile cards ────────────────────────────────────────── */}
           <div className="sm:hidden space-y-2">
             {logsLoading ? (
               <div className="h-32 flex items-center justify-center rounded-xl border border-border bg-card">
@@ -872,45 +1044,49 @@ export default function Logs() {
             ) : displayedLogs.map(log => (
               <div
                 key={log.id}
-                className="rounded-xl border border-border bg-card p-4 space-y-2 cursor-pointer"
+                className="rounded-xl border border-border bg-card p-4 space-y-2 cursor-pointer hover:border-primary/40 transition-colors"
                 onClick={() => setActiveLogDetails(log)}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <ActionBadge action={log.action} />
-                  <span className="text-xs text-muted-foreground font-mono">
-                    {new Date(log.createdAt).toLocaleDateString('en-GB')}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <ActionBadge action={log.action} />
+                    <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-md">{TABLE_LABELS[log.table] ?? log.table}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-mono">{new Date(log.createdAt).toLocaleDateString('en-GB')}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {TABLE_LABELS[log.table] ?? log.table}
-                  {log.equipmentNames?.[0] ? ` — ${log.equipmentNames[0]}` : ''}
-                </p>
-                {log.counterparty && <p className="text-xs text-foreground">{log.counterparty}</p>}
+                {log.equipmentNames?.[0] && <p className="text-xs font-medium text-foreground">{log.equipmentNames[0]}</p>}
+                {log.counterparty && <p className="text-xs text-muted-foreground">{log.counterparty}</p>}
                 <p className="text-xs text-muted-foreground">{log.user?.name ?? log.user?.email ?? '—'}</p>
               </div>
             ))}
           </div>
 
-          {/* Pagination */}
+          {/* ── Pagination ──────────────────────────────────────────── */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage <= 1}
+                className="p-2 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground disabled:opacity-40 text-xs px-3"
+              >الأولى</button>
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
                 className="p-2 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground disabled:opacity-40"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              ><ChevronRight className="w-4 h-4" /></button>
               <span className="text-sm text-muted-foreground">
-                الصفحة {currentPage} من {totalPages}
+                الصفحة <strong className="text-foreground">{currentPage}</strong> من <strong className="text-foreground">{totalPages}</strong>
               </span>
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
                 className="p-2 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground disabled:opacity-40"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
+              ><ChevronLeft className="w-4 h-4" /></button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage >= totalPages}
+                className="p-2 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground disabled:opacity-40 text-xs px-3"
+              >الأخيرة</button>
             </div>
           )}
         </div>
@@ -926,21 +1102,21 @@ export default function Logs() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard
               label="إجمالي الاعتمادات الفعّالة"
-              value={`${totalBudgetAmt.toLocaleString('ar-DZ')} دج`}
+              value={`${totalBudgetAmt.toLocaleString('ar-DZ')} د.ت`}
               sub={`${activeBudgets.length} اعتماد`}
               icon={<Layers className="w-5 h-5 text-blue-600" />}
               accent="bg-blue-100"
             />
             <KpiCard
               label="إجمالي المصروف"
-              value={`${totalSpent.toLocaleString('ar-DZ')} دج`}
+              value={`${totalSpent.toLocaleString('ar-DZ')} د.ت`}
               sub={`${budgetUtilPct.toFixed(1)}% من المجموع`}
               icon={<ArrowUpFromLine className="w-5 h-5 text-orange-600" />}
               accent="bg-orange-100"
             />
             <KpiCard
               label="الرصيد المتبقي"
-              value={`${(totalBudgetAmt - totalSpent).toLocaleString('ar-DZ')} دج`}
+              value={`${(totalBudgetAmt - totalSpent).toLocaleString('ar-DZ')} د.ت`}
               sub="للاعتمادات الفعّالة"
               icon={<ArrowDownToLine className="w-5 h-5 text-green-600" />}
               accent="bg-green-100"
@@ -976,7 +1152,7 @@ export default function Logs() {
                   <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
                   <Tooltip
                     {...TooltipStyle}
-                    formatter={(v: any) => [`${Number(v).toLocaleString('ar-DZ')} دج`]}
+                    formatter={(v: any) => [`${Number(v).toLocaleString('ar-DZ')} د.ت`]}
                   />
                   <Legend wrapperStyle={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }} />
                   <Bar dataKey="الاعتماد"  fill="#3b82f6" radius={[4, 4, 0, 0]} />

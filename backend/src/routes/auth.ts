@@ -1,5 +1,7 @@
 import express from 'express'
 import { login, register } from '../services/authService'
+import { authGuard } from '../middleware/authGuard'
+import prisma from '../prisma'
 
 const router = express.Router()
 
@@ -23,6 +25,17 @@ router.post('/login', async (req, res) => {
   } catch (err: any) {
     console.error('[LOGIN FAILED] email:', req.body?.email, '| reason:', err.message)
     res.status(401).json({ error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' })
+  }
+})
+
+router.get('/me', authGuard, async (req, res) => {
+  try {
+    const userId = (req as any).user?.id
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user) return res.status(404).json({ error: 'المستخدم غير موجود' })
+    res.json({ data: { id: user.id, email: user.email, role: user.role, name: user.name, personalNumber: user.personalNumber, securityUnit: user.securityUnit } })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
   }
 })
 

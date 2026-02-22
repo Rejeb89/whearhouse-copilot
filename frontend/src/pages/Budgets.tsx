@@ -1,11 +1,12 @@
-﻿import React, { useContext, useMemo, useRef, useState } from 'react'
+﻿import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, PieChart, Pie, Legend,
 } from 'recharts'
 import {
-  AlertTriangle, Archive, Bell, ChevronDown, ChevronRight, Clock,
+  AlertTriangle, Archive, Bell, ChevronDown, ChevronRight, ChevronLeft, Clock,
   Download, Edit2, FileText, Info, Paperclip, Plus, Search,
   TrendingDown, TrendingUp, X, DollarSign, Building2, BarChart2,
+  ShoppingCart, Image as ImageIcon, Eye,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AuthContext } from '../context/AuthContext'
@@ -28,6 +29,11 @@ interface Expense {
 interface AuditEntry {
   id: number; action: string; entity: string; entityId: number
   user: string; date: string; details: string
+}
+interface SupplyRequest {
+  id: number; budgetId: number; title: string; supplier: string | null; notes: string | null
+  attachments: { name: string; data: string; type: string }[]
+  createdBy: string | null; createdAt: string
 }
 
 /* Helpers */
@@ -68,7 +74,7 @@ export default function Budgets() {
     setAudit(next); saveLS(LS_AUDIT, next)
   }
 
-  const [view, setView] = useState<'dashboard' | 'list' | 'audit'>('dashboard')
+  const [view, setView] = useState<'dashboard' | 'list' | 'audit' | 'supply'>('dashboard')
   const [search, setSearch] = useState('')
   const [filterDept, setFilterDept] = useState('')
   const [filterStatus, setFilterStatus] = useState<'' | BudgetStatus>('')
@@ -83,6 +89,110 @@ export default function Budgets() {
   const [expenseForm, setExpenseForm] = useState({ date: '', supplier: '', invoiceNumber: '', amount: 0, notes: '' })
   const [expenseAttachments, setExpenseAttachments] = useState<{ name: string; data: string }[]>([])
   const expenseFileRef = useRef<HTMLInputElement>(null)
+  const supplierBoxRef = useRef<HTMLDivElement>(null)
+  const supplySupplierBoxRef = useRef<HTMLDivElement>(null)
+
+  /* Supply Requests */
+  const [showSupplyModal, setShowSupplyModal] = useState(false)
+  const [supplyBudget, setSupplyBudget] = useState<Budget | null>(null)
+  const [supplyForm, setSupplyForm] = useState({ title: '', notes: '', supplier: '' })
+  const [supplySupplierSearch, setSupplySupplierSearch] = useState('')
+  const [showSupplySupplierDropdown, setShowSupplySupplierDropdown] = useState(false)
+  const [supplyAttachments, setSupplyAttachments] = useState<{ name: string; data: string; type: string }[]>([])
+  const supplyFileRef = useRef<HTMLInputElement>(null)
+  const [previewFile, setPreviewFile] = useState<{ name: string; data: string; type: string } | null>(null)
+  const [selectedAudit, setSelectedAudit] = useState<AuditEntry | null>(null)
+  const [supplyError, setSupplyError] = useState<string | null>(null)
+
+  const supplyQuery = useQuery(
+    ['supply-requests', supplyBudget?.id],
+    () => client.get(`/budgets/${supplyBudget!.id}/supply-requests`).then(r => r.data.data as SupplyRequest[]),
+    { enabled: !!supplyBudget, refetchOnWindowFocus: true }
+  )
+  const supplyRequests: SupplyRequest[] = supplyQuery.data ?? []
+
+  const addSupplyRequest = useMutation(
+    ({ budgetId, data }: { budgetId: number; data: any }) =>
+      client.post(`/budgets/${budgetId}/supply-requests`, data).then(r => r.data.data),
+    { onSuccess: (_data, variables) => { queryClient.invalidateQueries(['supply-requests', variables.budgetId]) } }
+  )
+  const deleteSupplyRequest = useMutation(
+    ({ id, budgetId }: { id: number; budgetId: number }) => client.delete(`/budgets/supply-requests/${id}`).then(r => r.data.data),
+    { onSuccess: (_data, variables) => { queryClient.invalidateQueries(['supply-requests', variables.budgetId]) } }
+  )
+
+  const handleSupplyFiles = (files: FileList | null) => {
+    if (!files) return
+    Array.from(files).forEach(file => {
+      const allowed = file.type === 'application/pdf' || file.type.startsWith('image/')
+        || file.name.toLowerCase().endsWith('.pdf')
+      if (!allowed) return
+      const reader = new FileReader()
+      reader.onload = ev => setSupplyAttachments(prev => [...prev, { name: file.name, data: ev.target?.result as string, type: file.type }])
+      reader.readAsDataURL(file)
+    })
+  }
+  const resetSupplyModal = () => {
+    setSupplyForm({ title: '', notes: '', supplier: '' })
+    setSupplySupplierSearch('')
+    setSupplyAttachments([])
+    setSupplyError(null)
+  }
+  const saveSupplyRequest = async () => {
+    if (!supplyBudget || !supplyForm.title.trim()) return
+    setSupplyError(null)
+    try {
+      // Auto-register supplier if new
+      if (supplySupplierSearch.trim() && !exactSupplySupplierMatch) {
+        try {
+          await client.post('/entities', {
+            name: supplySupplierSearch.trim(),
+            type: 'BENEFICIARY',
+            category: 'جهات مختلفة',
+            phone: 'غير محدد',
+          })
+          queryClient.invalidateQueries(['entities-misc'])
+        } catch { /* proceed regardless */ }
+      }
+      await addSupplyRequest.mutateAsync({ budgetId: supplyBudget.id, data: { ...supplyForm, attachments: supplyAttachments } })
+      resetSupplyModal()
+      supplyQuery.refetch()
+    } catch (err: any) {
+      const msg = err?.response?.data?.error ?? err?.message ?? 'حدث خطأ غير متوقع'
+      setSupplyError(msg)
+    }
+  }
+  const downloadFile = (att: { name: string; data: string }) => {
+    const a = document.createElement('a'); a.href = att.data; a.download = att.name
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  }
+
+  /* Supplier combobox */
+  const [supplierSearch, setSupplierSearch] = useState('')
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false)
+  const { data: entitiesAll = [] } = useQuery(['entities-misc'], () =>
+    client.get('/entities').then(r => (r.data.data as any[]).filter(e => e.category === 'جهات مختلفة')),
+    { staleTime: 60000 }
+  )
+  const filteredSuppliers = entitiesAll.filter((e: any) =>
+    supplierSearch.trim() === '' || e.name.toLowerCase().includes(supplierSearch.toLowerCase())
+  )
+  const exactSupplierMatch = entitiesAll.some((e: any) => e.name.toLowerCase() === supplierSearch.trim().toLowerCase())
+  const filteredSupplySuppliers = entitiesAll.filter((e: any) =>
+    supplySupplierSearch.trim() === '' || e.name.toLowerCase().includes(supplySupplierSearch.toLowerCase())
+  )
+  const exactSupplySupplierMatch = entitiesAll.some((e: any) => e.name.toLowerCase() === supplySupplierSearch.trim().toLowerCase())
+
+  useEffect(() => {
+    const handler = (ev: MouseEvent) => {
+      if (supplierBoxRef.current && !supplierBoxRef.current.contains(ev.target as Node))
+        setShowSupplierDropdown(false)
+      if (supplySupplierBoxRef.current && !supplySupplierBoxRef.current.contains(ev.target as Node))
+        setShowSupplySupplierDropdown(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const handleExpenseFiles = (files: FileList | null) => {
     if (!files) return
@@ -97,6 +207,8 @@ export default function Budgets() {
     setShowExpenseModal(false)
     setExpenseForm({ date: '', supplier: '', invoiceNumber: '', amount: 0, notes: '' })
     setExpenseAttachments([])
+    setSupplierSearch('')
+    setShowSupplierDropdown(false)
   }
 
   const spentByBudget = useMemo(() => {
@@ -146,6 +258,19 @@ export default function Budgets() {
   const archiveBudget = (b: Budget) => updateBudget.mutate({ id: b.id, data: { status: 'closed' } })
   const saveExpense = async () => {
     if (!selectedBudget || !expenseForm.date || !expenseForm.amount || !expenseForm.supplier) return
+    // Auto-register supplier in "جهات مختلفة" if not already present
+    const alreadyExists = entitiesAll.some((e: any) => e.name.toLowerCase() === expenseForm.supplier.trim().toLowerCase())
+    if (!alreadyExists && expenseForm.supplier.trim()) {
+      try {
+        await client.post('/entities', {
+          name: expenseForm.supplier.trim(),
+          type: 'BENEFICIARY',
+          category: 'جهات مختلفة',
+          phone: 'غير محدد',
+        })
+        queryClient.invalidateQueries(['entities-misc'])
+      } catch { /* ignore – the expense save proceeds regardless */ }
+    }
     await addExpense.mutateAsync({ budgetId: selectedBudget.id, data: { ...expenseForm, attachments: expenseAttachments } })
     resetExpenseModal()
   }
@@ -196,8 +321,8 @@ export default function Budgets() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border">
-        {([['dashboard','لوحة التحكم',BarChart2],['list','قائمة الاعتمادات',FileText],['audit','سجل العمليات',Clock]] as const).map(([v,label,Icon])=>(
-          <button key={v} onClick={()=>{setView(v);setSelectedBudget(null)}} className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition -mb-px ${view===v?'border-primary text-primary':'border-transparent text-muted-foreground hover:text-foreground'}`}><Icon className="w-4 h-4"/>{label}</button>
+        {([['dashboard','لوحة التحكم',BarChart2],['list','قائمة الاعتمادات',FileText],['supply','طلبات التزود',ShoppingCart],['audit','سجل العمليات',Clock]] as const).map(([v,label,Icon])=>(
+          <button key={v} onClick={()=>{setView(v as any);setSelectedBudget(null);if(v==='supply'){setSupplyBudget(null);resetSupplyModal();setPreviewFile(null)}}} className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition -mb-px ${view===v?'border-primary text-primary':'border-transparent text-muted-foreground hover:text-foreground'}`}><Icon className="w-4 h-4"/>{label}</button>
         ))}
       </div>
 
@@ -306,6 +431,7 @@ export default function Budgets() {
                     <div className="flex items-center justify-between text-xs text-muted-foreground mb-3"><span>{b.startDate}  {b.endDate}</span></div>
                     <div className="flex gap-2">
                       <button onClick={()=>setSelectedBudget(b)} className="flex-1 text-xs py-1.5 rounded-lg border border-border text-primary hover:bg-primary/10 transition flex items-center justify-center gap-1"><ChevronRight className="w-3.5 h-3.5"/> التفاصيل</button>
+
                       {role==='ADMIN'&&<><button onClick={()=>openEditBudget(b)} className="px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted/50 transition"><Edit2 className="w-3.5 h-3.5"/></button>{b.status!=='closed'&&<button onClick={()=>archiveBudget(b)} className="px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-amber-50 hover:border-amber-200 hover:text-amber-600 transition"><Archive className="w-3.5 h-3.5"/></button>}</>}
                     </div>
                   </div>
@@ -336,7 +462,7 @@ export default function Budgets() {
             <div className="rounded-xl border border-border bg-card shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-foreground">المصاريف المرتبطة ({budgetExpenses.length})</h3>
-                {role==='ADMIN'&&b.status==='active'&&<button onClick={()=>{setExpenseAttachments([]);setExpenseForm({date:'',supplier:'',invoiceNumber:'',amount:0,notes:''});setShowExpenseModal(true)}} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium transition"><Plus className="w-3.5 h-3.5"/> إضافة صرف</button>}
+                {role==='ADMIN'&&b.status==='active'&&<button onClick={()=>{setExpenseAttachments([]);setExpenseForm({date:'',supplier:'',invoiceNumber:'',amount:0,notes:''});setSupplierSearch('');setShowSupplierDropdown(false);setShowExpenseModal(true)}} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium transition"><Plus className="w-3.5 h-3.5"/> إضافة صرف</button>}
               </div>
               {expensesQuery.isLoading?<div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"/></div>:budgetExpenses.length===0?(
                 <div className="text-center py-10 text-muted-foreground"><FileText className="w-10 h-10 mx-auto mb-2 opacity-30"/><p className="text-sm">لا توجد مصاريف مسجلة</p></div>
@@ -348,14 +474,26 @@ export default function Budgets() {
                       <tr key={e.id} className="border-b border-border hover:bg-muted/50">
                         <td className="py-2 pr-2 text-muted-foreground">{e.date}</td><td className="py-2 font-medium">{e.supplier}</td>
                         <td className="py-2 text-xs text-muted-foreground font-mono">{e.invoiceNumber||''}</td>
-                        <td className="py-2 font-semibold text-red-600">{fmt(e.amount)} د</td>
+                        <td className="py-2 font-semibold text-red-600">{fmt(e.amount)} د.ت</td>
                         <td className="py-2 text-muted-foreground text-xs">{e.notes||''}</td>
-                        <td className="py-2">{e.attachments.length===0?<span className="text-muted-foreground/30 text-xs"></span>:<div className="flex flex-wrap gap-1">{e.attachments.map((att,i)=><button key={i} title={att.name} onClick={()=>window.open(att.data,'_blank')} className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-50 text-red-600 hover:bg-red-100 text-xs transition"><Paperclip className="w-3 h-3"/><span className="max-w-[80px] truncate">{att.name}</span></button>)}</div>}</td>
+                        <td className="py-2">{e.attachments.length===0?<span className="text-muted-foreground/30 text-xs">—</span>:<div className="flex flex-wrap gap-1">{e.attachments.map((att,i)=>{
+                          const download=()=>{
+                            const a=document.createElement('a')
+                            a.href=att.data
+                            a.download=att.name
+                            document.body.appendChild(a)
+                            a.click()
+                            document.body.removeChild(a)
+                          }
+                          return(
+                            <button key={i} title={`تحميل: ${att.name}`} onClick={download} className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-50 text-red-600 hover:bg-red-100 text-xs transition"><Paperclip className="w-3 h-3"/><span className="max-w-[80px] truncate">{att.name}</span></button>
+                          )
+                        })}</div>}</td>
                         <td className="py-2 text-xs text-muted-foreground">{e.addedBy}</td>
                         {role==='ADMIN'&&<td className="py-2"><button onClick={()=>deleteExpense(e)} className="p-1 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition"><X className="w-3.5 h-3.5"/></button></td>}
                       </tr>
                     ))}</tbody>
-                    <tfoot><tr className="border-t-2 border-border"><td colSpan={3} className="pt-2 text-xs font-semibold text-muted-foreground">الإجمالي</td><td className="pt-2 font-bold text-red-600">{fmt(s)} د</td><td colSpan={role==='ADMIN'?4:3}/></tr></tfoot>
+                    <tfoot><tr className="border-t-2 border-border"><td colSpan={3} className="pt-2 text-xs font-semibold text-muted-foreground">الإجمالي</td><td className="pt-2 font-bold text-red-600">{fmt(s)} د.ت</td><td colSpan={role==='ADMIN'?4:3}/></tr></tfoot>
                   </table>
                 </div>
               )}
@@ -363,6 +501,117 @@ export default function Budgets() {
           </div>
         )
       })()}
+
+      {/* Supply Requests Tab */}
+      {view === 'supply' && (
+        <div className="space-y-4">
+          {!supplyBudget ? (
+            budgets.filter(b=>b.status==='active').length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground"><ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-20"/><p className="text-sm">لا توجد اعتمادات نشطة</p></div>
+            ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {budgets.filter(b=>b.status==='active').map(b=>(
+                <button key={b.id} onClick={()=>setSupplyBudget(b)} className="rounded-xl border border-border bg-card shadow-sm p-5 hover:shadow-md hover:border-primary/50 transition text-right">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div><h3 className="font-semibold text-foreground truncate">{b.name}</h3><p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1"><Building2 className="w-3 h-3"/>{b.department}</p></div>
+                    <ChevronLeft className="w-4 h-4 text-muted-foreground shrink-0"/>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    {[['المعتمد',fmt(b.amount)],['المصروف',fmt(spentByBudget[b.id]??0)],['المتبقي',fmt(b.amount-(spentByBudget[b.id]??0))]].map(([l,v])=>(<div key={l} className="bg-muted/50 rounded p-2"><p className="text-muted-foreground">{l}</p><p className="font-bold text-foreground">{v}</p></div>))}
+                  </div>
+                </button>
+              ))}
+            </div>
+            )
+          ) : (
+            <div className="space-y-4">
+              <button onClick={()=>{setSupplyBudget(null);resetSupplyModal();setPreviewFile(null)}} className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1.5 transition"><ChevronDown className="w-4 h-4 rotate-90"/> العودة</button>
+              <div className="rounded-xl border border-border bg-card shadow-sm p-5">
+                <div className="flex items-center justify-between gap-2 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center"><ShoppingCart className="w-5 h-5 text-emerald-600"/></div>
+                    <div><h2 className="font-bold text-foreground">{supplyBudget.name}</h2><p className="text-xs text-muted-foreground mt-0.5">{supplyBudget.department}</p></div>
+                  </div>
+                </div>
+                {/* Add new request form */}
+                <div className="bg-muted/20 rounded-xl p-4 mb-5 border border-border">
+                  <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Plus className="w-4 h-4 text-emerald-600"/> طلب جديد</h3>
+                  <div className="space-y-3">
+                    <div><label className="block text-xs font-medium text-foreground mb-1">عنوان الطلب *</label><input value={supplyForm.title} onChange={e=>setSupplyForm(p=>({...p,title:e.target.value}))} placeholder="مثال: طلب مواد مكتبية للربع الأول..." className="w-full border border-input bg-background rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"/></div>
+                    <div ref={supplySupplierBoxRef} className="relative">
+                      <label className="block text-xs font-medium text-foreground mb-1">المزود</label>
+                      <input
+                        value={supplySupplierSearch}
+                        onChange={e => { setSupplySupplierSearch(e.target.value); setSupplyForm(p => ({ ...p, supplier: e.target.value })); setShowSupplySupplierDropdown(true) }}
+                        onFocus={() => setShowSupplySupplierDropdown(true)}
+                        placeholder="ابحث أو اكتب اسم المزود..."
+                        className="w-full border border-input bg-background rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        autoComplete="off"
+                      />
+                      {showSupplySupplierDropdown && (
+                        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {filteredSupplySuppliers.length > 0 ? filteredSupplySuppliers.map((e: any) => (
+                            <button key={e.id} type="button"
+                              onMouseDown={() => { setSupplySupplierSearch(e.name); setSupplyForm(p => ({ ...p, supplier: e.name })); setShowSupplySupplierDropdown(false) }}
+                              className="w-full text-right px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition flex items-center gap-2">
+                              <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />{e.name}
+                            </button>
+                          )) : supplySupplierSearch.trim() !== '' ? (
+                            <div className="px-3 py-2 text-sm text-muted-foreground text-center">لا يوجد تطابق</div>
+                          ) : null}
+                          {supplySupplierSearch.trim() !== '' && !exactSupplySupplierMatch && (
+                            <button type="button"
+                              onMouseDown={() => { setSupplyForm(p => ({ ...p, supplier: supplySupplierSearch.trim() })); setShowSupplySupplierDropdown(false) }}
+                              className="w-full text-right px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 transition flex items-center gap-2 border-t border-border">
+                              <Plus className="w-3.5 h-3.5 shrink-0" />إضافة "{supplySupplierSearch.trim()}" كمزود جديد
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div><label className="block text-xs font-medium text-foreground mb-1">ملاحظات</label><textarea rows={2} value={supplyForm.notes} onChange={e=>setSupplyForm(p=>({...p,notes:e.target.value}))} className="w-full border border-input bg-background rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"/></div>
+                    <div>
+                      <label className="block text-xs font-medium text-foreground mb-1">المرفقات (صور أو PDF)</label>
+                      <input ref={supplyFileRef} type="file" accept="image/*,.pdf,application/pdf" multiple className="hidden" onChange={e=>handleSupplyFiles(e.target.files)}/>
+                      <button type="button" onClick={()=>supplyFileRef.current?.click()} className="flex items-center gap-2 w-full border border-dashed border-border rounded-lg p-2.5 text-sm text-muted-foreground hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition"><Paperclip className="w-4 h-4"/><span>انقر لإرفاق صور أو ملفات PDF</span></button>
+                      {supplyAttachments.length>0&&<div className="mt-2 space-y-1.5">{supplyAttachments.map((a,i)=><div key={i} className="flex items-center justify-between bg-emerald-50 rounded-lg px-3 py-1.5"><div className="flex items-center gap-2 text-xs text-emerald-700 min-w-0">{a.type.startsWith('image/')?<ImageIcon className="w-3.5 h-3.5 shrink-0"/>:<Paperclip className="w-3.5 h-3.5 shrink-0"/>}<span className="truncate">{a.name}</span></div><button type="button" onClick={()=>setSupplyAttachments(prev=>prev.filter((_,j)=>j!==i))} className="text-emerald-400 hover:text-red-500 ml-2 shrink-0"><X className="w-3.5 h-3.5"/></button></div>)}</div>}
+                    </div>
+                    {supplyError&&<div className="text-red-600 text-xs bg-red-50 rounded-lg p-2.5 border border-red-200 text-right">{supplyError}</div>}
+                    <button onClick={saveSupplyRequest} disabled={!supplyForm.title.trim()||addSupplyRequest.isLoading} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed">{addSupplyRequest.isLoading?<><div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"/>جارٍ الحفظ...</>:<><Plus className="w-4 h-4"/>إضافة طلب</>}</button>
+                  </div>
+                </div>
+              </div>
+              {/* Requests list */}
+              <div className="rounded-xl border border-border bg-card shadow-sm p-5">
+                <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2"><FileText className="w-4 h-4 text-muted-foreground"/> الطلبات المسجلة ({supplyRequests.length})</h3>
+                {supplyQuery.isLoading?(
+                  <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"/></div>
+                ):supplyRequests.length===0?(
+                  <div className="text-center py-10 text-muted-foreground"><ShoppingCart className="w-10 h-10 mx-auto mb-2 opacity-20"/><p className="text-sm">لا توجد طلبات مسجلة</p></div>
+                ):(
+                  <div className="space-y-3">
+                    {supplyRequests.map(req=>(
+                      <div key={req.id} className="rounded-xl border border-border bg-background p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0"><p className="font-semibold text-sm text-foreground">{req.title}</p>{req.supplier&&<p className="text-xs text-emerald-700 mt-0.5 flex items-center gap-1"><Building2 className="w-3 h-3 shrink-0"/>{req.supplier}</p>}{req.notes&&<p className="text-xs text-muted-foreground mt-1">{req.notes}</p>}<p className="text-[11px] text-muted-foreground/70 mt-1.5">{req.createdBy} · {new Date(req.createdAt).toLocaleDateString('ar-DZ')}</p></div>
+                          {role==='ADMIN'&&<button onClick={()=>deleteSupplyRequest.mutate({id:req.id,budgetId:supplyBudget!.id})} className="p-1 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition shrink-0"><X className="w-3.5 h-3.5"/></button>}
+                        </div>
+                        {req.attachments.length>0&&(
+                          <div className="mt-3 pt-3 border-t border-border"><p className="text-[11px] text-muted-foreground mb-2">المرفقات ({req.attachments.length})</p><div className="flex flex-wrap gap-2">{req.attachments.map((att,i)=>{if(att.type&&att.type.startsWith('image/'))return(
+                            <div key={i} className="relative group"><img src={att.data} alt={att.name} className="w-16 h-16 object-cover rounded-lg border border-border cursor-pointer hover:opacity-90 transition" onClick={()=>setPreviewFile(att)}/><div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 rounded-lg transition"><Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition"/></div><button onClick={()=>downloadFile(att)} title="تحميل" className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 transition"><Download className="w-2.5 h-2.5"/></button></div>
+                          );return(
+                            <button key={i} onClick={()=>downloadFile(att)} title={`تحميل: ${att.name}`} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs transition border border-red-100"><Paperclip className="w-3 h-3 shrink-0"/><span className="max-w-[100px] truncate">{att.name}</span><Download className="w-2.5 h-2.5 shrink-0 opacity-60"/></button>
+                          )})}</div></div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Audit */}
       {view==='audit'&&(
@@ -373,7 +622,7 @@ export default function Budgets() {
               <table className="w-full text-sm text-right">
                 <thead><tr className="border-b border-border text-xs text-muted-foreground"><th className="pb-2 pr-2">التاريخ والوقت</th><th className="pb-2">العملية</th><th className="pb-2">المستخدم</th><th className="pb-2">التفاصيل</th></tr></thead>
                 <tbody>{audit.map(a=>(
-                  <tr key={a.id} className="border-b border-border hover:bg-muted/50">
+                  <tr key={a.id} onClick={()=>setSelectedAudit(a)} className="border-b border-border hover:bg-muted/50 cursor-pointer transition">
                     <td className="py-2 pr-2 text-xs text-muted-foreground font-mono whitespace-nowrap">{new Date(a.date).toLocaleString('ar-DZ')}</td>
                     <td className="py-2"><span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">{a.action}</span></td>
                     <td className="py-2 font-medium">{a.user}</td><td className="py-2 text-muted-foreground text-xs">{a.details}</td>
@@ -392,7 +641,6 @@ export default function Budgets() {
             <div className="flex items-center justify-between p-5 border-b border-border"><h2 className="font-bold text-foreground">{editingBudget?'تعديل الاعتماد':'إضافة اعتماد جديد'}</h2><button onClick={()=>setShowBudgetModal(false)} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground transition"><X className="w-4 h-4"/></button></div>
             <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
               <div><label className="block text-xs font-medium text-foreground mb-1">اسم الاعتماد *</label><input value={budgetForm.name} onChange={e=>setBudgetForm(p=>({...p,name:e.target.value}))} placeholder="مثال: اعتماد التجهيزات..." className="w-full border border-input bg-background rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"/></div>
-              <div><label className="block text-xs font-medium text-foreground mb-1">القسم / الإدارة *</label><select value={budgetForm.department} onChange={e=>setBudgetForm(p=>({...p,department:e.target.value}))} className="w-full border border-input bg-background rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring">{DEPARTMENTS.map(d=><option key={d} value={d}>{d}</option>)}</select></div>
               <div><label className="block text-xs font-medium text-foreground mb-1">المبلغ المعتمد (د) *</label><input type="number" min={0} value={budgetForm.amount||''} onChange={e=>setBudgetForm(p=>({...p,amount:Number(e.target.value)}))} className="w-full border border-input bg-background rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"/></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="block text-xs font-medium text-foreground mb-1">تاريخ البداية *</label><input type="date" value={budgetForm.startDate} onChange={e=>setBudgetForm(p=>({...p,startDate:e.target.value}))} className="w-full border border-input bg-background rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"/></div>
@@ -415,9 +663,46 @@ export default function Budgets() {
           <div className="bg-card rounded-xl border border-border shadow-lg w-full max-w-md" dir="rtl">
             <div className="flex items-center justify-between p-5 border-b border-border"><h2 className="font-bold text-foreground">إضافة مصروف جديد</h2><button onClick={resetExpenseModal} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground transition"><X className="w-4 h-4"/></button></div>
             <div className="p-5 space-y-4">
-              <div className="p-3 bg-primary/10 rounded-lg text-xs text-primary flex items-center gap-2"><Info className="w-4 h-4 shrink-0"/>الاعتماد: <span className="font-semibold">{selectedBudget.name}</span>  متبقي: <span className="font-bold">{fmt(selectedBudget.amount-(spentByBudget[selectedBudget.id]??0))} د</span></div>
+              <div className="p-3 bg-primary/10 rounded-lg text-xs text-primary flex items-center gap-2"><Info className="w-4 h-4 shrink-0"/>الاعتماد: <span className="font-semibold">{selectedBudget.name}</span>  متبقي: <span className="font-bold">{fmt(selectedBudget.amount-(spentByBudget[selectedBudget.id]??0))} د.ت</span></div>
               <div><label className="block text-xs font-medium text-foreground mb-1">التاريخ *</label><input type="date" value={expenseForm.date} onChange={e=>setExpenseForm(p=>({...p,date:e.target.value}))} className="w-full border border-input bg-background rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"/></div>
-              <div><label className="block text-xs font-medium text-foreground mb-1">المورد *</label><input value={expenseForm.supplier} onChange={e=>setExpenseForm(p=>({...p,supplier:e.target.value}))} placeholder="اسم المورد أو الشركة" className="w-full border border-input bg-background rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"/></div>
+              <div ref={supplierBoxRef} className="relative">
+                <label className="block text-xs font-medium text-foreground mb-1">المورد *</label>
+                <input
+                  value={supplierSearch}
+                  onChange={e => { setSupplierSearch(e.target.value); setExpenseForm(p => ({ ...p, supplier: e.target.value })); setShowSupplierDropdown(true) }}
+                  onFocus={() => setShowSupplierDropdown(true)}
+                  placeholder="ابحث أو اكتب اسم المورد..."
+                  className="w-full border border-input bg-background rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  autoComplete="off"
+                />
+                {showSupplierDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {filteredSuppliers.length > 0 ? filteredSuppliers.map((e: any) => (
+                      <button
+                        key={e.id}
+                        type="button"
+                        onMouseDown={() => { setSupplierSearch(e.name); setExpenseForm(p => ({ ...p, supplier: e.name })); setShowSupplierDropdown(false) }}
+                        className="w-full text-right px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition flex items-center gap-2"
+                      >
+                        <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        {e.name}
+                      </button>
+                    )) : supplierSearch.trim() !== '' ? (
+                      <div className="px-3 py-2 text-sm text-muted-foreground text-center">لا يوجد تطابق</div>
+                    ) : null}
+                    {supplierSearch.trim() !== '' && !exactSupplierMatch && (
+                      <button
+                        type="button"
+                        onMouseDown={() => { setShowSupplierDropdown(false) }}
+                        className="w-full text-right px-3 py-2 text-sm text-primary hover:bg-primary/10 transition border-t border-border flex items-center gap-2 font-medium"
+                      >
+                        <Plus className="w-3.5 h-3.5 shrink-0" />
+                        إضافة "{supplierSearch.trim()}" كجهة جديدة تلقائياً
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
               <div><label className="block text-xs font-medium text-foreground mb-1">رقم الفاتورة</label><input value={expenseForm.invoiceNumber} onChange={e=>setExpenseForm(p=>({...p,invoiceNumber:e.target.value}))} placeholder="INV-XXXX" className="w-full border border-input bg-background rounded-lg p-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"/></div>
               <div><label className="block text-xs font-medium text-foreground mb-1">المبلغ (د) *</label><input type="number" min={0} value={expenseForm.amount||''} onChange={e=>setExpenseForm(p=>({...p,amount:Number(e.target.value)}))} className="w-full border border-input bg-background rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"/></div>
               <div><label className="block text-xs font-medium text-foreground mb-1">ملاحظات</label><textarea rows={2} value={expenseForm.notes} onChange={e=>setExpenseForm(p=>({...p,notes:e.target.value}))} className="w-full border border-input bg-background rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"/></div>
@@ -431,6 +716,76 @@ export default function Budgets() {
             <div className="flex gap-3 p-5 border-t border-border">
               <button onClick={saveExpense} disabled={!expenseForm.date||!expenseForm.supplier||!expenseForm.amount||addExpense.isLoading} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition disabled:opacity-40 disabled:cursor-not-allowed text-sm">{addExpense.isLoading?'جارِ التسجيل...':'تسجيل المصروف'}</button>
               <button onClick={resetExpenseModal} className="px-5 py-2.5 rounded-xl border border-border text-muted-foreground hover:bg-muted/50 transition text-sm">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Supply Requests Modal (hidden, using tab instead) ── */}
+      {false && showSupplyModal && supplyBudget && (
+        <div></div>
+      )}
+
+      {/* Image Preview Overlay */}
+
+      {/* Image Preview Overlay */}
+      {previewFile && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4" onClick={()=>setPreviewFile(null)}>
+          <div className="relative max-w-3xl w-full" onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>setPreviewFile(null)} className="absolute -top-10 left-0 text-white/80 hover:text-white flex items-center gap-1.5 text-sm"><X className="w-4 h-4"/> إغلاق</button>
+            <img src={previewFile.data} alt={previewFile.name} className="w-full max-h-[80vh] object-contain rounded-xl"/>
+            <button onClick={()=>downloadFile(previewFile)} className="absolute bottom-3 left-3 flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition"><Download className="w-4 h-4"/> تحميل</button>
+          </div>
+        </div>
+      )}
+
+      {/* Audit Detail Modal */}
+      {selectedAudit && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" dir="rtl">
+          <div className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-md">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-border">
+              <h2 className="font-bold text-foreground text-lg">تفاصيل العملية</h2>
+              <button onClick={()=>setSelectedAudit(null)} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground transition"><X className="w-4 h-4"/></button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5 space-y-4">
+              <div className="rounded-xl border border-border/50 bg-muted/30 p-4">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">نوع العملية</p>
+                <p className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <span className="px-2 py-1 rounded-full bg-primary/15 text-primary text-xs font-medium">{selectedAudit.action}</span>
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                <div className="rounded-lg border border-border/50 bg-background p-3">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">المستخدم</p>
+                  <p className="font-medium text-foreground">{selectedAudit.user}</p>
+                </div>
+
+                <div className="rounded-lg border border-border/50 bg-background p-3">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">التاريخ والوقت</p>
+                  <p className="font-medium text-foreground font-mono text-sm">{new Date(selectedAudit.date).toLocaleString('ar-DZ')}</p>
+                </div>
+
+                <div className="rounded-lg border border-border/50 bg-background p-3">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">الكيان المتأثر</p>
+                  <p className="font-medium text-foreground flex items-center gap-2">
+                    <span className="text-xs px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700">{selectedAudit.entity}</span>
+                    {selectedAudit.entityId && <span className="text-muted-foreground">#{selectedAudit.entityId}</span>}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-border/50 bg-background p-3">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">التفاصيل</p>
+                  <p className="text-sm text-foreground leading-relaxed">{selectedAudit.details}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-2 p-5 border-t border-border">
+              <button onClick={()=>setSelectedAudit(null)} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition text-sm">إغلاق</button>
             </div>
           </div>
         </div>
