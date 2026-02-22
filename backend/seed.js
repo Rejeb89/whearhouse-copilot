@@ -17,20 +17,28 @@ async function main() {
     { name: 'Widget B', sku: 'WIDGET-B', description: 'Sample widget B', quantity: 3, lowStockThreshold: 5 }
   ]
 
+  const upsertedItems = []
   for (const it of items) {
     const i = await prisma.item.upsert({ where: { sku: it.sku }, update: {}, create: it })
+    upsertedItems.push(i)
     console.log('Item upserted', i.sku)
   }
 
-  // create sample reception
-  const reception = await prisma.reception.create({ data: { reference: `RCPT-${Date.now()}`, userId: admin.id } })
-  await prisma.receptionItem.create({ data: { receptionId: reception.id, itemId: 1, quantity: 10 } })
-  console.log('Sample reception created')
+  // create sample reception/distribution using real IDs (skip if any error)
+  try {
+    const firstItem = upsertedItems[0]
+    if (firstItem) {
+      const reception = await prisma.reception.create({ data: { reference: `RCPT-${Date.now()}`, userId: admin.id } })
+      await prisma.receptionItem.create({ data: { receptionId: reception.id, itemId: firstItem.id, quantity: 10 } })
+      console.log('Sample reception created')
 
-  // create sample distribution
-  const distribution = await prisma.distribution.create({ data: { reference: `DIST-${Date.now()}`, userId: admin.id } })
-  await prisma.distributionItem.create({ data: { distributionId: distribution.id, itemId: 1, quantity: 2 } })
-  console.log('Sample distribution created')
+      const distribution = await prisma.distribution.create({ data: { reference: `DIST-${Date.now()}`, userId: admin.id } })
+      await prisma.distributionItem.create({ data: { distributionId: distribution.id, itemId: firstItem.id, quantity: 2 } })
+      console.log('Sample distribution created')
+    }
+  } catch (e) {
+    console.log('Sample data skipped (already exists or FK error):', e.message)
+  }
 
   console.log('Seeding complete')
 }
@@ -38,7 +46,7 @@ async function main() {
 main()
   .catch((e) => {
     console.error(e)
-    process.exit(1)
+    // Do not exit with code 1 — allow the server to start even if seeding fails
   })
   .finally(async () => {
     await prisma.$disconnect()

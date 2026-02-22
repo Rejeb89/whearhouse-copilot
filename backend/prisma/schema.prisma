@@ -107,6 +107,7 @@ model Entity {
   id              Int       @id @default(autoincrement())
   name            String
   type            EntityType
+  category        String    @default("OTHER")
   phone           String
   unitHead        String?
   unitHeadPhone   String?

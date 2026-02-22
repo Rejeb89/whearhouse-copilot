@@ -72,11 +72,13 @@ router.post('/import', async (req, res) => {
     }
 
     const stats: Record<string, number> = {}
+    const importErrors: string[] = []
 
     //  Replace mode: delete all in correct FK dependency order 
     if (mode === 'replace') {
       await prisma.distributionItem.deleteMany()
       await prisma.receptionItem.deleteMany()
+      await prisma.deliveryReceipt.deleteMany()
       await prisma.distribution.deleteMany()
       await prisma.reception.deleteMany()
       await prisma.employee.deleteMany()
@@ -252,28 +254,37 @@ router.post('/import', async (req, res) => {
     }
 
     //  Reset PostgreSQL sequences to avoid ID conflicts on future inserts 
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"','id'), COALESCE((SELECT MAX(id) FROM "User"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Item"','id'), COALESCE((SELECT MAX(id) FROM "Item"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Entity"','id'), COALESCE((SELECT MAX(id) FROM "Entity"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Employee"','id'), COALESCE((SELECT MAX(id) FROM "Employee"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Reception"','id'), COALESCE((SELECT MAX(id) FROM "Reception"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"ReceptionItem"','id'), COALESCE((SELECT MAX(id) FROM "ReceptionItem"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Distribution"','id'), COALESCE((SELECT MAX(id) FROM "Distribution"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"DistributionItem"','id'), COALESCE((SELECT MAX(id) FROM "DistributionItem"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Log"','id'), COALESCE((SELECT MAX(id) FROM "Log"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Budget"','id'), COALESCE((SELECT MAX(id) FROM "Budget"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"BudgetExpense"','id'), COALESCE((SELECT MAX(id) FROM "BudgetExpense"),0)+1,false)`)
+    try {
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"','id'), COALESCE((SELECT MAX(id) FROM "User"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Item"','id'), COALESCE((SELECT MAX(id) FROM "Item"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Entity"','id'), COALESCE((SELECT MAX(id) FROM "Entity"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Employee"','id'), COALESCE((SELECT MAX(id) FROM "Employee"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Reception"','id'), COALESCE((SELECT MAX(id) FROM "Reception"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"ReceptionItem"','id'), COALESCE((SELECT MAX(id) FROM "ReceptionItem"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Distribution"','id'), COALESCE((SELECT MAX(id) FROM "Distribution"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"DistributionItem"','id'), COALESCE((SELECT MAX(id) FROM "DistributionItem"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Log"','id'), COALESCE((SELECT MAX(id) FROM "Log"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Budget"','id'), COALESCE((SELECT MAX(id) FROM "Budget"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"BudgetExpense"','id'), COALESCE((SELECT MAX(id) FROM "BudgetExpense"),0)+1,false)`)
+    } catch (seqErr: any) {
+      console.error('[import] sequence reset error (non-fatal):', seqErr.message)
+      importErrors.push('sequence_reset: ' + seqErr.message)
+    }
 
-    const actor = (req as any).user
-    await createAuditLog({
-      action: 'IMPORT_DATA',
-      entity: 'System',
-      actorEmail: actor?.email,
-      actorId: actor?.id,
-      details: JSON.stringify({ mode, stats }),
-    })
+    try {
+      const actor = (req as any).user
+      await createAuditLog({
+        action: 'IMPORT_DATA',
+        entity: 'System',
+        actorEmail: actor?.email,
+        actorId: actor?.id,
+        details: JSON.stringify({ mode, stats }),
+      })
+    } catch (auditErr: any) {
+      console.error('[import] audit log error (non-fatal):', auditErr.message)
+    }
 
-    res.json({ data: { ok: true, stats } })
+    res.json({ data: { ok: true, stats, errors: importErrors.length > 0 ? importErrors : undefined } })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
   }

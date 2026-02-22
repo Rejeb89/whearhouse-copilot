@@ -170,10 +170,10 @@ export default function DistributeItemModal({ isOpen, onClose, onSuccess }: Dist
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" dir="rtl">
-      <div className="bg-white p-6 rounded shadow-lg max-w-md w-full max-h-96 overflow-y-auto">
+      <div className="bg-card p-6 rounded-xl border border-border shadow-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">تسليم التجهيزات</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <h2 className="text-lg font-semibold text-foreground">تسليم التجهيزات</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -185,24 +185,16 @@ export default function DistributeItemModal({ isOpen, onClose, onSuccess }: Dist
               <button
                 type="button"
                 onClick={() => setShowBeneficiaryDropdown(!showBeneficiaryDropdown)}
-                className="w-full border p-2 rounded bg-white flex justify-between items-center"
+                className="w-full border border-input p-2 rounded bg-background text-foreground flex justify-between items-center"
               >
-                <span className="text-gray-600">
+                <span className="text-foreground">
                   {selectedBeneficiary ? selectedBeneficiary.name : 'اختر أو أضف جهة'}
                 </span>
                 <ChevronDown className="w-4 h-4" />
               </button>
 
               {showBeneficiaryDropdown && (
-                <div className="absolute top-full left-0 right-0 border border-t-0 bg-white rounded-b z-10">
-                  <input
-                    type="text"
-                    placeholder="ابحث أو أضف جهة جديدة..."
-                    value={newBeneficiaryName}
-                    onChange={(e) => setNewBeneficiaryName(e.target.value)}
-                    className="w-full border-b p-2 text-sm"
-                    autoFocus
-                  />
+                <div className="absolute top-full left-0 right-0 border border-t-0 bg-card border-border rounded-b z-10">
                   <div className="max-h-40 overflow-y-auto">
                     {/* الجهات الموجودة */}
                     {filteredBeneficiaries.length > 0 && (
@@ -232,7 +224,7 @@ export default function DistributeItemModal({ isOpen, onClose, onSuccess }: Dist
                     )}
 
                     {filteredBeneficiaries.length === 0 && !newBeneficiaryName.trim() && (
-                      <div className="p-2 text-sm text-gray-600">ابدأ الكتابة لإضافة جهة جديدة</div>
+                      <div className="p-2 text-sm text-muted-foreground">ابدأ الكتابة لإضافة جهة جديدة</div>
                     )}
                   </div>
                 </div>
@@ -247,9 +239,9 @@ export default function DistributeItemModal({ isOpen, onClose, onSuccess }: Dist
               <button
                 type="button"
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="w-full border p-2 rounded bg-white flex justify-between items-center"
+                className="w-full border border-input p-2 rounded bg-background text-foreground flex justify-between items-center"
               >
-                <span className="text-gray-600">
+                <span className="text-foreground">
                   {selectedItems.length > 0 
                     ? `تم اختيار ${selectedItems.length} تجهيز` 
                     : 'ابحث واختر التجهيزات'}
@@ -258,13 +250,13 @@ export default function DistributeItemModal({ isOpen, onClose, onSuccess }: Dist
               </button>
 
               {showDropdown && (
-                <div className="absolute top-full left-0 right-0 border border-t-0 bg-white rounded-b z-10">
+                <div className="absolute top-full left-0 right-0 border border-t-0 bg-card border-border rounded-b z-10">
                   <input
                     type="text"
                     placeholder="ابحث عن تجهيز..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full border-b p-2 text-sm"
+                    className="w-full border-b border-border bg-background p-2 text-sm"
                     autoFocus
                   />
                   <div className="max-h-40 overflow-y-auto">
@@ -277,11 +269,11 @@ export default function DistributeItemModal({ isOpen, onClose, onSuccess }: Dist
                           className="w-full text-right p-2 hover:bg-blue-50 border-b text-sm flex justify-between"
                         >
                           <span>{item.name} ({item.sku})</span>
-                          <span className="text-gray-600">المتاح: {item.quantity}</span>
+                          <span className="text-muted-foreground">المتاح: {item.quantity}</span>
                         </button>
                       ))
                     ) : (
-                      <div className="p-2 text-sm text-gray-600">لا توجد تجهيزات متطابقة</div>
+                      <div className="p-2 text-sm text-muted-foreground">لا توجد تجهيزات متطابقة</div>
                     )}
                   </div>
                 </div>
@@ -297,7 +289,7 @@ export default function DistributeItemModal({ isOpen, onClose, onSuccess }: Dist
                   <div key={item.id} className="flex items-center gap-2 p-2 bg-blue-50 rounded">
                     <div className="flex-grow">
                       <div className="text-sm font-semibold">{item.name}</div>
-                      <div className="text-xs text-gray-600">{item.sku}</div>
+                      <div className="text-xs text-muted-foreground">{item.sku}</div>
                     </div>
                     <input
                       type="number"
@@ -325,7 +317,7 @@ export default function DistributeItemModal({ isOpen, onClose, onSuccess }: Dist
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded hover:bg-slate-100"
+              className="px-4 py-2 border border-border rounded hover:bg-muted/50"
               disabled={loading}
             >
               إلغاء

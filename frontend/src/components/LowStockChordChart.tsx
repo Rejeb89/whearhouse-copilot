@@ -150,7 +150,7 @@ const LowStockChordChart: React.FC<Props> = ({ items: rawItems, width = 440, hei
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="absolute bg-gray-900 text-white text-xs px-3 py-1.5 rounded shadow-lg pointer-events-none z-10 whitespace-nowrap"
+          className="absolute bg-popover text-popover-foreground text-xs px-3 py-1.5 rounded shadow-lg pointer-events-none z-10 whitespace-nowrap border border-border"
           style={{ left: tooltip.x + 10, top: tooltip.y - 10 }}
         >
           {tooltip.label}
@@ -165,7 +165,7 @@ const LowStockChordChart: React.FC<Props> = ({ items: rawItems, width = 440, hei
               className="inline-block w-3 h-3 rounded-full flex-shrink-0"
               style={{ background: COLORS[i % COLORS.length] }}
             />
-            <span className="text-xs text-gray-700 font-medium">
+            <span className="text-xs text-foreground font-medium">
               {item.name}: <span className="font-bold text-red-600">{item.quantity}</span>
             </span>
           </div>

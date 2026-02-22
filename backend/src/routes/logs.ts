@@ -129,7 +129,7 @@ const attachLogDetails = async (logs: LogRecord[]): Promise<LogWithExtras[]> => 
     const base: LogWithExtras = {
       ...log,
       transactionType:
-        log.table === 'Reception' ? 'استقبال' : log.table === 'Distribution' ? 'توزيع' : undefined,
+        log.table === 'Reception' ? 'دخل' : log.table === 'Distribution' ? 'خرج' : undefined,
     }
 
     if (log.recordId) {

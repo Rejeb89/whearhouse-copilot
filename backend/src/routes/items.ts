@@ -35,4 +35,13 @@ router.delete('/:id', roleGuard(['ADMIN','STORE_KEEPER']), async (req, res) => {
   }
 })
 
+router.get('/:id/history', async (req, res) => {
+  try {
+    const history = await itemService.getItemHistory(Number(req.params.id))
+    res.json({ data: history })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 export default router

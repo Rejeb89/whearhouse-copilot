@@ -30,19 +30,16 @@ router.get('/:id', authGuard, async (req, res) => {
 // Create entity
 router.post('/', authGuard, roleGuard(['ADMIN', 'STORE_KEEPER']), async (req, res) => {
   try {
-    const { name, type, phone, unitHead, unitHeadPhone } = req.body
+    const { name, type, category, phone, unitHead, unitHeadPhone } = req.body
 
     if (!name || !type) {
       return res.status(400).json({ error: 'Missing required fields' })
     }
 
-    // For BENEFICIARY, phone is optional when adding quickly from distribution modal
-    // but required when adding from entities page
-    // For SUPPLIER, phone is required
-
     const entity = await entityService.createEntity({
       name,
       type,
+      category,
       phone: phone || '',
       unitHead,
       unitHeadPhone,
@@ -57,10 +54,11 @@ router.post('/', authGuard, roleGuard(['ADMIN', 'STORE_KEEPER']), async (req, re
 // Update entity
 router.put('/:id', authGuard, roleGuard(['ADMIN', 'STORE_KEEPER']), async (req, res) => {
   try {
-    const { name, phone, unitHead, unitHeadPhone } = req.body
+    const { name, category, phone, unitHead, unitHeadPhone } = req.body
 
     const entity = await entityService.updateEntity(parseInt(req.params.id), {
       name,
+      category,
       phone,
       unitHead,
       unitHeadPhone,

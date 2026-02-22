@@ -3,6 +3,7 @@ import prisma from '../prisma'
 export const createEntity = async (data: {
   name: string
   type: 'SUPPLIER' | 'BENEFICIARY'
+  category?: string
   phone: string
   unitHead?: string
   unitHeadPhone?: string
@@ -11,6 +12,7 @@ export const createEntity = async (data: {
     data: {
       name: data.name,
       type: data.type,
+      category: data.category || 'OTHER',
       phone: data.phone,
       unitHead: data.unitHead,
       unitHeadPhone: data.unitHeadPhone,
@@ -33,6 +35,7 @@ export const getEntityById = async (id: number) => {
 
 export const updateEntity = async (id: number, data: {
   name?: string
+  category?: string
   phone?: string
   unitHead?: string
   unitHeadPhone?: string
@@ -41,6 +44,7 @@ export const updateEntity = async (id: number, data: {
     where: { id },
     data: {
       name: data.name,
+      category: data.category,
       phone: data.phone,
       unitHead: data.unitHead,
       unitHeadPhone: data.unitHeadPhone,

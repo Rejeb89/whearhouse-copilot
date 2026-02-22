@@ -20,27 +20,57 @@ export const updateItem = async (id: number, data: any) => {
 }
 
 export const deleteItem = async (id: number) => {
-  // Check if item has any distribution items
+  // Check if item has any distribution items (prevent deletion if it does)
   const distributionCount = await prisma.distributionItem.count({
     where: { itemId: id }
   })
   
   if (distributionCount > 0) {
-    throw new Error(`لا يمكن حذف هذا التجهيز. يوجد ${distributionCount} عملية توزيع مرتبطة به`)
+    throw new Error(`لا يمكن حذف هذا التجهيز. يوجد ${distributionCount} عملية تسليم مرتبطة به`)
   }
 
-  // Check if item has any reception items
-  const receptionCount = await prisma.receptionItem.count({
-    where: { itemId: id }
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // Delete all reception items for this item (allowed even if exist)
+    await tx.receptionItem.deleteMany({ where: { itemId: id } })
+    
+    // Delete the item itself
+    await tx.item.delete({ where: { id } })
   })
   
-  if (receptionCount > 0) {
-    throw new Error(`لا يمكن حذف هذا التجهيز. يوجد ${receptionCount} عملية استقبال مرتبطة به`)
-  }
-
-  await prisma.item.delete({ where: { id } })
   await createLog('DELETE', 'Item', id, null)
   return true
+}
+
+export const getItemHistory = async (id: number) => {
+  const [receptions, distributions] = await Promise.all([
+    prisma.receptionItem.findMany({
+      where: { itemId: id },
+      include: {
+        reception: {
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+            supplier: { select: { id: true, name: true } },
+          }
+        }
+      },
+      orderBy: { reception: { createdAt: 'desc' } }
+    }),
+    prisma.distributionItem.findMany({
+      where: { itemId: id },
+      include: {
+        distribution: {
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+            beneficiary: { select: { id: true, name: true } },
+            assignedTo: { select: { id: true, name: true, surname: true, rank: true } },
+            receipt: { select: { id: true, serialNumber: true, status: true, issuedAt: true } },
+          }
+        }
+      },
+      orderBy: { distribution: { createdAt: 'desc' } }
+    })
+  ])
+  return { receptions, distributions }
 }
 
 export const adjustStock = async (itemId: number, quantityDelta: number) => {

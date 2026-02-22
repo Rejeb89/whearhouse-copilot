@@ -37,7 +37,7 @@ interface NewEmployeeState {
   phone: string
 }
 
-export default function Distributions() {
+export default function Distributions({ preselectedItem: propItem }: { preselectedItem?: any } = {}) {
   const location = useLocation()
   const { user } = useContext(AuthContext)
 
@@ -48,12 +48,12 @@ export default function Distributions() {
   const [notes, setNotes] = useState('')
 
   useEffect(() => {
-    const pre = (location.state as any)?.preselectedItem
+    const pre = propItem || (location.state as any)?.preselectedItem
     if (pre) {
       setSelectedItem(pre)
       setItemSearch(pre.name)
     }
-  }, [])
+  }, [propItem?.id])
 
   // Beneficiary
   const [beneficiarySearch, setBeneficiarySearch] = useState('')
@@ -178,7 +178,7 @@ export default function Distributions() {
         referenceDate: referenceDate || undefined,
         deliveredByName: deliveredByName || undefined,
       })
-      setSuccess('تم تسجيل التوزيع بنجاح وتم خصم الكمية من المخزون')
+      setSuccess('تم تسجيل الخرج بنجاح وتم خصم الكمية من المخزون')
       setSelectedItem(null)
       setItemSearch('')
       setQuantity(1)
@@ -193,7 +193,7 @@ export default function Distributions() {
       setDeliveredByName(user?.name || user?.email || '')
       setRefAutoFilled(false)
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'تعذر حفظ التوزيع')
+      setError(err?.response?.data?.error || 'تعذر حفظ الخرج')
     } finally {
       setSubmitting(false)
     }
@@ -253,8 +253,8 @@ export default function Distributions() {
   return (
     <div dir="rtl" className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">خرج يومي</h1>
-        <p className="text-sm text-gray-600">تسجيل توزيع تجهيزات من المخزون</p>
+        <h1 className="text-2xl font-bold text-foreground">خرج يومي</h1>
+        <p className="text-sm text-muted-foreground">تسجيل خرج تجهيزات من المخزون</p>
       </div>
 
       {/* <div className="flex items-center gap-3 text-sm text-gray-700">
@@ -264,37 +264,37 @@ export default function Distributions() {
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* ===== Main form (left 2/3) ===== */}
-        <section className="lg:col-span-2 bg-white p-5 rounded shadow space-y-4">
+        <section className="lg:col-span-2 rounded-xl border border-border bg-card p-5 space-y-4">
 
           {/* 1. Item name search */}
           <div>
             <label className="block text-sm mb-1">اسم التجهيز</label>
             <div className="relative">
-              <Search className="absolute right-2 top-2.5 w-4 h-4 text-gray-400" />
+              <Search className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 value={itemSearch}
                 onChange={e => { setItemSearch(e.target.value); setSelectedItem(null); setRefAutoFilled(false) }}
                 placeholder="ابحث باسم التجهيز أو الصنف..."
-                className="w-full border p-2 pr-8 rounded"
+                className="w-full border border-input bg-background p-2 pr-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
             {itemSearch && !selectedItem && (
-              <div className="border rounded mt-1 max-h-44 overflow-y-auto shadow-sm">
-                {loadingItems && <div className="p-2 text-sm text-gray-500">جاري التحميل...</div>}
+              <div className="rounded-lg border border-border mt-1 max-h-44 overflow-y-auto shadow-sm">
+                {loadingItems && <div className="p-2 text-sm text-muted-foreground">جاري التحميل...</div>}
                 {!loadingItems && filteredItems.length === 0 && (
-                  <div className="p-2 text-sm text-gray-500">لا توجد تجهيزات مطابقة</div>
+                  <div className="p-2 text-sm text-muted-foreground">لا توجد تجهيزات مطابقة</div>
                 )}
                 {filteredItems.map(item => (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => handleSelectItem(item)}
-                    className="w-full text-right p-2 hover:bg-slate-50 flex justify-between items-center border-b last:border-0"
+                    className="w-full text-right p-2 hover:bg-muted/50 flex justify-between items-center border-b border-border last:border-0 transition"
                   >
                     <div>
-                      <div className="font-semibold text-sm">{item.name}</div>
-                      <div className="text-xs text-gray-500">{item.category || 'بدون صنف'}</div>
+                      <div className="font-semibold text-sm text-foreground">{item.name}</div>
+                      <div className="text-xs text-muted-foreground">{item.category || 'بدون صنف'}</div>
                     </div>
                     <div className={`text-xs font-semibold ${item.quantity === 0 ? 'text-red-600' : 'text-green-600'}`}>
                       {item.quantity === 0 ? 'نفذ المخزون' : `${item.quantity} متوفر`}
@@ -304,10 +304,10 @@ export default function Distributions() {
               </div>
             )}
             {selectedItem && (
-              <div className="mt-1 p-2 bg-blue-50 rounded text-sm flex items-center justify-between">
+              <div className="mt-1 p-2 bg-primary/10 rounded-lg text-sm flex items-center justify-between border border-primary/20">
                 <div>
-                  <span className="font-semibold">{selectedItem.name}</span>
-                  <span className="text-gray-500 text-xs mr-2">({selectedItem.category || 'بدون صنف'})</span>
+                  <span className="font-semibold text-foreground">{selectedItem.name}</span>
+                  <span className="text-muted-foreground text-xs mr-2">({selectedItem.category || 'بدون صنف'})</span>
                 </div>
                 <span className={`text-xs font-semibold ${selectedItem.quantity === 0 ? 'text-red-600' : 'text-green-600'}`}>
                   متوفر: {selectedItem.quantity}
@@ -318,26 +318,26 @@ export default function Distributions() {
 
           {/* 2. Category (auto-filled, read-only) */}
           <div>
-            <label className="block text-sm mb-1">صنف التجهيز</label>
+            <label className="block text-sm mb-1 text-foreground">صنف التجهيز</label>
             <input
               type="text"
               value={selectedItem?.category || ''}
               readOnly
-              className="w-full border p-2 rounded bg-gray-50 text-gray-600 cursor-not-allowed"
+              className="w-full border border-input bg-muted p-2 rounded-lg text-sm text-muted-foreground cursor-not-allowed"
               placeholder="يتم تعبئته تلقائيًا عند اختيار التجهيز"
             />
           </div>
 
           {/* 3. Quantity */}
           <div>
-            <label className="block text-sm mb-1">الكمية المسلمة</label>
+            <label className="block text-sm mb-1 text-foreground">الكمية المسلمة</label>
             <input
               type="number"
               min={1}
               max={selectedItem?.quantity || undefined}
               value={quantity}
               onChange={e => setQuantity(Math.max(1, Number(e.target.value) || 1))}
-              className="w-full border p-2 rounded"
+              className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               required
             />
             {selectedItem && quantity > selectedItem.quantity && (
@@ -350,21 +350,21 @@ export default function Distributions() {
           {/* Per-item receipt fields */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm mb-1">الرقم التسلسلي للتجهيز</label>
+              <label className="block text-sm mb-1 text-foreground">الرقم التسلسلي للتجهيز</label>
               <input
                 type="text"
                 value={itemSerialNumber}
                 onChange={e => setItemSerialNumber(e.target.value)}
-                className="w-full border p-2 rounded text-sm"
+                className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="SN-XXXXXXX (اختياري)"
               />
             </div>
             <div>
-              <label className="block text-sm mb-1">حالة التجهيز</label>
+              <label className="block text-sm mb-1 text-foreground">حالة التجهيز</label>
               <select
                 value={itemCondition}
                 onChange={e => setItemCondition(e.target.value as any)}
-                className="w-full border p-2 rounded text-sm"
+                className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="NEW">جديد</option>
                 <option value="USED">مستعمل</option>
@@ -374,16 +374,16 @@ export default function Distributions() {
           </div>
 
           {/* Reference section */}
-          <div className="border-t border-dashed border-gray-200 pt-4">
+          <div className="border-t border-dashed border-border pt-4">
             <div className="flex items-center gap-2 mb-3">
-              <p className="text-xs font-semibold text-gray-500">بيانات الوصل / المرجع</p>
+              <p className="text-xs font-semibold text-muted-foreground">بيانات الوصل / المرجع</p>
               {loadingRef && (
                 <span className="flex items-center gap-1 text-xs text-blue-500">
                   <RefreshCw className="w-3 h-3 animate-spin" /> جارٍ الجلب...
                 </span>
               )}
               {refAutoFilled && !loadingRef && (
-                <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                  <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
                   <Info className="w-3 h-3" /> مجلوبة من الدخل اليومي
                 </span>
               )}
@@ -395,7 +395,9 @@ export default function Distributions() {
                   type="text"
                   value={referenceType}
                   onChange={e => { setReferenceType(e.target.value); setRefAutoFilled(false) }}
-                  className={`w-full border p-2 rounded text-sm ${refAutoFilled && referenceType ? 'border-green-300 bg-green-50' : ''}`}
+                  className={`w-full border p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring ${
+                  refAutoFilled && referenceType ? 'border-green-300 bg-green-50' : 'border-input bg-background'
+                }`}
                   placeholder="أمر خدمة / قرار ..."
                 />
               </div>
@@ -405,7 +407,9 @@ export default function Distributions() {
                   type="text"
                   value={referenceNumber}
                   onChange={e => { setReferenceNumber(e.target.value); setRefAutoFilled(false) }}
-                  className={`w-full border p-2 rounded text-sm ${refAutoFilled && referenceNumber ? 'border-green-300 bg-green-50' : ''}`}
+                  className={`w-full border p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring ${
+                  refAutoFilled && referenceNumber ? 'border-green-300 bg-green-50' : 'border-input bg-background'
+                }`}
                   placeholder="2024/XXXX"
                 />
               </div>
@@ -415,7 +419,9 @@ export default function Distributions() {
                   type="date"
                   value={referenceDate}
                   onChange={e => { setReferenceDate(e.target.value); setRefAutoFilled(false) }}
-                  className={`w-full border p-2 rounded text-sm ${refAutoFilled && referenceDate ? 'border-green-300 bg-green-50' : ''}`}
+                  className={`w-full border p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring ${
+                  refAutoFilled && referenceDate ? 'border-green-300 bg-green-50' : 'border-input bg-background'
+                }`}
                 />
               </div>
               <div>
@@ -424,7 +430,7 @@ export default function Distributions() {
                   type="text"
                   value={deliveredByName}
                   onChange={e => setDeliveredByName(e.target.value)}
-                  className="w-full border p-2 rounded text-sm"
+                className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="الاسم الكامل للمسلِّم"
                 />
               </div>
@@ -437,32 +443,32 @@ export default function Distributions() {
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="w-full border p-2 rounded"
+              className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               rows={3}
-              placeholder="أي تفاصيل إضافية حول التوزيع"
+              placeholder="أي تفاصيل إضافية حول الخرج"
             />
           </div>
 
           <div className="flex justify-end gap-3">
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center gap-2 text-sm font-medium transition"
               disabled={submitting}
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              تسجيل توزيع جديد
+              تسجيل خرج جديد
             </button>
           </div>
-          {error && <div className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</div>}
-          {success && <div className="text-sm text-green-600 bg-green-50 p-2 rounded">{success}</div>}
+          {error && <div className="text-sm text-destructive bg-destructive/10 p-2 rounded-lg border border-destructive/20">{error}</div>}
+          {success && <div className="text-sm text-green-700 bg-green-50 border border-green-200 p-2 rounded-lg">{success}</div>}
         </section>
 
         {/* ===== Right column: Beneficiary + Employee ===== */}
         <div className="space-y-4">
 
           {/* Beneficiary section */}
-          <section className="bg-white p-5 rounded shadow space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+          <section className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
               <Search className="w-4 h-4" />
               الجهة المنتفعة
             </div>
@@ -473,19 +479,19 @@ export default function Distributions() {
                 value={beneficiarySearch}
                 onChange={e => setBeneficiarySearch(e.target.value)}
                 placeholder="اسم الجهة أو رقم الهاتف"
-                className="w-full border p-2 rounded"
+                className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <input
                 type="text"
                 value={beneficiaryPhone}
                 onChange={e => setBeneficiaryPhone(e.target.value)}
                 placeholder="هاتف الجهة (عند إضافة جديدة)"
-                className="w-full border p-2 rounded"
+                className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <button
                 type="button"
                 onClick={handleAddBeneficiary}
-                className="w-full px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center gap-2"
+                className="w-full px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center justify-center gap-2 text-sm font-medium transition"
                 disabled={addingBeneficiary}
               >
                 {addingBeneficiary ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -493,10 +499,10 @@ export default function Distributions() {
               </button>
             </div>
 
-            <div className="border rounded divide-y max-h-52 overflow-y-auto">
-              {loadingBeneficiaries && <div className="p-3 text-sm text-gray-500">جاري التحميل...</div>}
+            <div className="rounded-lg border border-border divide-y divide-border max-h-52 overflow-y-auto">
+              {loadingBeneficiaries && <div className="p-3 text-sm text-muted-foreground">جاري التحميل...</div>}
               {!loadingBeneficiaries && filteredBeneficiaries.length === 0 && (
-                <div className="p-3 text-sm text-gray-500">لا يوجد نتائج</div>
+                <div className="p-3 text-sm text-muted-foreground">لا يوجد نتائج</div>
               )}
               {filteredBeneficiaries.map(b => (
                 <button
@@ -508,32 +514,32 @@ export default function Distributions() {
                     setEmployeeSearch('')
                     setShowAddEmployee(false)
                   }}
-                  className={`w-full text-right p-3 hover:bg-slate-50 flex items-center justify-between ${
-                    selectedBeneficiary?.id === b.id ? 'bg-blue-50 border-r-4 border-blue-500' : ''
+                  className={`w-full text-right p-3 hover:bg-muted/50 flex items-center justify-between transition ${
+                    selectedBeneficiary?.id === b.id ? 'bg-primary/10 border-r-4 border-primary' : ''
                   }`}
                 >
                   <div>
-                    <div className="font-semibold text-sm">{b.name}</div>
-                    <div className="text-xs text-gray-500">{b.phone || 'بدون هاتف'}</div>
+                    <div className="font-semibold text-sm text-foreground">{b.name}</div>
+                    <div className="text-xs text-muted-foreground">{b.phone || 'بدون هاتف'}</div>
                   </div>
-                  {selectedBeneficiary?.id === b.id && <Check className="w-4 h-4 text-blue-600" />}
+                  {selectedBeneficiary?.id === b.id && <Check className="w-4 h-4 text-primary" />}
                 </button>
               ))}
             </div>
 
             {selectedBeneficiary && (
-              <div className="p-3 bg-blue-50 rounded text-sm">
-                <div className="font-semibold">الجهة المحددة</div>
-                <div>{selectedBeneficiary.name}</div>
-                <div className="text-xs text-gray-500">{selectedBeneficiary.phone || 'بدون هاتف'}</div>
+              <div className="p-3 bg-primary/10 rounded-lg text-sm border border-primary/20">
+                <div className="font-semibold text-foreground">الجهة المحددة</div>
+                <div className="text-foreground">{selectedBeneficiary.name}</div>
+                <div className="text-xs text-muted-foreground">{selectedBeneficiary.phone || 'بدون هاتف'}</div>
               </div>
             )}
           </section>
 
           {/* Employee section — shown only after beneficiary is selected */}
           {selectedBeneficiary && (
-            <section className="bg-white p-5 rounded shadow space-y-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <section className="rounded-xl border border-border bg-card p-5 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                 <UserCheck className="w-4 h-4" />
                 المكلف بالسحب
               </div>
@@ -543,25 +549,25 @@ export default function Distributions() {
                 value={employeeSearch}
                 onChange={e => setEmployeeSearch(e.target.value)}
                 placeholder="ابحث بالاسم أو اللقب أو الرقم الشخصي"
-                className="w-full border p-2 rounded"
+                className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
 
-              <div className="border rounded divide-y max-h-44 overflow-y-auto">
+              <div className="rounded-lg border border-border divide-y divide-border max-h-44 overflow-y-auto">
                 {filteredEmployees.length === 0 && (
-                  <div className="p-3 text-sm text-gray-500">لا يوجد موظفون للجهة المحددة</div>
+                  <div className="p-3 text-sm text-muted-foreground">لا يوجد موظفون للجهة المحددة</div>
                 )}
                 {filteredEmployees.map(emp => (
                   <button
                     key={emp.id}
                     type="button"
                     onClick={() => { setSelectedEmployee(emp); setShowAddEmployee(false) }}
-                    className={`w-full text-right p-3 hover:bg-slate-50 flex items-center justify-between ${
+                    className={`w-full text-right p-3 hover:bg-muted/50 flex items-center justify-between transition ${
                       selectedEmployee?.id === emp.id ? 'bg-green-50 border-r-4 border-green-500' : ''
                     }`}
                   >
                     <div>
-                      <div className="font-semibold text-sm">{emp.rank} {emp.name} {emp.surname}</div>
-                      <div className="text-xs text-gray-500">رقم: {emp.number}</div>
+                      <div className="font-semibold text-sm text-foreground">{emp.rank} {emp.name} {emp.surname}</div>
+                      <div className="text-xs text-muted-foreground">رقم: {emp.number}</div>
                     </div>
                     {selectedEmployee?.id === emp.id && <Check className="w-4 h-4 text-green-600" />}
                   </button>
@@ -571,14 +577,14 @@ export default function Distributions() {
               <button
                 type="button"
                 onClick={() => setShowAddEmployee(!showAddEmployee)}
-                className="w-full px-3 py-2 border border-dashed border-gray-300 text-gray-600 rounded hover:bg-slate-50 flex items-center justify-center gap-2 text-sm"
+                className="w-full px-3 py-2 border border-dashed border-border text-muted-foreground rounded-lg hover:bg-muted/50 flex items-center justify-center gap-2 text-sm transition"
               >
                 <Plus className="w-4 h-4" />
                 {showAddEmployee ? 'إلغاء إضافة موظف' : 'إضافة موظف جديد'}
               </button>
 
               {showAddEmployee && (
-                <div className="space-y-2 border rounded p-3 bg-gray-50">
+                <div className="space-y-2 rounded-lg border border-border p-3 bg-muted/50">
                   {[
                     { key: 'rank', placeholder: 'الرتبة' },
                     { key: 'name', placeholder: 'الاسم' },
@@ -592,13 +598,13 @@ export default function Distributions() {
                       placeholder={placeholder}
                       value={(newEmployee as any)[key]}
                       onChange={e => setNewEmployee(prev => ({ ...prev, [key]: e.target.value }))}
-                      className="w-full border p-2 rounded text-sm"
+                      className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   ))}
                   <button
                     type="button"
                     onClick={handleAddEmployee}
-                    className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center gap-2 text-sm"
+                    className="w-full px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center justify-center gap-2 text-sm font-medium transition"
                     disabled={addingEmployee}
                   >
                     {addingEmployee ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -608,10 +614,10 @@ export default function Distributions() {
               )}
 
               {selectedEmployee && (
-                <div className="p-3 bg-green-50 rounded text-sm">
-                  <div className="font-semibold">المكلف المحدد</div>
-                  <div>{selectedEmployee.rank} {selectedEmployee.name} {selectedEmployee.surname}</div>
-                  <div className="text-xs text-gray-500">الرقم الشخصي: {selectedEmployee.number}</div>
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm">
+                  <div className="font-semibold text-green-800">المكلف المحدد</div>
+                  <div className="text-foreground">{selectedEmployee.rank} {selectedEmployee.name} {selectedEmployee.surname}</div>
+                  <div className="text-xs text-muted-foreground">الرقم الشخصي: {selectedEmployee.number}</div>
                 </div>
               )}
             </section>

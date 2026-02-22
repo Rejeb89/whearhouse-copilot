@@ -80,7 +80,7 @@ export default function Login() {
       </div>
 
       {/* Right panel - Login form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-gray-50 px-6 py-12">
+      <div className="w-full lg:w-1/2 flex items-center justify-center bg-background px-6 py-12">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center justify-center gap-3 mb-8 lg:hidden">
@@ -91,12 +91,12 @@ export default function Login() {
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
             <div>
-              <p className="text-gray-800 font-bold">الإدارة العامة للحرس الوطني</p>
-              <p className="text-gray-500 text-sm">نظام ادارة اقسام الجهيز</p>
+              <p className="text-foreground font-bold">الإدارة العامة للحرس الوطني</p>
+              <p className="text-muted-foreground text-sm">نظام ادارة اقسام الجهيز</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-2xl p-10 border border-gray-100">
+          <div className="bg-card rounded-2xl shadow-lg p-10 border border-border">
             {/* Form header */}
             <div className="text-center mb-8">
               <div className="flex justify-center mb-5">
@@ -123,52 +123,56 @@ export default function Login() {
                   </span>
                 </div>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">تسجيل الدخول</h2>
-              <p className="text-gray-400 text-sm mt-1">أدخل بياناتك للوصول إلى النظام</p>
+              <h2 className="text-2xl font-bold text-foreground">تسجيل الدخول</h2>
+              <p className="text-muted-foreground text-sm mt-1">أدخل بياناتك للوصول إلى النظام</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-semibold text-gray-700">البريد الإلكتروني</label>
+                <label className="block text-sm font-semibold text-foreground">البريد الإلكتروني</label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 pointer-events-none">
+                  <span className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-muted-foreground pointer-events-none">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                   </span>
                   <input
                     type="email"
+                    name="email"
+                    autoComplete="username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="admin@example.com"
-                    className="w-full border border-gray-200 bg-gray-50 rounded-xl py-3 pr-11 pl-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition hover:bg-white"
+                    className="w-full border border-input bg-background rounded-xl py-3 pr-11 pl-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition hover:bg-muted/50"
                   />
                 </div>
               </div>
 
               {/* Password */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-semibold text-gray-700">كلمة المرور</label>
+                <label className="block text-sm font-semibold text-foreground">كلمة المرور</label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 pointer-events-none">
+                  <span className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-muted-foreground pointer-events-none">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   </span>
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     placeholder="••••••••"
-                    className="w-full border border-gray-200 bg-gray-50 rounded-xl py-3 pr-11 pl-11 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition hover:bg-white"
+                    className="w-full border border-input bg-background rounded-xl py-3 pr-11 pl-11 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition hover:bg-muted/50"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 hover:text-gray-600 transition"
+                    className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground hover:text-foreground transition"
                     tabIndex={-1}
                   >
                     {showPassword ? (

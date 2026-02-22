@@ -255,7 +255,7 @@ export default function LowStockRadialChart({ items, width = 460, height = 400 }
               className="inline-block w-3 h-3 rounded-full flex-shrink-0"
               style={{ background: COLORS[i % COLORS.length] }}
             />
-            <span className="text-xs text-gray-700 font-medium">
+            <span className="text-xs text-foreground font-medium">
               {item.name}:&nbsp;
               <span className="font-bold" style={{ color: COLORS[i % COLORS.length] }}>
                 {item.quantity}

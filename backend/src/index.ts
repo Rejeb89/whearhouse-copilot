@@ -22,6 +22,20 @@ app.use(cors())
 app.use(bodyParser.json({ limit: '50mb' }))
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 
+// Request logger
+app.use((req: any, res: any, next: any) => {
+  const start = Date.now()
+  res.on('finish', () => {
+    const ms = Date.now() - start
+    if (res.statusCode >= 400) {
+      console.error(`[${res.statusCode}] ${req.method} ${req.originalUrl} (${ms}ms)`)
+    } else {
+      console.log(`[${res.statusCode}] ${req.method} ${req.originalUrl} (${ms}ms)`)
+    }
+  })
+  next()
+})
+
 app.use('/api/auth', authRoutes)
 app.use('/api/users', usersRoutes)
 app.use('/api/items', itemsRoutes)
