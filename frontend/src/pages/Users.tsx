@@ -10,6 +10,8 @@ interface AppUser {
   role: string
   personalNumber?: string
   securityUnit?: string
+  region?: string
+  title?: string
   createdAt: string
 }
 
@@ -19,7 +21,7 @@ const roleLabel: Record<string, { label: string; color: string }> = {
   USER:         { label: 'مستخدم',         color: 'bg-muted text-muted-foreground' },
 }
 
-const EMPTY_FORM = { email: '', password: '', name: '', role: 'USER', personalNumber: '', securityUnit: '' }
+const EMPTY_FORM = { email: '', password: '', name: '', role: 'USER', personalNumber: '', securityUnit: '', region: '', title: '' }
 
 const fetchUsers = async () => (await client.get('/users')).data.data
 
@@ -99,6 +101,7 @@ export default function UsersList() {
                 <th className="px-4 py-3">الاسم الكامل</th>
                 <th className="px-4 py-3">البريد الإلكتروني</th>
                 <th className="px-4 py-3">الرقم الشخصي</th>
+                <th className="px-4 py-3">العنوان</th>
                 <th className="px-4 py-3">الوحدة الأمنية</th>
                 <th className="px-4 py-3">الصلاحية</th>
                 <th className="px-4 py-3">تاريخ الإنشاء</th>
@@ -118,6 +121,7 @@ export default function UsersList() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground" dir="ltr">{u.email}</td>
                     <td className="px-4 py-3 text-muted-foreground font-mono">{u.personalNumber || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{u.title || '—'}</td>
                     <td className="px-4 py-3 text-muted-foreground">{u.securityUnit || '—'}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${rl.color}`}>{rl.label}</span>
@@ -189,7 +193,7 @@ export default function UsersList() {
                 </div>
 
                 {/* Personal Number */}
-                <div>
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-foreground mb-1">الرقم الشخصي</label>
                   <input
                     type="text"
@@ -197,6 +201,32 @@ export default function UsersList() {
                     onChange={e => setForm(p => ({ ...p, personalNumber: e.target.value }))}
                     className="w-full border border-input bg-background p-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono"
                     placeholder="XXXXXXX"
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-foreground mb-1">البريد الإلكتروني</label>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                    className="w-full border border-input bg-background p-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    placeholder="user@example.com"
+                    required
+                    dir="ltr"
+                  />
+                </div>
+
+                {/* Region */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">الإقليم الحالي</label>
+                  <input
+                    type="text"
+                    value={form.region}
+                    onChange={e => setForm(p => ({ ...p, region: e.target.value }))}
+                    className="w-full border border-input bg-background p-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    placeholder="اسم الإقليم"
                   />
                 </div>
 
@@ -212,17 +242,15 @@ export default function UsersList() {
                   />
                 </div>
 
-                {/* Email */}
+                {/* Title */}
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-foreground mb-1">البريد الإلكتروني</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">العنوان</label>
                   <input
-                    type="email"
-                    value={form.email}
-                    onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                    type="text"
+                    value={form.title}
+                    onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
                     className="w-full border border-input bg-background p-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    placeholder="user@example.com"
-                    required
-                    dir="ltr"
+                    placeholder="مثال: أمين المستودع بوحدة كذا"
                   />
                 </div>
 

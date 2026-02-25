@@ -68,6 +68,15 @@ export const deleteEntity = async (id: number) => {
     throw new Error(`لا يمكن حذف هذه الجهة لأنها مرتبطة بـ ${distributionCount} عملية خرج`)
   }
 
+  // Check if entity has any receptions (as supplier)
+  const receptionCount = await prisma.reception.count({
+    where: { supplierId: id }
+  })
+
+  if (receptionCount > 0) {
+    throw new Error(`لا يمكن حذف هذه الجهة لأنها مرتبطة بـ ${receptionCount} عملية دخل`)
+  }
+
   return prisma.entity.delete({
     where: { id }
   })

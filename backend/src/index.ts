@@ -15,6 +15,7 @@ import dataRoutes from './routes/data'
 import searchRoutes from './routes/search'
 import budgetsRoutes from './routes/budgets'
 import receiptsRoutes from './routes/receipts'
+import vehiclesRoutes from './routes/vehicles'
 import prisma from './prisma'
 
 const app = express()
@@ -49,6 +50,7 @@ app.use('/api/data', dataRoutes)
 app.use('/api/search', searchRoutes)
 app.use('/api/budgets', budgetsRoutes)
 app.use('/api/receipts', receiptsRoutes)
+app.use('/api/vehicles', vehiclesRoutes)
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
 

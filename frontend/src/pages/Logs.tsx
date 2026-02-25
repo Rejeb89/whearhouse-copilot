@@ -12,6 +12,7 @@ import {
   DollarSign, Package, ArrowDownToLine, ArrowUpFromLine,
   ClipboardList, Layers, ShieldCheck, Clock, Eye,
   AlertTriangle, CheckCircle2, SlidersHorizontal, ChevronDown, ChevronUp,
+  PackageSearch, TrendingDown, Warehouse, InboxIcon,
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -341,7 +342,7 @@ function LogDetailsModal({ log, onClose }: { log: Log; onClose: () => void }) {
 
 // ─── Main page ───────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'audit' | 'financial' | 'monthly'
+type Tab = 'overview' | 'audit' | 'financial' | 'monthly' | 'inventory'
 
 export default function Logs() {
   const now = new Date()
@@ -411,6 +412,24 @@ export default function Logs() {
 
   const { data: itemsRaw } =
     useQuery(['items'], fetchItems, { staleTime: 60000 })
+
+  const { data: inventoryRaw, isLoading: inventoryLoading } =
+    useQuery(['items-inventory'], () => client.get('/items/inventory').then(r => r.data.data ?? []), {
+      staleTime: 30000,
+      enabled: activeTab === 'inventory',
+    })
+
+  // ── Inventory tab state ──────────────────────────────────────────────────────
+  const [invSearch,       setInvSearch]       = useState('')
+  const [invCategory,     setInvCategory]     = useState('')
+  const [invStockStatus,  setInvStockStatus]  = useState('all')
+  const [invRefType,      setInvRefType]      = useState('')
+  const [invDateFrom,     setInvDateFrom]     = useState('')
+  const [invDateTo,       setInvDateTo]       = useState('')
+  const [invShowFilters,  setInvShowFilters]  = useState(false)
+  const [invExpandedId,   setInvExpandedId]   = useState<number | null>(null)
+  const [invExportingXL,  setInvExportingXL]  = useState(false)
+  const [invExportingPDF, setInvExportingPDF] = useState(false)
 
   // Derived values
   const logs: Log[]       = logsData?.data ?? []
@@ -486,10 +505,11 @@ export default function Logs() {
   }
 
   const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
-    { key: 'overview',  label: 'نظرة عامة',        icon: <BarChart3   className="w-4 h-4" /> },
-    { key: 'audit',     label: 'سجل العمليات',      icon: <ShieldCheck className="w-4 h-4" /> },
-    { key: 'financial', label: 'التقارير المالية',   icon: <DollarSign  className="w-4 h-4" /> },
-    { key: 'monthly',   label: 'التقرير الشهري',     icon: <Calendar    className="w-4 h-4" /> },
+    { key: 'overview',   label: 'نظرة عامة',           icon: <BarChart3      className="w-4 h-4" /> },
+    { key: 'audit',      label: 'سجل العمليات',         icon: <ShieldCheck    className="w-4 h-4" /> },
+    { key: 'financial',  label: 'التقارير المالية',      icon: <DollarSign     className="w-4 h-4" /> },
+    { key: 'monthly',    label: 'التقرير الشهري',        icon: <Calendar       className="w-4 h-4" /> },
+    { key: 'inventory',  label: 'جرد التجهيزات',         icon: <PackageSearch  className="w-4 h-4" /> },
   ]
 
   const TooltipStyle = {
@@ -1359,6 +1379,514 @@ export default function Logs() {
           )}
         </div>
       )}
+
+      {/* ════════════════════════════════════════════════════════════
+          TAB 5  —  جرد التجهيزات  (Inventory)
+      ════════════════════════════════════════════════════════════ */}
+      {activeTab === 'inventory' && (() => {
+        const inventory: any[] = Array.isArray(inventoryRaw) ? inventoryRaw : []
+
+        // ── derived KPIs ──────────────────────────────────────────────────────
+        const kpiTotalItems   = inventory.length
+        const kpiTotalStock   = inventory.reduce((s: number, it: any) => s + it.currentStock, 0)
+        const kpiTotalRecvd   = inventory.reduce((s: number, it: any) => s + it.totalReceived, 0)
+        const kpiTotalDistrib = inventory.reduce((s: number, it: any) => s + it.totalDistributed, 0)
+        const kpiLowStock     = inventory.filter((it: any) => it.lowStockThreshold != null && it.currentStock <= it.lowStockThreshold && it.currentStock > 0).length
+        const kpiOutOfStock   = inventory.filter((it: any) => it.currentStock === 0).length
+
+        // ── unique categories & reference types for filter dropdowns ──────────
+        const allCategories = Array.from(new Set(inventory.map((it: any) => it.category).filter(Boolean))).sort() as string[]
+        const allRefTypes   = Array.from(new Set(
+          inventory.flatMap((it: any) => [
+            ...it.receptions.map((r: any) => r.referenceType),
+            ...it.distributions.map((d: any) => d.referenceType),
+          ]).filter(Boolean)
+        )).sort() as string[]
+
+        // ── client-side filtering ─────────────────────────────────────────────
+        const filtered = inventory.filter((it: any) => {
+          if (invSearch) {
+            const q = invSearch.toLowerCase()
+            if (!it.name.toLowerCase().includes(q) && !it.sku.toLowerCase().includes(q) && !(it.category ?? '').toLowerCase().includes(q)) return false
+          }
+          if (invCategory && it.category !== invCategory) return false
+          if (invRefType) {
+            const hasRef = it.receptions.some((r: any) => r.referenceType === invRefType) ||
+                           it.distributions.some((d: any) => d.referenceType === invRefType)
+            if (!hasRef) return false
+          }
+          if (invStockStatus === 'low' && !(it.lowStockThreshold != null && it.currentStock <= it.lowStockThreshold && it.currentStock > 0)) return false
+          if (invStockStatus === 'out' && it.currentStock !== 0) return false
+          if (invStockStatus === 'normal' && (it.currentStock === 0 || (it.lowStockThreshold != null && it.currentStock <= it.lowStockThreshold))) return false
+          return true
+        })
+
+        const stockBadge = (it: any) => {
+          if (it.currentStock === 0) return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200"><AlertTriangle className="w-3 h-3" />نفذ المخزون</span>
+          if (it.lowStockThreshold != null && it.currentStock <= it.lowStockThreshold) return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200"><TrendingDown className="w-3 h-3" />مخزون منخفض</span>
+          return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200"><CheckCircle2 className="w-3 h-3" />طبيعي</span>
+        }
+
+        // ── XLSX export ───────────────────────────────────────────────────────
+        const handleInvXLSX = async () => {
+          setInvExportingXL(true)
+          try {
+            const XLSX = await import('xlsx')
+            const wb = XLSX.utils.book_new()
+
+            // Sheet 1: summary
+            const summaryRows = filtered.map((it: any) => ({
+              'الاسم':             it.name,
+              'الرمز (SKU)':       it.sku,
+              'الفئة':             it.category ?? '—',
+              'إجمالي المستلم':    it.totalReceived,
+              'إجمالي الموزع':     it.totalDistributed,
+              'الرصيد الحالي':     it.currentStock,
+              'حد التنبيه':        it.lowStockThreshold ?? '—',
+              'الحالة':            it.currentStock === 0 ? 'نفذ المخزون' : (it.lowStockThreshold != null && it.currentStock <= it.lowStockThreshold ? 'منخفض' : 'طبيعي'),
+            }))
+            const ws1 = XLSX.utils.json_to_sheet(summaryRows)
+            ws1['!cols'] = [{ wch: 28 }, { wch: 14 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 14 }]
+            XLSX.utils.book_append_sheet(wb, ws1, 'ملخص الجرد')
+
+            // Sheet 2: reception movements
+            const recvRows: any[] = []
+            filtered.forEach((it: any) => {
+              it.receptions.forEach((r: any) => recvRows.push({
+                'التجهيز':         it.name,
+                'الرمز':           it.sku,
+                'الفئة':           it.category ?? '—',
+                'نوع المرجع':      r.referenceType ?? '—',
+                'رقم المرجع':      r.referenceNumber ?? '—',
+                'تاريخ المرجع':    r.referenceDate ? new Date(r.referenceDate).toLocaleDateString('en-GB') : '—',
+                'الكمية المستلمة': r.quantity,
+                'الرقم الإداري':   r.adminNumber ?? '—',
+                'المورد':          r.supplierName ?? '—',
+                'تاريخ الاستلام':  new Date(r.createdAt).toLocaleDateString('en-GB'),
+              }))
+            })
+            const ws2 = XLSX.utils.json_to_sheet(recvRows)
+            ws2['!cols'] = [{ wch: 28 }, { wch: 14 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 25 }, { wch: 18 }]
+            XLSX.utils.book_append_sheet(wb, ws2, 'حركات الاستلام')
+
+            // Sheet 3: distribution movements
+            const distRows: any[] = []
+            filtered.forEach((it: any) => {
+              it.distributions.forEach((d: any) => distRows.push({
+                'التجهيز':         it.name,
+                'الرمز':           it.sku,
+                'الفئة':           it.category ?? '—',
+                'نوع المرجع':      d.referenceType ?? '—',
+                'رقم المرجع':      d.referenceNumber ?? '—',
+                'تاريخ المرجع':    d.referenceDate ? new Date(d.referenceDate).toLocaleDateString('en-GB') : '—',
+                'الكمية الموزعة':  d.quantity,
+                'الرقم الإداري':   d.adminNumber ?? '—',
+                'الجهة المنتفعة':  d.beneficiaryName ?? '—',
+                'المكلف بالسحب':   d.assignedTo ?? '—',
+                'تاريخ التوزيع':   new Date(d.createdAt).toLocaleDateString('en-GB'),
+              }))
+            })
+            const ws3 = XLSX.utils.json_to_sheet(distRows)
+            ws3['!cols'] = [{ wch: 28 }, { wch: 14 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 25 }, { wch: 22 }, { wch: 18 }]
+            XLSX.utils.book_append_sheet(wb, ws3, 'حركات التوزيع')
+
+            const dateStr = new Date().toISOString().slice(0, 10)
+            XLSX.writeFile(wb, `جرد-التجهيزات-${dateStr}.xlsx`)
+          } finally { setInvExportingXL(false) }
+        }
+
+        // ── PDF export (html2canvas → jsPDF for correct Arabic rendering) ─────
+        const handleInvPDF = async () => {
+          setInvExportingPDF(true)
+          try {
+            const { jsPDF }   = await import('jspdf')
+            const html2canvas  = await import('html2canvas')
+
+            const dateLabel = [
+              invDateFrom ? `من: ${invDateFrom}` : '',
+              invDateTo   ? `إلى: ${invDateTo}`  : '',
+            ].filter(Boolean).join('   |   ')
+
+            const statusColor = (it: any) =>
+              it.currentStock === 0 ? '#dc2626'
+              : (it.lowStockThreshold != null && it.currentStock <= it.lowStockThreshold ? '#ca8a04' : '#16a34a')
+            const statusLabel = (it: any) =>
+              it.currentStock === 0 ? 'نفذ المخزون'
+              : (it.lowStockThreshold != null && it.currentStock <= it.lowStockThreshold ? 'مخزون منخفض' : 'طبيعي')
+
+            const container = document.createElement('div')
+            container.style.cssText = 'direction:rtl;font-family:Tahoma,Arial,sans-serif;background:#fff;padding:24px;width:1400px;color:#0f172a;'
+            container.innerHTML = `
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
+                <div>
+                  <p style="margin:0;font-size:22px;font-weight:700;color:#0f172a;">جرد التجهيزات</p>
+                  <p style="margin:4px 0 0;font-size:11px;color:#64748b;">تاريخ الإصدار: ${new Date().toLocaleDateString('en-GB')}${dateLabel ? '   |   ' + dateLabel : ''}</p>
+                </div>
+                <div style="text-align:left;font-size:11px;color:#64748b;">
+                  <p style="margin:0;">عدد الأصناف: <strong style="color:#0f172a;">${filtered.length}</strong></p>
+                  <p style="margin:2px 0 0;">إجمالي الرصيد: <strong style="color:#0f172a;">${filtered.reduce((s: number, it: any) => s + it.currentStock, 0).toLocaleString('ar-DZ')}</strong></p>
+                </div>
+              </div>
+              <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead>
+                  <tr style="background:#0f172a;color:#fff;">
+                    <th style="padding:8px 10px;text-align:center;border:1px solid #1e293b;">#</th>
+                    <th style="padding:8px 10px;text-align:right;border:1px solid #1e293b;">اسم التجهيز</th>
+                    <th style="padding:8px 10px;text-align:center;border:1px solid #1e293b;">الفئة</th>
+                    <th style="padding:8px 10px;text-align:center;border:1px solid #1e293b;">عمليات الدخل</th>
+                    <th style="padding:8px 10px;text-align:center;border:1px solid #1e293b;">إجمالي المستلم</th>
+                    <th style="padding:8px 10px;text-align:center;border:1px solid #1e293b;">عمليات الخرج</th>
+                    <th style="padding:8px 10px;text-align:center;border:1px solid #1e293b;">إجمالي الموزع</th>
+                    <th style="padding:8px 10px;text-align:center;border:1px solid #1e293b;">الرصيد الحالي</th>
+                    <th style="padding:8px 10px;text-align:center;border:1px solid #1e293b;">الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filtered.map((it: any, idx: number) => `
+                    <tr style="background:${idx % 2 === 0 ? '#fff' : '#f8fafc'};">
+                      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0;color:#64748b;">${idx + 1}</td>
+                      <td style="padding:7px 10px;text-align:right;border:1px solid #e2e8f0;font-weight:600;">${it.name}</td>
+                      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0;color:#475569;">${it.category ?? '—'}</td>
+                      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0;color:#2563eb;font-weight:600;">${it.receptions.length}</td>
+                      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0;color:#16a34a;font-weight:700;">${it.totalReceived.toLocaleString()}</td>
+                      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0;color:#7c3aed;font-weight:600;">${it.distributions.length}</td>
+                      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0;color:#ea580c;font-weight:700;">${it.totalDistributed.toLocaleString()}</td>
+                      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0;font-weight:700;color:${statusColor(it)};">${it.currentStock.toLocaleString()}</td>
+                      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0;">
+                        <span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;
+                          background:${it.currentStock === 0 ? '#fee2e2' : (it.lowStockThreshold != null && it.currentStock <= it.lowStockThreshold ? '#fef9c3' : '#dcfce7')};
+                          color:${statusColor(it)};">${statusLabel(it)}</span>
+                      </td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+              <div style="margin-top:16px;border-top:1px solid #e2e8f0;padding-top:10px;display:flex;gap:32px;font-size:11px;color:#64748b;">
+                <span>إجمالي المستلم: <strong style="color:#16a34a;">${filtered.reduce((s: number, it: any) => s + it.totalReceived, 0).toLocaleString('ar-DZ')}</strong></span>
+                <span>إجمالي الموزع: <strong style="color:#ea580c;">${filtered.reduce((s: number, it: any) => s + it.totalDistributed, 0).toLocaleString('ar-DZ')}</strong></span>
+                <span>الرصيد الإجمالي: <strong style="color:#0f172a;">${filtered.reduce((s: number, it: any) => s + it.currentStock, 0).toLocaleString('ar-DZ')}</strong></span>
+              </div>`
+
+            document.body.appendChild(container)
+            try {
+              const canvas  = await html2canvas.default(container, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
+              const imgData = canvas.toDataURL('image/png')
+              const pw = 297, iw = pw - 10, ih = (canvas.height * iw) / canvas.width
+              const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+              doc.addImage(imgData, 'PNG', 5, 5, iw, ih)
+              let rem = ih - 200; let page = 1
+              while (rem > 10) { doc.addPage(); doc.addImage(imgData, 'PNG', 5, -(page * 200) + 5, iw, ih); rem -= 200; page++ }
+              const dateStr = new Date().toISOString().slice(0, 10)
+              doc.save(`جرد-التجهيزات-${dateStr}.pdf`)
+            } finally { container.remove() }
+          } finally { setInvExportingPDF(false) }
+        }
+
+        return (
+          <div className="space-y-6 pt-2" key="inventory-tab">
+
+            {/* ── KPI row ────────────────────────────────────────────── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {[
+                { label: 'أصناف التجهيزات',   value: kpiTotalItems.toLocaleString('ar-DZ'),   icon: <Package className="w-5 h-5 text-blue-600" />,   accent: 'bg-blue-100' },
+                { label: 'الرصيد الإجمالي',   value: kpiTotalStock.toLocaleString('ar-DZ'),   icon: <Warehouse className="w-5 h-5 text-violet-600" />, accent: 'bg-violet-100' },
+                { label: 'إجمالي المستلم',    value: kpiTotalRecvd.toLocaleString('ar-DZ'),   icon: <ArrowDownToLine className="w-5 h-5 text-green-600" />,  accent: 'bg-green-100' },
+                { label: 'إجمالي الموزع',     value: kpiTotalDistrib.toLocaleString('ar-DZ'), icon: <ArrowUpFromLine className="w-5 h-5 text-orange-600" />, accent: 'bg-orange-100' },
+                { label: 'مخزون منخفض',       value: kpiLowStock.toLocaleString('ar-DZ'),     icon: <TrendingDown className="w-5 h-5 text-yellow-600" />, accent: 'bg-yellow-100' },
+                { label: 'نفذ المخزون',        value: kpiOutOfStock.toLocaleString('ar-DZ'),  icon: <AlertTriangle className="w-5 h-5 text-red-600" />,    accent: 'bg-red-100' },
+              ].map((k, i) => (
+                <div key={i} className="rounded-xl border border-border bg-card p-4 flex items-center gap-3 shadow-sm">
+                  <div className={`p-2.5 rounded-xl shrink-0 ${k.accent}`}>{k.icon}</div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground font-medium leading-tight">{k.label}</p>
+                    <p className="text-xl font-bold text-foreground mt-0.5">{k.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Toolbar ────────────────────────────────────────────── */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    value={invSearch}
+                    onChange={e => setInvSearch(e.target.value)}
+                    placeholder="ابحث باسم التجهيز، الرمز، الفئة…"
+                    className="w-full pr-9 pl-3 py-2 rounded-lg border border-border bg-card text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <button
+                  onClick={() => setInvShowFilters(v => !v)}
+                  className={`flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg border transition-colors ${
+                    invShowFilters ? 'bg-primary text-primary-foreground border-primary' : 'border-border bg-card text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  فلاتر
+                  {(invCategory || invStockStatus !== 'all' || invRefType || invDateFrom || invDateTo) && (
+                    <span className="w-2 h-2 rounded-full bg-yellow-400" />
+                  )}
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleInvXLSX}
+                  disabled={invExportingXL || filtered.length === 0}
+                  className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  {invExportingXL ? 'جارٍ التصدير…' : 'Excel'}
+                </button>
+                <button
+                  onClick={handleInvPDF}
+                  disabled={invExportingPDF || filtered.length === 0}
+                  className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                >
+                  <FileText className="w-4 h-4" />
+                  {invExportingPDF ? 'جارٍ التصدير…' : 'PDF'}
+                </button>
+              </div>
+            </div>
+
+            {/* ── Filters panel ──────────────────────────────────────── */}
+            {invShowFilters && (
+              <div className="rounded-xl border border-border bg-muted/40 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">الفئة</label>
+                  <select
+                    value={invCategory}
+                    onChange={e => setInvCategory(e.target.value)}
+                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  >
+                    <option value="">كل الفئات</option>
+                    {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">نوع المرجع</label>
+                  <select
+                    value={invRefType}
+                    onChange={e => setInvRefType(e.target.value)}
+                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  >
+                    <option value="">كل أنواع المرجع</option>
+                    {allRefTypes.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">حالة المخزون</label>
+                  <select
+                    value={invStockStatus}
+                    onChange={e => setInvStockStatus(e.target.value)}
+                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  >
+                    <option value="all">الكل</option>
+                    <option value="normal">طبيعي</option>
+                    <option value="low">مخزون منخفض</option>
+                    <option value="out">نفذ المخزون</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">من تاريخ</label>
+                  <input
+                    type="date"
+                    value={invDateFrom}
+                    onChange={e => setInvDateFrom(e.target.value)}
+                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">إلى تاريخ</label>
+                  <input
+                    type="date"
+                    value={invDateTo}
+                    onChange={e => setInvDateTo(e.target.value)}
+                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                {(invCategory || invStockStatus !== 'all' || invRefType || invDateFrom || invDateTo) && (
+                  <button
+                    onClick={() => { setInvCategory(''); setInvStockStatus('all'); setInvRefType(''); setInvDateFrom(''); setInvDateTo('') }}
+                    className="lg:col-span-5 sm:col-span-2 text-xs text-primary hover:underline text-right"
+                  >
+                    مسح الفلاتر ×
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* ── Table ──────────────────────────────────────────────── */}
+            {inventoryLoading ? (
+              <div className="h-48 flex items-center justify-center rounded-xl border border-border bg-card">
+                <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="h-48 flex flex-col items-center justify-center rounded-xl border border-border bg-card gap-2">
+                <PackageSearch className="w-10 h-10 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">لا توجد نتائج تطابق الفلاتر المختارة</p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      {['', '#', 'اسم التجهيز', 'الفئة', 'عمليات الدخل', 'مجموع المستلم', 'عمليات الخرج', 'مجموع الموزع', 'الرصيد الحالي', 'الحالة'].map((h, i) => (
+                        <th key={i} className="text-right px-3 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filtered.map((it: any, idx: number) => {
+                      const isExpanded = invExpandedId === it.id
+                      return (
+                        <React.Fragment key={it.id}>
+                          <tr
+                            className={`transition-colors cursor-pointer ${
+                              isExpanded ? 'bg-primary/5' : 'hover:bg-muted/40'
+                            }`}
+                            onClick={() => setInvExpandedId(isExpanded ? null : it.id)}
+                          >
+                            <td className="px-3 py-3 text-muted-foreground">
+                              {isExpanded
+                                ? <ChevronUp className="w-4 h-4" />
+                                : <ChevronDown className="w-4 h-4" />}
+                            </td>
+                            <td className="px-3 py-3 text-xs text-muted-foreground font-mono">{idx + 1}</td>
+                            <td className="px-3 py-3 font-semibold text-foreground">{it.name}</td>
+                            <td className="px-3 py-3 text-xs text-muted-foreground">
+                              {it.category
+                                ? <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border text-xs">{it.category}</span>
+                                : '—'}
+                            </td>
+                            <td className="px-3 py-3 text-center">
+                              <span className="text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">{it.receptions.length}</span>
+                            </td>
+                            <td className="px-3 py-3">
+                              <span className="flex items-center gap-1 text-sm font-bold text-green-700">
+                                <ArrowDownToLine className="w-3.5 h-3.5" />{it.totalReceived.toLocaleString('ar-DZ')}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3 text-center">
+                              <span className="text-xs font-semibold text-purple-600 bg-purple-50 border border-purple-100 px-2 py-0.5 rounded-full">{it.distributions.length}</span>
+                            </td>
+                            <td className="px-3 py-3">
+                              <span className="flex items-center gap-1 text-sm font-bold text-orange-700">
+                                <ArrowUpFromLine className="w-3.5 h-3.5" />{it.totalDistributed.toLocaleString('ar-DZ')}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3">
+                              <span className={`text-sm font-bold ${
+                                it.currentStock === 0 ? 'text-red-600'
+                                : (it.lowStockThreshold != null && it.currentStock <= it.lowStockThreshold ? 'text-yellow-600' : 'text-foreground')
+                              }`}>{it.currentStock.toLocaleString('ar-DZ')}</span>
+                            </td>
+                            <td className="px-3 py-3">{stockBadge(it)}</td>
+                          </tr>
+
+                          {/* ── Expanded detail row ───────────────── */}
+                          {isExpanded && (
+                            <tr className="bg-muted/20">
+                              <td colSpan={10} className="px-4 py-4">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+                                  {/* Receptions sub-table */}
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <ArrowDownToLine className="w-4 h-4 text-green-600" />
+                                      <span className="text-xs font-semibold text-foreground">حركات الاستلام (دخل)</span>
+                                      <span className="text-xs text-muted-foreground ml-1">({it.receptions.length} عملية)</span>
+                                    </div>
+                                    {it.receptions.length === 0 ? (
+                                      <p className="text-xs text-muted-foreground italic">لا توجد عمليات استلام</p>
+                                    ) : (
+                                      <div className="rounded-lg border border-border overflow-hidden">
+                                        <table className="w-full text-xs">
+                                          <thead>
+                                            <tr className="bg-green-50 border-b border-green-100">
+                                              {['نوع المرجع', 'رقم المرجع', 'تاريخ المرجع', 'الكمية', 'الرقم الإداري', 'المورد', 'تاريخ الإضافة'].map((h, i) => (
+                                                <th key={i} className="text-right px-2 py-1.5 font-semibold text-green-800 whitespace-nowrap">{h}</th>
+                                              ))}
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-border">
+                                            {it.receptions.map((r: any, ri: number) => (
+                                              <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-green-50/30'}>
+                                                <td className="px-2 py-1.5">{r.referenceType ?? '—'}</td>
+                                                <td className="px-2 py-1.5 font-mono">{r.referenceNumber ?? '—'}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap">{r.referenceDate ? new Date(r.referenceDate).toLocaleDateString('en-GB') : '—'}</td>
+                                                <td className="px-2 py-1.5 font-bold text-green-700">{r.quantity}</td>
+                                                <td className="px-2 py-1.5">{r.adminNumber ?? '—'}</td>
+                                                <td className="px-2 py-1.5">{r.supplierName ?? '—'}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap">{new Date(r.createdAt).toLocaleDateString('en-GB')}</td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Distributions sub-table */}
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <ArrowUpFromLine className="w-4 h-4 text-orange-600" />
+                                      <span className="text-xs font-semibold text-foreground">حركات التوزيع (خرج)</span>
+                                      <span className="text-xs text-muted-foreground ml-1">({it.distributions.length} عملية)</span>
+                                    </div>
+                                    {it.distributions.length === 0 ? (
+                                      <p className="text-xs text-muted-foreground italic">لا توجد عمليات توزيع</p>
+                                    ) : (
+                                      <div className="rounded-lg border border-border overflow-hidden">
+                                        <table className="w-full text-xs">
+                                          <thead>
+                                            <tr className="bg-orange-50 border-b border-orange-100">
+                                              {['نوع المرجع', 'رقم المرجع', 'تاريخ المرجع', 'الكمية', 'الرقم الإداري', 'الجهة المنتفعة', 'المكلف', 'تاريخ التوزيع'].map((h, i) => (
+                                                <th key={i} className="text-right px-2 py-1.5 font-semibold text-orange-800 whitespace-nowrap">{h}</th>
+                                              ))}
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-border">
+                                            {it.distributions.map((d: any, di: number) => (
+                                              <tr key={di} className={di % 2 === 0 ? 'bg-white' : 'bg-orange-50/30'}>
+                                                <td className="px-2 py-1.5">{d.referenceType ?? '—'}</td>
+                                                <td className="px-2 py-1.5 font-mono">{d.referenceNumber ?? '—'}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap">{d.referenceDate ? new Date(d.referenceDate).toLocaleDateString('en-GB') : '—'}</td>
+                                                <td className="px-2 py-1.5 font-bold text-orange-700">{d.quantity}</td>
+                                                <td className="px-2 py-1.5">{d.adminNumber ?? '—'}</td>
+                                                <td className="px-2 py-1.5">{d.beneficiaryName ?? '—'}</td>
+                                                <td className="px-2 py-1.5">{d.assignedTo ?? '—'}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap">{new Date(d.createdAt).toLocaleDateString('en-GB')}</td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      )
+                    })}
+                  </tbody>
+                </table>
+
+                {/* ── Summary footer ─────────────────────────────── */}
+                <div className="border-t border-border bg-muted/30 px-4 py-3 flex flex-wrap gap-6 text-xs text-muted-foreground">
+                  <span>عدد الأصناف المعروضة: <strong className="text-foreground">{filtered.length}</strong></span>
+                  <span>إجمالي الرصيد الحالي: <strong className="text-foreground">{filtered.reduce((s: number, it: any) => s + it.currentStock, 0).toLocaleString('ar-DZ')}</strong></span>
+                  <span>إجمالي المستلم: <strong className="text-green-700">{filtered.reduce((s: number, it: any) => s + it.totalReceived, 0).toLocaleString('ar-DZ')}</strong></span>
+                  <span>إجمالي الموزع: <strong className="text-orange-700">{filtered.reduce((s: number, it: any) => s + it.totalDistributed, 0).toLocaleString('ar-DZ')}</strong></span>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Log details modal */}
       {activeLogDetails && (

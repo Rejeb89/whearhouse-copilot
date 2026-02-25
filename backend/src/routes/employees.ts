@@ -2,8 +2,22 @@ import { Router, Request, Response } from 'express';
 import { authGuard } from '../middleware/authGuard';
 import { roleGuard } from '../middleware/roleGuard';
 import { employeeService } from '../services/employeeService';
+import prisma from '../prisma';
 
 const router = Router();
+
+// Get ALL employees (across all entities)
+router.get('/', authGuard, async (req: Request, res: Response) => {
+  try {
+    const employees = await prisma.employee.findMany({
+      include: { entity: { select: { id: true, name: true } } },
+      orderBy: [{ rank: 'asc' }, { name: 'asc' }],
+    });
+    res.json({ success: true, data: employees });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as any).message });
+  }
+});
 
 // Get all employees for a specific entity
 router.get('/:entityId', authGuard, async (req: Request, res: Response) => {

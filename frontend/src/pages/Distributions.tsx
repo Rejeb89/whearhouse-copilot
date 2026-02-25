@@ -1,9 +1,12 @@
 ﻿import React, { useMemo, useState, useEffect, useCallback, useContext, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import { AuthContext } from '../context/AuthContext'
-import { Check, Loader2, Plus, Search, UserCheck, RefreshCw, Info, ChevronDown, X } from 'lucide-react'
+import { Check, Download, Eye, Loader2, Plus, Search, UserCheck, RefreshCw, Info, ChevronDown, X } from 'lucide-react'
+import * as XLSX from 'xlsx'
+import { ReceiptPrintTemplate, downloadPDF } from '../components/ReceiptPrintTemplate'
+import type { Receipt, ReceiptCurrentUser } from '../components/ReceiptPrintTemplate'
 
 interface Item {
   id: number
@@ -37,6 +40,20 @@ interface NewEmployeeState {
   surname: string
   number: string
   phone: string
+}
+
+interface DistributionRecord {
+  id: number
+  reference: string
+  referenceType?: string
+  referenceNumber?: string
+  referenceDate?: string
+  deliveredByName?: string
+  notes?: string
+  createdAt: string
+  beneficiary?: { id: number; name: string }
+  assignedTo?: { id: number; rank: string; name: string; surname: string; number: string }
+  items: { id: number; quantity: number; serialNumber?: string; adminNumber?: string; condition?: string; notes?: string; item: { id: number; name: string; category: string } }[]
 }
 
 export default function Distributions({ preselectedItem: propItem }: { preselectedItem?: any } = {}) {
@@ -81,13 +98,45 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
   const [loadingRef, setLoadingRef] = useState(false)
 
   // Per-item receipt fields
-  const [itemSerialNumber, setItemSerialNumber] = useState('')
+  const [itemAdminNumber, setItemAdminNumber] = useState('')
   const [itemCondition, setItemCondition] = useState<'NEW' | 'USED' | 'NEEDS_MAINTENANCE'>('NEW')
+  const [itemAdminNumbers, setItemAdminNumbers] = useState<string[]>([])
+  const [loadingAdminNumbers, setLoadingAdminNumbers] = useState(false)
+
+  useEffect(() => {
+    if (selectedItem?.category === 'اثاث قار') {
+      setLoadingAdminNumbers(true)
+      client.get(`/items/${selectedItem.id}/admin-numbers`)
+        .then(res => {
+          const nums: string[] = res.data?.data || []
+          setItemAdminNumbers(nums)
+          if (nums.length === 1) setItemAdminNumber(nums[0])
+          else setItemAdminNumber('')
+        })
+        .catch(() => setItemAdminNumbers([]))
+        .finally(() => setLoadingAdminNumbers(false))
+    } else {
+      setItemAdminNumbers([])
+      setItemAdminNumber('')
+    }
+  }, [selectedItem?.id])
+
+  // Print receipt state
+  const [printReceiptData, setPrintReceiptData] = useState<Receipt | null>(null)
+  const [printingReceipt, setPrintingReceipt] = useState(false)
 
   // Form state
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  // History section
+  const [histSearch, setHistSearch] = useState('')
+  const [histRefTypeFilter, setHistRefTypeFilter] = useState('')
+  const [histDateFrom, setHistDateFrom] = useState('')
+  const [histDateTo, setHistDateTo] = useState('')
+  const [detailDist, setDetailDist] = useState<DistributionRecord | null>(null)
+  const queryClient = useQueryClient()
 
   const { data: items = [], isLoading: loadingItems } = useQuery<Item[]>(
     ['items'],
@@ -106,6 +155,62 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
     async () => (await client.get(`/employees/${selectedBeneficiary!.id}`)).data.data,
     { enabled: !!selectedBeneficiary, refetchInterval: 10000 }
   )
+
+  const { data: allDistributions = [], isLoading: loadingDistHistory } = useQuery<DistributionRecord[]>(
+    ['distributions-all'],
+    async () => (await client.get('/distributions')).data.data,
+    { refetchInterval: 15000 }
+  )
+
+  const distReferenceTypes = useMemo(() => {
+    const set = new Set<string>()
+    allDistributions.forEach(d => { if (d.referenceType) set.add(d.referenceType) })
+    return Array.from(set).sort()
+  }, [allDistributions])
+
+  // Auto-download PDF when a receipt is ready
+  useEffect(() => {
+    if (!printReceiptData) return
+    const receiptId = `receipt-print-${printReceiptData.id}`
+    // Small delay to allow DOM to render the hidden template
+    const timer = setTimeout(() => {
+      downloadPDF(receiptId, `وصل-${printReceiptData.serialNumber}.pdf`)
+        .catch(() => {/* silent */})
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [printReceiptData])
+
+  const filteredDistHistory = useMemo(() => {
+    let list = allDistributions
+    if (histRefTypeFilter) list = list.filter(d => d.referenceType === histRefTypeFilter)
+    if (histDateFrom) list = list.filter(d => new Date(d.createdAt) >= new Date(histDateFrom))
+    if (histDateTo) {
+      const to = new Date(histDateTo); to.setHours(23, 59, 59, 999)
+      list = list.filter(d => new Date(d.createdAt) <= to)
+    }
+    if (histSearch.trim()) {
+      const q = histSearch.trim().toLowerCase()
+      list = list.filter(d =>
+        (d.items || []).some((di: any) =>
+          di && di.item && (
+            (di.item.name || '').toLowerCase().includes(q) ||
+            (di.item.sku || '').toLowerCase().includes(q) ||
+            (di.item.category || '').toLowerCase().includes(q) ||
+            (di.item.description || '').toLowerCase().includes(q)
+          ) ||
+          (di.adminNumber || '').toLowerCase().includes(q)
+        ) ||
+        (d.referenceNumber || '').toLowerCase().includes(q) ||
+        (d.referenceType || '').toLowerCase().includes(q) ||
+        (d.notes || '').toLowerCase().includes(q) ||
+        (d.deliveredByName || '').toLowerCase().includes(q) ||
+        (d.beneficiary?.name || '').toLowerCase().includes(q) ||
+        (d.beneficiary?.phone || '').toLowerCase().includes(q) ||
+        (d.assignedTo ? `${d.assignedTo.rank} ${d.assignedTo.name} ${d.assignedTo.surname} ${d.assignedTo.number || ''}`.toLowerCase().includes(q) : false)
+      )
+    }
+    return list
+  }, [allDistributions, histSearch, histRefTypeFilter, histDateFrom, histDateTo])
 
   const filteredItems = useMemo(() => {
     const term = itemSearch.trim().toLowerCase()
@@ -168,11 +273,11 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
     }
     try {
       setSubmitting(true)
-      await client.post('/distributions', {
+      const distRes = await client.post('/distributions', {
         items: [{
           itemId: selectedItem.id,
           quantity,
-          serialNumber: itemSerialNumber || undefined,
+          adminNumber: itemAdminNumber || undefined,
           condition: itemCondition,
         }],
         beneficiaryId: selectedBeneficiary.id,
@@ -183,20 +288,37 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
         referenceDate: referenceDate || undefined,
         deliveredByName: deliveredByName || undefined,
       })
+      const distributionId = distRes?.data?.data?.id
       setSuccess('تم تسجيل الخرج بنجاح وتم خصم الكمية من المخزون')
+      queryClient.invalidateQueries(['distributions-all'])
       setSelectedItem(null)
       setItemSearch('')
       setQuantity(1)
       setNotes('')
       setSelectedEmployee(null)
       setEmployeeSearch('')
-      setItemSerialNumber('')
+      setItemAdminNumber('')
       setItemCondition('NEW')
       setReferenceType('')
       setReferenceNumber('')
       setReferenceDate('')
       setDeliveredByName(user?.name || user?.email || '')
       setRefAutoFilled(false)
+      // Auto-fetch receipt and print
+      if (distributionId) {
+        try {
+          setPrintingReceipt(true)
+          const receiptRes = await client.get(`/receipts/distribution/${distributionId}`)
+          const receipt = receiptRes?.data?.data
+          if (receipt) {
+            setPrintReceiptData(receipt)
+          }
+        } catch {
+          // silent - print not critical
+        } finally {
+          setPrintingReceipt(false)
+        }
+      }
     } catch (err: any) {
       setError(err?.response?.data?.error || 'تعذر حفظ الخرج')
     } finally {
@@ -254,6 +376,30 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
     } finally {
       setAddingEmployee(false)
     }
+  }
+
+  const handleExportDistHistory = () => {
+    const rows = allDistributions.flatMap(d =>
+      (d.items || []).filter(di => di && di.item).map(di => ({
+        'اسم التجهيز': di.item?.name || '—',
+        'الصنف': di.item?.category || '—',
+        'الكمية': di?.quantity || 0,
+        'الرقم التسلسلي': di?.serialNumber || '—',
+        'الحالة': di?.condition || '—',
+        'نوع المرجع': d.referenceType || '—',
+        'رقم المرجع': d.referenceNumber || '—',
+        'تاريخ المرجع': d.referenceDate ? new Date(d.referenceDate).toLocaleDateString('ar-DZ') : '—',
+        'الجهة المتسلمة': d.beneficiary?.name || '—',
+        'المكلف بالسحب': d.assignedTo ? `${d.assignedTo.rank} ${d.assignedTo.name} ${d.assignedTo.surname}` : '—',
+        'سلّمه': d.deliveredByName || '—',
+        'تاريخ التسليم': new Date(d.createdAt).toLocaleDateString('ar-DZ'),
+        'الملاحظات': d.notes || '—',
+      }))
+    )
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'الخرج اليومي')
+    XLSX.writeFile(wb, `distributions_${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
   return (
@@ -372,17 +518,34 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
           </div>
 
           {/* Per-item receipt fields */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm mb-1 text-foreground">الرقم التسلسلي للتجهيز</label>
-              <input
-                type="text"
-                value={itemSerialNumber}
-                onChange={e => setItemSerialNumber(e.target.value)}
-                className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="SN-XXXXXXX (اختياري)"
-              />
-            </div>
+          <div className={`grid gap-3 ${selectedItem?.category === 'اثاث قار' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {selectedItem?.category === 'اثاث قار' && (
+              <div>
+                <label className="block text-sm mb-1 text-foreground">الرقم الإداري للتجهيز</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    list="admin-numbers-list"
+                    value={itemAdminNumber}
+                    onChange={e => setItemAdminNumber(e.target.value)}
+                    className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    placeholder={loadingAdminNumbers ? 'جارٍ الجلب...' : 'رقم إداري'}
+                    disabled={loadingAdminNumbers}
+                  />
+                  {itemAdminNumbers.length > 0 && (
+                    <datalist id="admin-numbers-list">
+                      {itemAdminNumbers.map(n => <option key={n} value={n} />)}
+                    </datalist>
+                  )}
+                </div>
+                {itemAdminNumbers.length > 1 && (
+                  <p className="text-xs text-muted-foreground mt-1">تم العثور على {itemAdminNumbers.length} أرقام إدارية — اختر أو أدخل رقماً</p>
+                )}
+                {itemAdminNumbers.length === 0 && !loadingAdminNumbers && selectedItem && (
+                  <p className="text-xs text-amber-600 mt-1">لم يُسجَّل رقم إداري عند الاستلام</p>
+                )}
+              </div>
+            )}
             <div>
               <label className="block text-sm mb-1 text-foreground">حالة التجهيز</label>
               <select
@@ -648,6 +811,230 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
           )}
         </div>
       </form>
+
+      {/* ═════════════ HISTORY SECTION ═════════════ */}
+      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <h2 className="text-lg font-bold text-foreground">سجل التجهيزات الموزعة</h2>
+          <button
+            onClick={handleExportDistHistory}
+            className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition"
+          >
+            <Download className="w-4 h-4" />
+            تصدير Excel
+          </button>
+        </div>
+
+        {/* ─── Filters ─── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="relative">
+            <Search className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={histSearch}
+              onChange={e => setHistSearch(e.target.value)}
+              placeholder="بحث باسم التجهيز، الصنف، المرجع، الجهة، المستفيد..."
+              className="w-full border border-input bg-background p-2 pr-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <select
+            value={histRefTypeFilter}
+            onChange={e => setHistRefTypeFilter(e.target.value)}
+            className="border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">كل أنواع المراجع</option>
+            {distReferenceTypes.map(t => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+          <input
+            type="date"
+            value={histDateFrom}
+            onChange={e => setHistDateFrom(e.target.value)}
+            className="border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <input
+            type="date"
+            value={histDateTo}
+            onChange={e => setHistDateTo(e.target.value)}
+            className="border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        {(histSearch || histRefTypeFilter || histDateFrom || histDateTo) && (
+          <button
+            onClick={() => { setHistSearch(''); setHistRefTypeFilter(''); setHistDateFrom(''); setHistDateTo('') }}
+            className="text-xs text-muted-foreground underline"
+          >
+            مسح الفلاتر
+          </button>
+        )}
+
+        {/* ─── Table ─── */}
+        {loadingDistHistory ? (
+          <div className="flex items-center justify-center py-10 text-muted-foreground gap-2">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>جاري تحميل السجل...</span>
+          </div>
+        ) : filteredDistHistory.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground text-sm">لا توجد نتائج مطابقة</div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-sm text-right">
+              <thead className="bg-muted/50 text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 font-medium">اسم التجهيز</th>
+                  <th className="px-3 py-2 font-medium">الكمية</th>
+                  <th className="px-3 py-2 font-medium">نوع المرجع</th>
+                  <th className="px-3 py-2 font-medium">رقم المرجع</th>
+                  <th className="px-3 py-2 font-medium">تاريخ المرجع</th>
+                  <th className="px-3 py-2 font-medium">المتسلم</th>
+                  <th className="px-3 py-2 font-medium">المكلف بالسحب</th>
+                  <th className="px-3 py-2 font-medium">تاريخ التسليم</th>
+                  <th className="px-3 py-2 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredDistHistory.map(d => {
+                  const ditems = (d.items || []).filter(di => di && di.item)
+                  return (
+                    <tr key={d.id} className="hover:bg-muted/30 transition cursor-pointer" onClick={() => setDetailDist(d)}>
+                      <td className="px-3 py-2">
+                        {ditems.length === 0
+                          ? '—'
+                          : ditems.length === 1
+                          ? ditems[0]?.item?.name || '—'
+                          : <span>{ditems[0]?.item?.name || '—'} <span className="text-xs text-muted-foreground">+{ditems.length - 1}</span></span>
+                        }
+                      </td>
+                      <td className="px-3 py-2">{ditems.reduce((s, di) => s + (di?.quantity || 0), 0)}</td>
+                      <td className="px-3 py-2">{d.referenceType || '—'}</td>
+                      <td className="px-3 py-2">{d.referenceNumber || '—'}</td>
+                      <td className="px-3 py-2">{d.referenceDate ? new Date(d.referenceDate).toLocaleDateString('ar-DZ') : '—'}</td>
+                      <td className="px-3 py-2">{d.beneficiary?.name || '—'}</td>
+                      <td className="px-3 py-2">
+                        {d.assignedTo ? `${d.assignedTo.rank} ${d.assignedTo.name} ${d.assignedTo.surname}` : '—'}
+                      </td>
+                      <td className="px-3 py-2">{new Date(d.createdAt).toLocaleDateString('ar-DZ')}</td>
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={e => { e.stopPropagation(); setDetailDist(d) }}
+                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground text-left">{filteredDistHistory.length} نتيجة</p>
+      </div>
+
+      {/* ═════════════ DETAIL MODAL ═════════════ */}
+      {detailDist && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setDetailDist(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-foreground">تفاصيل التوزيع</h3>
+              <button onClick={() => setDetailDist(null)} className="p-1 rounded hover:bg-muted text-muted-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="bg-muted/30 rounded-lg p-3">
+                <div className="text-muted-foreground text-xs mb-1">نوع المرجع</div>
+                <div className="font-medium">{detailDist.referenceType || '—'}</div>
+              </div>
+              <div className="bg-muted/30 rounded-lg p-3">
+                <div className="text-muted-foreground text-xs mb-1">رقم المرجع</div>
+                <div className="font-medium">{detailDist.referenceNumber || '—'}</div>
+              </div>
+              <div className="bg-muted/30 rounded-lg p-3">
+                <div className="text-muted-foreground text-xs mb-1">تاريخ المرجع</div>
+                <div className="font-medium">{detailDist.referenceDate ? new Date(detailDist.referenceDate).toLocaleDateString('ar-DZ') : '—'}</div>
+              </div>
+              <div className="bg-muted/30 rounded-lg p-3">
+                <div className="text-muted-foreground text-xs mb-1">تاريخ التسليم</div>
+                <div className="font-medium">{new Date(detailDist.createdAt).toLocaleDateString('ar-DZ')}</div>
+              </div>
+              <div className="bg-muted/30 rounded-lg p-3">
+                <div className="text-muted-foreground text-xs mb-1">الجهة المتسلمة</div>
+                <div className="font-medium">{detailDist.beneficiary?.name || '—'}</div>
+              </div>
+              <div className="bg-muted/30 rounded-lg p-3">
+                <div className="text-muted-foreground text-xs mb-1">المكلف بالسحب</div>
+                <div className="font-medium">
+                  {detailDist.assignedTo
+                    ? `${detailDist.assignedTo.rank} ${detailDist.assignedTo.name} ${detailDist.assignedTo.surname}`
+                    : '—'}
+                </div>
+                {detailDist.assignedTo?.number && <div className="text-xs text-muted-foreground">{detailDist.assignedTo.number}</div>}
+              </div>
+              {detailDist.deliveredByName && (
+                <div className="bg-muted/30 rounded-lg p-3">
+                  <div className="text-muted-foreground text-xs mb-1">سلّمه</div>
+                  <div className="font-medium">{detailDist.deliveredByName}</div>
+                </div>
+              )}
+              {detailDist.notes && (
+                <div className="bg-muted/30 rounded-lg p-3 col-span-2">
+                  <div className="text-muted-foreground text-xs mb-1">الملاحظات</div>
+                  <div className="font-medium">{detailDist.notes}</div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="text-sm font-semibold mb-2">التجهيزات الموزعة</div>
+              <div className="rounded-lg border border-border overflow-hidden">
+                <table className="w-full text-sm text-right">
+                  <thead className="bg-muted/50 text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">اسم التجهيز</th>
+                      <th className="px-3 py-2 font-medium">الصنف</th>
+                      <th className="px-3 py-2 font-medium">الكمية</th>
+                      <th className="px-3 py-2 font-medium">الرقم الإداري</th>
+                      <th className="px-3 py-2 font-medium">الحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {(detailDist.items || []).filter(di => di && di.item).map(di => (
+                      <tr key={di?.id} className="hover:bg-muted/30">
+                        <td className="px-3 py-2">{di?.item?.name || '—'}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{di?.item?.category || '—'}</td>
+                        <td className="px-3 py-2">{di?.quantity || 0}</td>
+                        <td className="px-3 py-2">{di?.item?.category === 'اثاث قار' ? (di?.adminNumber || '—') : '—'}</td>
+                        <td className="px-3 py-2">{di?.condition || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden receipt template for PDF generation */}
+      {printReceiptData && (
+        <div style={{ position: 'absolute', left: '-9999px', top: 0, zIndex: -1 }}>
+          <ReceiptPrintTemplate
+            receipt={printReceiptData}
+            currentUser={{ region: user?.region, securityUnit: user?.securityUnit, personalNumber: user?.personalNumber, name: user?.name }}
+            id={`receipt-print-${printReceiptData.id}`}
+          />
+        </div>
+      )}
     </div>
   )
 }

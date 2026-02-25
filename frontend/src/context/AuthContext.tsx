@@ -1,7 +1,7 @@
 import React, { createContext, useEffect, useState } from 'react'
 import client from '../api/client'
 
-type User = { id: number; email: string; role: string; name: string; personalNumber?: string; securityUnit?: string }
+type User = { id: number; email: string; role: string; name: string; personalNumber?: string; securityUnit?: string; region?: string; title?: string }
 
 interface AuthContextValue {
   user: User | null

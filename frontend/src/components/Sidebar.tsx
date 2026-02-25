@@ -1,7 +1,7 @@
 import React, { useContext } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
-import { LayoutDashboard, Package, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck, X } from 'lucide-react'
+import { LayoutDashboard, Package, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck, Car, X } from 'lucide-react'
 
 interface SidebarProps {
   isOpen: boolean
@@ -53,6 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             {[
               { to: '/',             icon: <LayoutDashboard className="w-5 h-5" />, label: 'لوحة التحكم' },
               { to: '/items',        icon: <Package className="w-5 h-5" />,         label: 'التجهيزات' },
+              { to: '/vehicles',     icon: <Car className="w-5 h-5" />,             label: 'الوسائل' },
               { to: '/entities',     icon: <Building2 className="w-5 h-5" />,       label: 'الجهات' },
               { to: '/calendar',     icon: <CalendarDays className="w-5 h-5" />,    label: 'الرزنامة' },
               { to: '/receipts',     icon: <ClipboardCheck className="w-5 h-5" />,  label: 'وصولات التسليم' },

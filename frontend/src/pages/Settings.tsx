@@ -55,7 +55,7 @@ const AUDIT_ACTION_COLORS: Record<string, string> = {
   DELETE_USER: 'bg-red-100 text-red-700',
 }
 
-const EMPTY_FORM = { name: '', email: '', password: '', role: 'USER' as string, personalNumber: '', securityUnit: '' }
+const EMPTY_FORM = { name: '', email: '', password: '', role: 'USER' as string, personalNumber: '', securityUnit: '', region: '', title: '' }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -113,7 +113,7 @@ function UserModal({ open, editing, onClose, onSaved }: UserModalProps) {
     if (open) {
       setForm(
         editing
-          ? { name: editing.name ?? '', email: editing.email, password: '', role: editing.role, personalNumber: editing.personalNumber ?? '', securityUnit: editing.securityUnit ?? '' }
+          ? { name: editing.name ?? '', email: editing.email, password: '', role: editing.role, personalNumber: editing.personalNumber ?? '', securityUnit: editing.securityUnit ?? '', region: editing.region ?? '', title: (editing as any).title ?? '' }
           : EMPTY_FORM,
       )
       setError('')
@@ -137,7 +137,7 @@ function UserModal({ open, editing, onClose, onSaved }: UserModalProps) {
     setLoading(true)
     setError('')
     try {
-      const payload: any = { name: form.name, email: form.email, role: form.role, personalNumber: form.personalNumber || undefined, securityUnit: form.securityUnit || undefined }
+      const payload: any = { name: form.name, email: form.email, role: form.role, personalNumber: form.personalNumber || undefined, securityUnit: form.securityUnit || undefined, region: (form as any).region || undefined, title: (form as any).title || undefined }
       if (form.password) payload.password = form.password
       if (editing) await updateUser(editing.id, payload)
       else await createUser({ ...payload, password: form.password })
@@ -180,14 +180,24 @@ function UserModal({ open, editing, onClose, onSaved }: UserModalProps) {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">الرقم الشخصي</label>
+            <input
+              value={form.personalNumber}
+              onChange={(e) => setForm({ ...form, personalNumber: e.target.value })}
+              placeholder="XXXXXXX"
+              className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent font-mono"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">الرقم الشخصي</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">الإقليم الحالي</label>
               <input
-                value={form.personalNumber}
-                onChange={(e) => setForm({ ...form, personalNumber: e.target.value })}
-                placeholder="XXXXXXX"
-                className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent font-mono"
+                value={(form as any).region || ''}
+                onChange={(e) => setForm({ ...form, region: e.target.value } as any)}
+                placeholder="اسم الإقليم"
+                className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
               />
             </div>
             <div>
@@ -199,6 +209,16 @@ function UserModal({ open, editing, onClose, onSaved }: UserModalProps) {
                 className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">العنوان</label>
+            <input
+              value={(form as any).title || ''}
+              onChange={(e) => setForm({ ...form, title: e.target.value } as any)}
+              placeholder="مثال: أمين المستودع بوحدة كذا"
+              className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+            />
           </div>
 
           <div>

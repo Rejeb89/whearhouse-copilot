@@ -1,8 +1,8 @@
 ﻿import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
-import { Plus, Building2, Phone, User, ChevronLeft, Landmark, Users, Globe } from 'lucide-react'
+import { Plus, Building2, Phone, User, Landmark, Users, Globe } from 'lucide-react'
 import EntityModal from '../components/EntityModal'
 
 type TabKey = 'الادارات المركزية' | 'الوحدات المتنفعة' | 'جهات مختلفة'
@@ -25,32 +25,15 @@ interface Entity {
 }
 
 export default function Entities() {
+  const navigate = useNavigate()
   const [showModal, setShowModal] = useState(false)
   const [editingEntity, setEditingEntity] = useState<Entity | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('الادارات المركزية')
-  const [distributionCounts, setDistributionCounts] = useState<{ [key: number]: number }>({})
 
   const { data: entities = [], refetch } = useQuery(['entities'], async () => {
     const res = await client.get('/entities')
     return res.data.data
   }, { refetchInterval: 5000 })
-
-  // Load distribution counts for all entities
-  React.useEffect(() => {
-    const loadDistributionCounts = async () => {
-      const counts: { [key: number]: number } = {}
-      for (const entity of entities) {
-        try {
-          const res = await client.get(`/entities/${entity.id}/distributions-count`)
-          counts[entity.id] = res.data.data.distributionCount
-        } catch (err) {
-          counts[entity.id] = 0
-        }
-      }
-      setDistributionCounts(counts)
-    }
-    if (entities.length > 0) loadDistributionCounts()
-  }, [entities])
 
   const isAdminCentral = (e: Entity) => {
     const cat = e.category || ''
@@ -74,19 +57,7 @@ export default function Entities() {
   }).length
 
   const handleAddEntity = () => { setEditingEntity(null); setShowModal(true) }
-  const handleEditEntity = (entity: Entity) => { setEditingEntity(entity); setShowModal(true) }
   const handleSuccess = () => { refetch(); setShowModal(false) }
-
-  const handleDeleteEntity = async (id: number) => {
-    if (confirm('هل تريد حذف هذه الجهة؟')) {
-      try {
-        await client.delete(`/entities/${id}`)
-        refetch()
-      } catch (err: any) {
-        alert(err?.response?.data?.error || 'خطأ في حذف الجهة')
-      }
-    }
-  }
 
   return (
     <div dir="rtl" className="space-y-6">
@@ -135,35 +106,14 @@ export default function Entities() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {tabEntities.map((entity: Entity) => (
-              <div key={entity.id} className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-shadow">
+              <div
+                key={entity.id}
+                onClick={() => navigate(`/entities/${entity.id}`)}
+                className="rounded-xl border border-border bg-card p-4 hover:shadow-md hover:border-primary/40 transition-all cursor-pointer group"
+              >
                 <div className="flex justify-between items-start gap-2 mb-3">
-                  <h3 className="font-semibold text-foreground leading-tight">{entity.name}</h3>
-                  <div className="flex gap-1.5 shrink-0">
-                    <Link
-                      to={`/entities/${entity.id}`}
-                      className="text-xs px-2.5 py-1 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 inline-flex items-center gap-1 transition"
-                    >
-                      تفاصيل <ChevronLeft className="w-3.5 h-3.5" />
-                    </Link>
-                    <button
-                      onClick={() => handleEditEntity(entity)}
-                      className="text-xs px-2.5 py-1 border border-border bg-background rounded-md hover:bg-muted transition"
-                    >
-                      تعديل
-                    </button>
-                    <button
-                      onClick={() => handleDeleteEntity(entity.id)}
-                      disabled={distributionCounts[entity.id] > 0}
-                      title={distributionCounts[entity.id] > 0 ? `مرتبطة بـ ${distributionCounts[entity.id]} عملية خرج` : ''}
-                      className={`text-xs px-2.5 py-1 border rounded-md transition ${
-                        distributionCounts[entity.id] > 0
-                          ? 'text-muted-foreground border-muted-foreground/30 bg-muted/20 cursor-not-allowed opacity-50'
-                          : 'text-destructive border-destructive/30 hover:bg-destructive/10'
-                      }`}
-                    >
-                      حذف
-                    </button>
-                  </div>
+                  <h3 className="font-semibold text-foreground leading-tight group-hover:text-primary transition-colors">{entity.name}</h3>
+                  <Building2 className="w-4 h-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
                 </div>
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">

@@ -16,15 +16,35 @@ router.post('/', roleGuard(['ADMIN', 'STORE_KEEPER', 'USER']), async (req, res) 
       return res.status(400).json({ error: 'يرجى إضافة تجهيز واحد على الأقل' })
     }
 
+    // Normalize items: support adminNumber field
+    const normalizedItems = items.map((it: any) => ({
+      itemId: it.itemId,
+      quantity: it.quantity,
+      serialNumber: it.serialNumber,
+      adminNumber: it.adminNumber,
+      condition: it.condition,
+      notes: it.notes,
+    }))
+
     const reference = `DIST-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
     const distribution = await distributionService.createDistribution(
-      userId, reference, items, beneficiaryId, assignedToId, notes,
+      userId, reference, normalizedItems, beneficiaryId, assignedToId, notes,
       referenceType, referenceNumber, referenceDate, deliveredByName
     )
     res.json({ data: distribution })
   } catch (err: any) {
     console.error('Distribution POST error:', err)
     res.status(400).json({ error: err.message })
+  }
+})
+
+router.get('/', authGuard, async (req, res) => {
+  try {
+    const { search, referenceType, dateFrom, dateTo } = req.query as Record<string, string>
+    const list = await distributionService.getAllDistributions({ search, referenceType, dateFrom, dateTo })
+    res.json({ data: list })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
   }
 })
 

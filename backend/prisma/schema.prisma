@@ -15,6 +15,8 @@ model User {
   role      Role     @default(USER)
   personalNumber String?
   securityUnit   String?
+  region         String?
+  title          String?
   createdAt DateTime @default(now())
   receptions Reception[]
   distributions Distribution[]
@@ -46,6 +48,8 @@ model Reception {
   notes             String?
   supplier          Entity?         @relation(fields: [supplierId], references: [id])
   supplierId        Int?
+  collector         Employee?       @relation(fields: [collectorId], references: [id])
+  collectorId       Int?
   user              User            @relation(fields: [userId], references: [id])
   userId            Int
   createdAt         DateTime        @default(now())
@@ -89,6 +93,7 @@ model DistributionItem {
   itemId         Int
   quantity       Int
   serialNumber   String?
+  adminNumber    String?
   condition      ItemCondition  @default(NEW)
   notes          String?
 }
@@ -117,6 +122,7 @@ model Entity {
   employees       Employee[]
   distributions   Distribution[]
   receptionsSent  Reception[]  // جهات مرسلة
+  vehicles        Vehicle[]
 }
 
 model Employee {
@@ -130,7 +136,8 @@ model Employee {
   phone         String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
-  distributions Distribution[]
+  distributions        Distribution[]
+  receptionsCollected  Reception[]
 }
 
 enum Role {
@@ -234,4 +241,16 @@ model DeliveryReceipt {
   createdBy      User          @relation("ReceiptCreator", fields: [createdById], references: [id])
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+}
+
+model Vehicle {
+  id          Int      @id @default(autoincrement())
+  adminNumber String   @unique
+  type        String   // نوع الوسيلة: "50" | "غزوال عادي" | إلخ
+  fuelType    String   // نوع الوقود: "بنزين رفيع" | "غزوال"
+  entity      Entity   @relation(fields: [entityId], references: [id])
+  entityId    Int
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

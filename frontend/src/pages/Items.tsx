@@ -199,10 +199,13 @@ export default function Items() {
     const term = historySearch.trim().toLowerCase()
     if (term) rows = rows.filter((r: any) =>
       (r.reception?.supplier?.name || '').toLowerCase().includes(term) ||
+      (r.reception?.supplier?.phone || '').toLowerCase().includes(term) ||
       (r.reception?.user?.name    || '').toLowerCase().includes(term) ||
       (r.reception?.user?.email   || '').toLowerCase().includes(term) ||
       (r.reception?.referenceNumber || '').toLowerCase().includes(term) ||
       (r.reception?.referenceType   || '').toLowerCase().includes(term) ||
+      (r.reception?.notes || '').toLowerCase().includes(term) ||
+      (r.reception?.collector ? `${r.reception.collector.rank} ${r.reception.collector.name} ${r.reception.collector.surname} ${r.reception.collector.number || ''}`.toLowerCase().includes(term) : false) ||
       (r.adminNumber || '').toLowerCase().includes(term)
     )
     if (filterDateFrom) rows = rows.filter((r: any) => r.reception?.createdAt && new Date(r.reception.createdAt) >= new Date(filterDateFrom))
@@ -214,14 +217,16 @@ export default function Items() {
     let rows = history.distributions as any[]
     const term = historySearch.trim().toLowerCase()
     if (term) rows = rows.filter((d: any) =>
-      (d.distribution?.beneficiary?.name || '').toLowerCase().includes(term) ||
-      (d.distribution?.assignedTo?.name  || '').toLowerCase().includes(term) ||
-      (d.distribution?.assignedTo?.surname || '').toLowerCase().includes(term) ||
+      (d.distribution?.beneficiary?.name  || '').toLowerCase().includes(term) ||
+      (d.distribution?.beneficiary?.phone || '').toLowerCase().includes(term) ||
+      (d.distribution?.assignedTo ? `${d.distribution.assignedTo.rank} ${d.distribution.assignedTo.name} ${d.distribution.assignedTo.surname} ${d.distribution.assignedTo.number || ''}`.toLowerCase().includes(term) : false) ||
       (d.distribution?.deliveredByName   || '').toLowerCase().includes(term) ||
       (d.distribution?.user?.name        || '').toLowerCase().includes(term) ||
       (d.distribution?.user?.email       || '').toLowerCase().includes(term) ||
       (d.distribution?.referenceNumber   || '').toLowerCase().includes(term) ||
-      (d.distribution?.referenceType     || '').toLowerCase().includes(term)
+      (d.distribution?.referenceType     || '').toLowerCase().includes(term) ||
+      (d.distribution?.notes             || '').toLowerCase().includes(term) ||
+      (d.adminNumber                     || '').toLowerCase().includes(term)
     )
     if (filterDateFrom) rows = rows.filter((d: any) => d.distribution?.createdAt && new Date(d.distribution.createdAt) >= new Date(filterDateFrom))
     if (filterDateTo)   rows = rows.filter((d: any) => d.distribution?.createdAt && new Date(d.distribution.createdAt) <= new Date(filterDateTo + 'T23:59:59'))

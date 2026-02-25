@@ -11,7 +11,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AuthContext } from '../context/AuthContext'
 import client from '../api/client'
-import jsPDF from 'jspdf'
+import html2pdf from 'html2pdf.js'
 import * as XLSX from 'xlsx'
 
 /* Types */
@@ -277,14 +277,65 @@ export default function Budgets() {
   const deleteExpense = (e: Expense) => removeExpense.mutate({ id: e.id, budgetId: e.budgetId })
 
   const exportPDF = () => {
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-    doc.setFontSize(14); doc.text('Financial Budgets Report', 14, 15); doc.setFontSize(9); doc.text(new Date().toLocaleDateString('en-GB'), 14, 22)
-    const headers = ['Budget Name', 'Department', 'Amount', 'Spent', 'Remaining', '%', 'Status', 'Start', 'End']
-    const rows = filteredBudgets.map(b => { const s = spentByBudget[b.id] ?? 0; return [b.name.slice(0,30), b.department, fmt(b.amount), fmt(s), fmt(b.amount-s), pct(s,b.amount)+'%', STATUS_MAP[b.status].label, b.startDate, b.endDate] })
-    const colW = [55,28,20,20,20,12,16,22,22]; let y=30; doc.setFontSize(8); doc.setFillColor(37,99,235); doc.setTextColor(255,255,255); let x=10
-    headers.forEach((h,i)=>{doc.rect(x,y,colW[i],6,'F');doc.text(h,x+1,y+4);x+=colW[i]}); doc.setTextColor(0,0,0); y+=8
-    rows.forEach(row=>{x=10;row.forEach((cell,i)=>{doc.text(String(cell).slice(0,20),x+1,y);x+=colW[i]});y+=6;if(y>190){doc.addPage();y=15}})
-    doc.save('budgets.pdf')
+    const element = document.createElement('div')
+    element.style.padding = '20px'
+    element.style.fontFamily = 'Cairo, Arial, sans-serif'
+    element.style.direction = 'rtl'
+    
+    const headerHTML = `
+      <h1 style="text-align: center; font-size: 28px; margin-bottom: 5px; font-weight: bold;">تقرير الاعتمادات المالية</h1>
+      <p style="text-align: center; font-size: 12px; color: #666; margin-bottom: 20px;">التاريخ: ${new Date().toLocaleDateString('ar-TN')}</p>
+    `
+    
+    const tableHTML = `
+      <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <thead>
+          <tr style="background-color: #2563eb; color: white;">
+            <th style="padding: 12px; text-align: right; border: 1px solid #ddd; font-weight: bold;">اسم الاعتماد</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #ddd; font-weight: bold;">القسم</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #ddd; font-weight: bold;">المبلغ</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #ddd; font-weight: bold;">المصروف</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #ddd; font-weight: bold;">المتبقي</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #ddd; font-weight: bold;">النسبة</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #ddd; font-weight: bold;">الحالة</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #ddd; font-weight: bold;">البداية</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #ddd; font-weight: bold;">النهاية</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filteredBudgets.map(b => {
+            const s = spentByBudget[b.id] ?? 0
+            const remaining = b.amount - s
+            const percentage = pct(s, b.amount)
+            return `
+              <tr style="border: 1px solid #ddd;">
+                <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">${b.name}</td>
+                <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">${b.department}</td>
+                <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">${fmt(b.amount)}</td>
+                <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">${fmt(s)}</td>
+                <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">${fmt(remaining)}</td>
+                <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">${percentage}%</td>
+                <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">${STATUS_MAP[b.status].label}</td>
+                <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">${b.startDate}</td>
+                <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">${b.endDate}</td>
+              </tr>
+            `
+          }).join('')}
+        </tbody>
+      </table>
+    `
+    
+    element.innerHTML = headerHTML + tableHTML
+    
+    const opt = {
+      margin: 10,
+      filename: 'budgets.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' },
+    }
+    
+    html2pdf().set(opt).from(element).save()
   }
   const exportExcel = () => {
     const rows = filteredBudgets.map(b => { const s=spentByBudget[b.id]??0; return {الاسم:b.name,القسم:b.department,المبلغ:b.amount,المصاريف:s,المتبقي:b.amount-s,النسبة:pct(s,b.amount)+'%',الحالة:STATUS_MAP[b.status].label,البداية:b.startDate,النهاية:b.endDate} })

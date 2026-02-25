@@ -66,11 +66,28 @@ export default function Receipts() {
     { onSuccess: () => { qc.invalidateQueries(['receipts']); qc.invalidateQueries(['receipt', selectedId]) } }
   )
 
-  const filtered = receipts.filter(r =>
-    (statusFilter === 'ALL' || r.status === statusFilter) &&
-    (r.serialNumber.toLowerCase().includes(search.toLowerCase()) ||
-      (r.distribution.beneficiary?.name || '').toLowerCase().includes(search.toLowerCase()))
-  )
+  const filtered = receipts.filter(r => {
+    const s = search.toLowerCase()
+    if (statusFilter !== 'ALL' && r.status !== statusFilter) return false
+    if (!s) return true
+    const d = r.distribution
+    return (
+      r.serialNumber.toLowerCase().includes(s) ||
+      (d.beneficiary?.name || '').toLowerCase().includes(s) ||
+      (d.beneficiary?.phone || '').toLowerCase().includes(s) ||
+      (d.referenceNumber || '').toLowerCase().includes(s) ||
+      (d.referenceType || '').toLowerCase().includes(s) ||
+      (d.notes || '').toLowerCase().includes(s) ||
+      (d.deliveredByName || '').toLowerCase().includes(s) ||
+      (d.assignedTo ? `${d.assignedTo.rank} ${d.assignedTo.name} ${d.assignedTo.surname} ${d.assignedTo.number || ''}`.toLowerCase().includes(s) : false) ||
+      (d.items || []).some((di: any) =>
+        (di.item?.name || '').toLowerCase().includes(s) ||
+        (di.item?.sku || '').toLowerCase().includes(s) ||
+        (di.item?.category || '').toLowerCase().includes(s) ||
+        (di.adminNumber || '').toLowerCase().includes(s)
+      )
+    )
+  })
 
   const handlePrintPDF = async () => {
     if (!selectedReceipt) return
@@ -125,7 +142,7 @@ export default function Receipts() {
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="ابحث بالرقم أو الجهة..."
+            placeholder="ابحث بالرقم، الجهة، التجهيز، المرجع..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pr-9 pl-3 py-2 text-sm border border-input bg-background rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
@@ -416,7 +433,7 @@ export default function Receipts() {
       {printVisible && selectedReceipt && (
         <div style={{ position: 'fixed', top: '-9999px', left: '-9999px' }}>
           <div id="receipt-print-area">
-            <ReceiptPrintTemplate ref={printRef} receipt={selectedReceipt} />
+            <ReceiptPrintTemplate ref={printRef} receipt={selectedReceipt} currentUser={{ region: user?.region, securityUnit: user?.securityUnit, personalNumber: user?.personalNumber, name: user?.name, title: user?.title }} />
           </div>
         </div>
       )}
