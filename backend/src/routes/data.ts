@@ -72,11 +72,13 @@ router.post('/import', async (req, res) => {
     }
 
     const stats: Record<string, number> = {}
+    const importErrors: string[] = []
 
     //  Replace mode: delete all in correct FK dependency order 
     if (mode === 'replace') {
       await prisma.distributionItem.deleteMany()
       await prisma.receptionItem.deleteMany()
+      await prisma.deliveryReceipt.deleteMany()
       await prisma.distribution.deleteMany()
       await prisma.reception.deleteMany()
       await prisma.employee.deleteMany()
@@ -252,28 +254,113 @@ router.post('/import', async (req, res) => {
     }
 
     //  Reset PostgreSQL sequences to avoid ID conflicts on future inserts 
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"','id'), COALESCE((SELECT MAX(id) FROM "User"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Item"','id'), COALESCE((SELECT MAX(id) FROM "Item"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Entity"','id'), COALESCE((SELECT MAX(id) FROM "Entity"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Employee"','id'), COALESCE((SELECT MAX(id) FROM "Employee"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Reception"','id'), COALESCE((SELECT MAX(id) FROM "Reception"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"ReceptionItem"','id'), COALESCE((SELECT MAX(id) FROM "ReceptionItem"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Distribution"','id'), COALESCE((SELECT MAX(id) FROM "Distribution"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"DistributionItem"','id'), COALESCE((SELECT MAX(id) FROM "DistributionItem"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Log"','id'), COALESCE((SELECT MAX(id) FROM "Log"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Budget"','id'), COALESCE((SELECT MAX(id) FROM "Budget"),0)+1,false)`)
-    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"BudgetExpense"','id'), COALESCE((SELECT MAX(id) FROM "BudgetExpense"),0)+1,false)`)
+    try {
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"','id'), COALESCE((SELECT MAX(id) FROM "User"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Item"','id'), COALESCE((SELECT MAX(id) FROM "Item"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Entity"','id'), COALESCE((SELECT MAX(id) FROM "Entity"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Employee"','id'), COALESCE((SELECT MAX(id) FROM "Employee"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Reception"','id'), COALESCE((SELECT MAX(id) FROM "Reception"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"ReceptionItem"','id'), COALESCE((SELECT MAX(id) FROM "ReceptionItem"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Distribution"','id'), COALESCE((SELECT MAX(id) FROM "Distribution"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"DistributionItem"','id'), COALESCE((SELECT MAX(id) FROM "DistributionItem"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Log"','id'), COALESCE((SELECT MAX(id) FROM "Log"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Budget"','id'), COALESCE((SELECT MAX(id) FROM "Budget"),0)+1,false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"BudgetExpense"','id'), COALESCE((SELECT MAX(id) FROM "BudgetExpense"),0)+1,false)`)
+    } catch (seqErr: any) {
+      console.error('[import] sequence reset error (non-fatal):', seqErr.message)
+      importErrors.push('sequence_reset: ' + seqErr.message)
+    }
+
+    try {
+      const actor = (req as any).user
+      await createAuditLog({
+        action: 'IMPORT_DATA',
+        entity: 'System',
+        actorEmail: actor?.email,
+        actorId: actor?.id,
+        details: JSON.stringify({ mode, stats }),
+      })
+    } catch (auditErr: any) {
+      console.error('[import] audit log error (non-fatal):', auditErr.message)
+    }
+
+    res.json({ data: { ok: true, stats, errors: importErrors.length > 0 ? importErrors : undefined } })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+//  CLEAR DATA (Keep Admin Users Only)
+// Deletes all data in correct FK dependency order, preserving admin users
+
+router.post('/clear-data', async (req, res) => {
+  try {
+    // Get all admin users before deletion
+    const adminUsers = await prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true, email: true, name: true, role: true },
+    })
+
+    if (adminUsers.length === 0) {
+      return res.status(400).json({ error: 'يجب أن يكون هناك مسؤول واحد على الأقل' })
+    }
+
+    // Delete all data in correct FK dependency order
+    await prisma.deliveryReceipt.deleteMany()
+    await prisma.distributionItem.deleteMany()
+    await prisma.receptionItem.deleteMany()
+    await prisma.distribution.deleteMany()
+    await prisma.reception.deleteMany()
+    await prisma.employee.deleteMany()
+    await prisma.entity.deleteMany()
+    await prisma.item.deleteMany()
+    await prisma.log.deleteMany()
+    await prisma.budgetExpense.deleteMany()
+    await prisma.budget.deleteMany()
+    await prisma.supplyRequest.deleteMany()
+    // Delete non-admin users
+    await prisma.user.deleteMany({
+      where: { role: { not: 'ADMIN' } },
+    })
+
+    // Reset PostgreSQL sequences
+    try {
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Item"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Entity"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Employee"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Reception"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"ReceptionItem"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Distribution"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"DistributionItem"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Log"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Budget"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"BudgetExpense"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"DeliveryReceipt"','id'), 1, false)`)
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"SupplyRequest"','id'), 1, false)`)
+    } catch (seqErr: any) {
+      console.error('[clear-data] sequence reset error:', seqErr.message)
+    }
 
     const actor = (req as any).user
     await createAuditLog({
-      action: 'IMPORT_DATA',
+      action: 'CLEAR_DATA',
       entity: 'System',
       actorEmail: actor?.email,
       actorId: actor?.id,
-      details: JSON.stringify({ mode, stats }),
+      details: JSON.stringify({
+        cleared: true,
+        adminUsersPreserved: adminUsers.length,
+        preservedAdmins: adminUsers.map(u => u.email),
+      }),
     })
 
-    res.json({ data: { ok: true, stats } })
+    res.json({
+      data: {
+        ok: true,
+        message: 'تم حذف جميع البيانات بنجاح (تم الاحتفاظ بـ ' + adminUsers.length + ' مسؤول)',
+        preservedAdmins: adminUsers,
+      },
+    })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
   }

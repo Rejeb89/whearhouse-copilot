@@ -1,7 +1,7 @@
 import React, { createContext, useEffect, useState } from 'react'
 import client from '../api/client'
 
-type User = { id: number; email: string; role: string; name: string; personalNumber?: string; securityUnit?: string }
+type User = { id: number; email: string; role: string; name: string; personalNumber?: string; securityUnit?: string; region?: string; title?: string }
 
 interface AuthContextValue {
   user: User | null
@@ -23,6 +23,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (token) localStorage.setItem('token', token)
     else localStorage.removeItem('token')
   }, [token])
+
+  useEffect(() => {
+    if (token) {
+      client.get('/auth/me').then(res => {
+        setUser(res.data.data)
+      }).catch(() => {})
+    }
+  }, [])
 
   useEffect(() => {
     if (user) localStorage.setItem('user', JSON.stringify(user))

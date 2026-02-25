@@ -1,103 +1,91 @@
 import React, { useContext } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
-import { LayoutDashboard, Package, TrendingUp, TrendingDown, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck } from 'lucide-react'
+import { LayoutDashboard, Package, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck, Car, X } from 'lucide-react'
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user } = useContext(AuthContext)
+  const location = useLocation()
 
   return (
-    <aside className="w-56 bg-white border-l" dir="rtl">
-      <div className="hidden p-4 font-bold flex items-center gap-2">
-        <Package className="w-6 h-6" />
-        نظام إدارة المستودع
-      </div>
-      {/* National Guard Logo - Center */}
-      <div className="flex justify-center py-8 px-4">
-        <img
-          src="/logo.png"
-          alt="شعار الحرس الوطني"
-          className="h-24 w-24 object-contain"
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          onClick={onClose}
         />
-      </div>
-
-      {/* Current Security Unit */}
-      {user?.securityUnit && (
-        <div className="text-center px-4 pb-4 -mt-6 border-b-2 border-slate-300">
-          <p className="text-sm font-semibold text-slate-800">{user.securityUnit}</p>
-        </div>
       )}
 
-      <nav className="p-2">
-        <ul className="space-y-1">
-          <li>
-            <Link to="/" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
-              <LayoutDashboard className="w-4 h-4" />
-              لوحة التحكم
-            </Link>
-          </li>
-          <li>
-            <Link to="/items" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
-              <Package className="w-4 h-4" />
-              التجهيزات
-            </Link>
-          </li>
-          <li>
-            <Link to="/receptions" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
-              <TrendingUp className="w-4 h-4" />
-              الدخل اليومي
-            </Link>
-          </li>
-          <li>
-            <Link to="/distributions" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
-              <TrendingDown className="w-4 h-4" />
-              الخرج اليومي
-            </Link>
-          </li>
-          <li>
-            <Link to="/entities" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
-              <Building2 className="w-4 h-4" />
-              الجهات
-            </Link>
-          </li>
-          <li>
-            <Link to="/calendar" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
-              <CalendarDays className="w-4 h-4" />
-              الرزنامة
-            </Link>
-          </li>
-          <li>
-            <Link to="/receipts" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
-              <ClipboardCheck className="w-4 h-4" />
-              وصولات التسليم
-            </Link>
-          </li>
-          {user?.role === 'ADMIN' && (
-            <>
-              <li>
-                <Link to="/budgets" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
-                  <Wallet className="w-4 h-4" />
-                  الاعتمادات المالية
-                </Link>
-              </li>
-              <li>
-                <Link to="/logs" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
-                  <FileText className="w-4 h-4" />
-                  السجلات
-                </Link>
-              </li>
-              <li>
-                <Link to="/settings" className="flex items-center gap-2 p-2 rounded hover:bg-slate-100">
-                  <Settings className="w-4 h-4" />
-                  الإعدادات
-                </Link>
-              </li>
-            </>
-          )}
-        </ul>
-      </nav>
+      <aside
+        className={`fixed inset-y-0 right-0 z-40 w-56 bg-card border-l border-border flex flex-col transition-transform duration-300
+          lg:static lg:translate-x-0 lg:z-auto
+          ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        dir="rtl"
+      >
+        {/* Mobile close button */}
+        <div className="flex justify-start p-2 lg:hidden border-b border-border">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-md hover:bg-accent transition-colors text-muted-foreground"
+            aria-label="إغلاق القائمة"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-    </aside>
+        {/* Logo */}
+        <div className="flex flex-row items-center gap-3 h-14 px-4 border-b border-border shrink-0">
+          <img src="/logo.png" alt="شعار الحرس الوطني" className="h-9 w-9 object-contain shrink-0" />
+          {user?.securityUnit && (
+            <p className="text-xs font-semibold text-foreground leading-tight">{user.securityUnit}</p>
+          )}
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto p-3">
+          <ul className="space-y-1">
+            {[
+              { to: '/',             icon: <LayoutDashboard className="w-5 h-5" />, label: 'لوحة التحكم' },
+              { to: '/items',        icon: <Package className="w-5 h-5" />,         label: 'التجهيزات' },
+              { to: '/vehicles',     icon: <Car className="w-5 h-5" />,             label: 'الوسائل' },
+              { to: '/entities',     icon: <Building2 className="w-5 h-5" />,       label: 'الجهات' },
+              { to: '/calendar',     icon: <CalendarDays className="w-5 h-5" />,    label: 'الرزنامة' },
+              { to: '/receipts',     icon: <ClipboardCheck className="w-5 h-5" />,  label: 'وصولات التسليم' },
+              ...(user?.role === 'ADMIN' ? [
+                { to: '/budgets',  icon: <Wallet className="w-5 h-5" />,   label: 'الاعتمادات المالية' },
+                { to: '/logs',     icon: <FileText className="w-5 h-5" />,  label: 'السجلات' },
+                { to: '/settings', icon: <Settings className="w-5 h-5" />, label: 'الإعدادات' },
+              ] : []),
+            ].map(({ to, icon, label }) => {
+              const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
+              return (
+              <li key={to}>
+                <Link
+                  to={to}
+                  onClick={onClose}
+                  className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-base font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground font-bold shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  {icon}
+                  <span>{label}</span>
+                </Link>
+              </li>
+              )
+            })}
+          </ul>
+        </nav>
+
+      </aside>
+    </>
   )
 }
 

@@ -258,15 +258,15 @@ export default function Calendar() {
             <CalendarDays className="w-5 h-5" />
             الرزنامة
           </h1>
-          <p className="text-sm text-slate-500">إدارة الأحداث والتذكيرات المرتبطة بالتجهيزات ووسائل النقل</p>
+          <p className="text-sm text-muted-foreground">إدارة الأحداث والتذكيرات المرتبطة بالتجهيزات ووسائل النقل</p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
-          <div className="flex gap-1 rounded-lg bg-white border border-slate-200 shadow-sm">
+          <div className="flex gap-1 rounded-lg border border-border bg-card shadow-sm">
             {(['monthly', 'weekly', 'daily'] as ViewMode[]).map((mode) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                className={`px-4 py-2 text-sm ${viewMode === mode ? 'bg-blue-600 text-white shadow' : 'text-slate-600 hover:text-blue-600'}`}
+                className={`px-4 py-2 text-sm ${viewMode === mode ? 'bg-primary text-primary-foreground shadow rounded-lg' : 'text-muted-foreground hover:text-primary'}`}
               >
                 {mode === 'monthly' ? 'شهري' : mode === 'weekly' ? 'أسبوعي' : 'يومي'}
               </button>
@@ -274,7 +274,7 @@ export default function Calendar() {
           </div>
           <button
             onClick={() => openModalForDay(selectedDate)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm text-sm"
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-sm text-sm hover:bg-primary/90 transition"
           >
             <Plus className="w-4 h-4" />
             إضافة حدث
@@ -292,10 +292,10 @@ export default function Calendar() {
       <section className="grid lg:grid-cols-[2fr,1fr] gap-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <button
                 onClick={() => incrementMonth(-1)}
-                className="p-2 rounded-full hover:bg-slate-100"
+                className="p-2 rounded-full hover:bg-muted/50"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -304,22 +304,22 @@ export default function Calendar() {
               </span>
               <button
                 onClick={() => incrementMonth(1)}
-                className="p-2 rounded-full hover:bg-slate-100"
+                className="p-2 rounded-full hover:bg-muted/50"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>* أو اضغط على أي يوم في الرزنامة</span>
             </div>
           </div>
 
           {viewMode === 'monthly' && (
-            <div className="border rounded-lg bg-white shadow-sm" dir="rtl">
-              <div className="grid grid-cols-7 border-b text-center text-xs uppercase text-slate-500 bg-slate-50">
+            <div className="border border-border rounded-lg bg-card shadow-sm" dir="rtl">
+              <div className="grid grid-cols-7 border-b text-center text-xs uppercase text-muted-foreground bg-muted/50">
                 {['أحد', 'اثن', 'ثلاث', 'أرب', 'خمس', 'جمعة', 'سبت'].map((name) => (
-                  <div key={name} className="py-2 border-slate-100 border-r last:border-r-0">
+                  <div key={name} className="py-2 border-border border-r last:border-r-0">
                     {name}
                   </div>
                 ))}
@@ -333,14 +333,14 @@ export default function Calendar() {
                     <button
                       key={dayKey}
                       onClick={() => day && setSelectedDate(day)}
-                      className={`flex flex-col h-28 rounded-lg border p-2 text-right text-sm text-slate-600 transition ${
-                        isSelected ? 'border-blue-500 bg-blue-50' : 'border-transparent hover:border-slate-200'
+                      className={`flex flex-col h-28 rounded-lg border p-2 text-right text-sm text-muted-foreground transition ${
+                        isSelected ? 'border-primary bg-primary/10' : 'border-transparent hover:border-border'
                       }`}
                       disabled={!day}
                     >
                       {day ? (
                         <div className="flex justify-between items-center">
-                          <span className="text-base font-semibold text-slate-700">{day.getDate()}</span>
+                          <span className="text-base font-semibold text-foreground">{day.getDate()}</span>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -348,7 +348,7 @@ export default function Calendar() {
                               e.stopPropagation()
                               openModalForDay(day)
                             }}
-                            className="text-[10px] text-blue-600"
+                            className="text-[10px] text-primary"
                           >
                             + حدث
                           </button>
@@ -360,15 +360,15 @@ export default function Calendar() {
                         {dayEvents?.slice(0, 2).map((event) => (
                           <div
                             key={event.id}
-                            className="bg-slate-100 rounded px-2 py-1 text-ellipsis"
+                            className="bg-muted rounded px-2 py-1 text-ellipsis"
                             title={event.description}
                           >
-                            <span className="font-semibold text-slate-700">{event.title}</span>
-                            <div className="text-[10px] text-slate-500">{event.time}</div>
+                            <span className="font-semibold text-foreground">{event.title}</span>
+                            <div className="text-[10px] text-muted-foreground">{event.time}</div>
                           </div>
                         ))}
                         {dayEvents && dayEvents.length > 2 && (
-                          <span className="text-[10px] text-blue-600">+ المزيد...</span>
+                          <span className="text-[10px] text-primary">+ المزيد...</span>
                         )}
                       </div>
                     </button>
@@ -381,26 +381,26 @@ export default function Calendar() {
           {viewMode === 'weekly' && (
             <div className="grid grid-cols-1 gap-1 sm:grid-cols-7">
               {weeklyDays.map((day) => (
-                <div key={formatDate(day)} className="border rounded-lg bg-white shadow-sm flex flex-col overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2 border-b text-sm font-semibold text-slate-600 bg-slate-50">
+                <div key={formatDate(day)} className="border border-border rounded-lg bg-card shadow-sm flex flex-col overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 border-b text-sm font-semibold text-muted-foreground bg-muted/50">
                     <span>{day.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}</span>
                     <button
                       type="button"
                       onClick={() => openModalForDay(day)}
-                      className="text-[10px] text-blue-600"
+                      className="text-[10px] text-primary"
                     >
                       + حدث
                     </button>
                   </div>
                   <div className="flex-1 overflow-y-auto space-y-2 p-2">
                     {(eventsByDate[formatDate(day)] || []).map((event) => (
-                      <div key={event.id} className="rounded-lg border border-slate-100 px-3 py-2 bg-slate-50">
-                        <div className="flex justify-between gap-2 text-xs text-slate-500">
+                      <div key={event.id} className="rounded-lg border border-border px-3 py-2 bg-muted/50">
+                        <div className="flex justify-between gap-2 text-xs text-muted-foreground">
                           <span>{event.time}</span>
                           <span>{event.linkedItemId ? getItemName(event.linkedItemId) : event.linkedTransport || ''}</span>
                         </div>
-                        <p className="font-semibold text-slate-800 text-sm">{event.title}</p>
-                        <p className="text-xs text-slate-500 truncate">{event.description || 'بدون وصف'}</p>
+                        <p className="font-semibold text-foreground text-sm">{event.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{event.description || 'بدون وصف'}</p>
                       </div>
                     ))}
                   </div>
@@ -410,38 +410,38 @@ export default function Calendar() {
           )}
 
           {viewMode === 'daily' && (
-            <div className="border rounded-lg bg-white shadow-sm">
-              <div className="flex items-center justify-between px-4 py-2 border-b bg-slate-50">
-                <span className="font-semibold text-slate-600">{selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+            <div className="border border-border rounded-lg bg-card shadow-sm">
+              <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/50">
+                <span className="font-semibold text-muted-foreground">{selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
                 <button
                   type="button"
                   onClick={() => openModalForDay(selectedDate)}
-                  className="text-xs text-blue-600"
+                  className="text-xs text-primary"
                 >
                   إضافة حدث
                 </button>
               </div>
-              <div className="divide-y">
+              <div className="divide-y divide-border">
                 {dailyEvents.length === 0 && (
-                  <div className="p-4 text-sm text-slate-500">لا توجد فعاليات لليوم الحالي.</div>
+                  <div className="p-4 text-sm text-muted-foreground">لا توجد فعاليات لليوم الحالي.</div>
                 )}
                 {dailyEvents.map((event) => (
-                  <div key={event.id} className="flex flex-col gap-2 px-4 py-3 hover:bg-slate-50">
+                  <div key={event.id} className="flex flex-col gap-2 px-4 py-3 hover:bg-muted/50">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-semibold text-slate-800">{event.title}</p>
-                        <p className="text-xs text-slate-500">{event.time} · {event.linkedItemId ? getItemName(event.linkedItemId) : event.linkedTransport || 'بدون رابط'}</p>
+                        <p className="text-sm font-semibold text-foreground">{event.title}</p>
+                        <p className="text-xs text-muted-foreground">{event.time} · {event.linkedItemId ? getItemName(event.linkedItemId) : event.linkedTransport || 'بدون رابط'}</p>
                       </div>
-                      <div className="flex gap-2 text-slate-500">
-                        <button onClick={() => openEditModal(event)} className="hover:text-blue-600">
+                      <div className="flex gap-2 text-muted-foreground">
+                        <button onClick={() => openEditModal(event)} className="hover:text-primary">
                           <Pencil className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDelete(event.id)} className="hover:text-red-600">
+                        <button onClick={() => handleDelete(event.id)} className="hover:text-destructive">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500">{event.description || 'بدون وصف'}</p>
+                    <p className="text-xs text-muted-foreground">{event.description || 'بدون وصف'}</p>
                   </div>
                 ))}
               </div>
@@ -450,57 +450,57 @@ export default function Calendar() {
         </div>
 
         <aside className="space-y-4">
-          <div className="bg-white rounded-lg border shadow-sm p-4 space-y-3">
+          <div className="bg-card rounded-lg border border-border shadow-sm p-4 space-y-3">
             <h2 className="text-base font-semibold">تصفية الأحداث</h2>
             <input
               placeholder="البحث بالعنوان أو الوصف"
-              className="w-full rounded border px-3 py-2 text-sm"
+              className="w-full rounded border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               value={filterKeyword}
               onChange={(e) => setFilterKeyword(e.target.value)}
             />
           </div>
 
-          <div className="bg-white rounded-lg border shadow-sm p-4 space-y-3">
+          <div className="bg-card rounded-lg border border-border shadow-sm p-4 space-y-3">
             <h2 className="text-base font-semibold">الأحداث القادمة</h2>
             {upcomingEvents.length === 0 ? (
-              <p className="text-sm text-slate-500">لا توجد أحداث قادمة.</p>
+              <p className="text-sm text-muted-foreground">لا توجد أحداث قادمة.</p>
             ) : (
-              <div className="space-y-2 text-sm text-slate-700">
+              <div className="space-y-2 text-sm text-foreground">
                 {upcomingEvents.map((event) => (
-                  <div key={event.id} className="flex items-start justify-between gap-2 p-2 rounded border border-slate-100 bg-slate-50">
+                  <div key={event.id} className="flex items-start justify-between gap-2 p-2 rounded border border-border bg-muted/50">
                     <div>
-                      <p className="font-semibold text-slate-800">{event.title}</p>
-                      <p className="text-[11px] text-slate-500">{event.date} · {event.time}</p>
+                      <p className="font-semibold text-foreground">{event.title}</p>
+                      <p className="text-[11px] text-muted-foreground">{event.date} · {event.time}</p>
                     </div>
-                    <button onClick={() => openEditModal(event)} className="text-blue-600 text-xs">تعديل</button>
+                    <button onClick={() => openEditModal(event)} className="text-primary text-xs">تعديل</button>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="bg-white rounded-lg border shadow-sm p-4 space-y-3">
+          <div className="bg-card rounded-lg border border-border shadow-sm p-4 space-y-3">
             <h2 className="text-base font-semibold">قائمة الأحداث</h2>
-            {filteredEvents.length === 0 && <p className="text-sm text-slate-500">لا توجد أحداث مطابقة للفلتر.</p>}
+            {filteredEvents.length === 0 && <p className="text-sm text-muted-foreground">لا توجد أحداث مطابقة للفلتر.</p>}
             <div className="space-y-2 max-h-[320px] overflow-y-auto">
               {filteredEvents.map((event) => (
-                <div key={event.id} className="rounded-lg border border-slate-100 px-3 py-2 bg-slate-50 flex flex-col gap-1 text-sm">
+                <div key={event.id} className="rounded-lg border border-border px-3 py-2 bg-muted/50 flex flex-col gap-1 text-sm">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-slate-800">{event.title}</p>
-                      <p className="text-xs text-slate-500">{event.date} · {event.time}</p>
+                      <p className="font-semibold text-foreground">{event.title}</p>
+                      <p className="text-xs text-muted-foreground">{event.date} · {event.time}</p>
                     </div>
-                    <div className="flex gap-1 text-slate-500">
-                      <button onClick={() => openEditModal(event)} className="hover:text-blue-600">
+                    <div className="flex gap-1 text-muted-foreground">
+                      <button onClick={() => openEditModal(event)} className="hover:text-primary">
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(event.id)} className="hover:text-red-600">
+                      <button onClick={() => handleDelete(event.id)} className="hover:text-destructive">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-500">{event.description || 'بدون وصف'}</p>
-                  <div className="text-[11px] text-slate-500">
+                  <p className="text-xs text-muted-foreground">{event.description || 'بدون وصف'}</p>
+                  <div className="text-[11px] text-muted-foreground">
                     {event.linkedItemId ? `تجهيز: ${getItemName(event.linkedItemId)}` : event.linkedTransport ? `نقل: ${event.linkedTransport}` : 'بدون رابط'}
                   </div>
                 </div>
@@ -515,48 +515,48 @@ export default function Calendar() {
           className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center px-4"
           dir="rtl"
         >
-          <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl overflow-hidden">
-            <header className="flex items-center justify-between px-6 py-4 border-b bg-slate-50">
+          <div className="bg-card w-full max-w-2xl rounded-lg border border-border shadow-xl overflow-hidden">
+            <header className="flex items-center justify-between px-6 py-4 border-b bg-muted/50">
               <h3 className="text-lg font-semibold">{editingEvent ? 'تعديل الحدث' : 'إضافة حدث جديد'}</h3>
-              <button onClick={() => setModalOpen(false)} className="text-slate-500 hover:text-slate-900">
+              <button onClick={() => setModalOpen(false)} className="text-muted-foreground hover:text-foreground">
                 إغلاق
               </button>
             </header>
             <div className="p-6 space-y-4">
-              {errorMessage && <p className="text-xs text-red-600">{errorMessage}</p>}
+              {errorMessage && <p className="text-xs text-destructive">{errorMessage}</p>}
               <div>
-                <label className="text-xs text-slate-500">العنوان</label>
+                <label className="text-xs text-muted-foreground">العنوان</label>
                 <input
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full rounded border px-3 py-2 text-sm"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs text-slate-500">التاريخ</label>
+                  <label className="text-xs text-muted-foreground">التاريخ</label>
                   <input
                     type="date"
                     value={form.date}
                     onChange={(e) => setForm({ ...form, date: e.target.value })}
-                    className="w-full rounded border px-3 py-2 text-sm"
+                    className="w-full rounded border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500">الوقت</label>
+                  <label className="text-xs text-muted-foreground">الوقت</label>
                   <input
                     type="time"
                     value={form.time}
                     onChange={(e) => setForm({ ...form, time: e.target.value })}
-                    className="w-full rounded border px-3 py-2 text-sm"
+                    className="w-full rounded border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500">التذكير (دقائق)</label>
+                  <label className="text-xs text-muted-foreground">التذكير (دقائق)</label>
                   <select
                     value={form.reminderMinutes}
                     onChange={(e) => setForm({ ...form, reminderMinutes: Number(e.target.value) })}
-                    className="w-full rounded border px-3 py-2 text-sm"
+                    className="w-full rounded border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     {reminderOptions.map((option) => (
                       <option key={option} value={option}>{option} دقيقة</option>
@@ -565,20 +565,20 @@ export default function Calendar() {
                 </div>
               </div>
               <div>
-                <label className="text-xs text-slate-500">الوصف</label>
+                <label className="text-xs text-muted-foreground">الوصف</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full rounded border px-3 py-2 text-sm min-h-[80px]"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-slate-500">ربط بتجهيز</label>
+                  <label className="text-xs text-muted-foreground">ربط بتجهيز</label>
                   <select
                     value={form.linkedItemId}
                     onChange={(e) => setForm({ ...form, linkedItemId: e.target.value })}
-                    className="w-full rounded border px-3 py-2 text-sm"
+                    className="w-full rounded border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">بدون ربط</option>
                     {items.map((item: any) => (
@@ -587,11 +587,11 @@ export default function Calendar() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500">ربط بوسيلة نقل</label>
+                  <label className="text-xs text-muted-foreground">ربط بوسيلة نقل</label>
                   <select
                     value={form.linkedTransport}
                     onChange={(e) => setForm({ ...form, linkedTransport: e.target.value })}
-                    className="w-full rounded border px-3 py-2 text-sm"
+                    className="w-full rounded border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">بدون ربط</option>
                     {transportOptions.map((transport) => (
@@ -601,11 +601,11 @@ export default function Calendar() {
                 </div>
               </div>
             </div>
-            <footer className="flex items-center justify-between px-6 py-4 border-t bg-slate-50">
-              <button onClick={() => setModalOpen(false)} className="text-sm text-slate-500 hover:text-slate-800">
+            <footer className="flex items-center justify-between px-6 py-4 border-t bg-muted/50">
+              <button onClick={() => setModalOpen(false)} className="text-sm text-muted-foreground hover:text-foreground">
                 إلغاء
               </button>
-              <button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+              <button onClick={handleSave} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition">
                 {editingEvent ? 'حفظ التعديلات' : 'حفظ الحدث'}
               </button>
             </footer>

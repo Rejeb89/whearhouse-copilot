@@ -14,6 +14,8 @@ const createSchema = z.object({
   role: z.enum(['ADMIN', 'STORE_KEEPER', 'USER']).optional(),
   personalNumber: z.string().optional(),
   securityUnit: z.string().optional(),
+  region: z.string().optional(),
+  title: z.string().optional(),
 })
 
 const updateSchema = z.object({
@@ -23,6 +25,8 @@ const updateSchema = z.object({
   role: z.enum(['ADMIN', 'STORE_KEEPER', 'USER']).optional(),
   personalNumber: z.string().optional(),
   securityUnit: z.string().optional(),
+  region: z.string().optional(),
+  title: z.string().optional(),
 })
 
 router.get('/', async (req, res) => {

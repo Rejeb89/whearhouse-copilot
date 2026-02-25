@@ -15,12 +15,27 @@ import dataRoutes from './routes/data'
 import searchRoutes from './routes/search'
 import budgetsRoutes from './routes/budgets'
 import receiptsRoutes from './routes/receipts'
+import vehiclesRoutes from './routes/vehicles'
 import prisma from './prisma'
 
 const app = express()
 app.use(cors())
 app.use(bodyParser.json({ limit: '50mb' }))
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
+
+// Request logger
+app.use((req: any, res: any, next: any) => {
+  const start = Date.now()
+  res.on('finish', () => {
+    const ms = Date.now() - start
+    if (res.statusCode >= 400) {
+      console.error(`[${res.statusCode}] ${req.method} ${req.originalUrl} (${ms}ms)`)
+    } else {
+      console.log(`[${res.statusCode}] ${req.method} ${req.originalUrl} (${ms}ms)`)
+    }
+  })
+  next()
+})
 
 app.use('/api/auth', authRoutes)
 app.use('/api/users', usersRoutes)
@@ -35,6 +50,7 @@ app.use('/api/data', dataRoutes)
 app.use('/api/search', searchRoutes)
 app.use('/api/budgets', budgetsRoutes)
 app.use('/api/receipts', receiptsRoutes)
+app.use('/api/vehicles', vehiclesRoutes)
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
 

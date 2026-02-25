@@ -80,13 +80,13 @@ export default function ExcelImportModal({ entityId, onClose, onImport }: ExcelI
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" dir="rtl">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-xl border border-border shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200 sticky top-0 bg-white">
-          <h2 className="text-xl font-bold text-gray-900">استيراد الموظفين من Excel</h2>
+        <div className="flex justify-between items-center p-6 border-b border-border sticky top-0 bg-card">
+          <h2 className="text-xl font-bold text-foreground">استيراد الموظفين من Excel</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -102,14 +102,14 @@ export default function ExcelImportModal({ entityId, onClose, onImport }: ExcelI
 
           {/* File Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               حدد ملف Excel
             </label>
-            <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+            <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50">
               <div className="flex flex-col items-center gap-2">
-                <Upload className="w-6 h-6 text-gray-400" />
-                <span className="text-sm text-gray-600">اضغط لاختيار ملف أو اسحبه هنا</span>
-                <span className="text-xs text-gray-500">xlsx, xls</span>
+                <Upload className="w-6 h-6 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">اضغط لاختيار ملف أو اسحبه هنا</span>
+                <span className="text-xs text-muted-foreground">xlsx, xls</span>
               </div>
               <input
                 type="file"
@@ -135,23 +135,23 @@ export default function ExcelImportModal({ entityId, onClose, onImport }: ExcelI
           {/* Preview */}
           {preview.length > 0 && (
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">
+              <p className="text-sm font-medium text-foreground mb-2">
                 معاينة البيانات ({preview.length} موظف)
               </p>
-              <div className="overflow-x-auto border border-gray-200 rounded-lg">
+              <div className="overflow-x-auto border border-border rounded-lg">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b">
+                  <thead className="bg-muted/50 border-b border-border">
                     <tr>
-                      <th className="px-4 py-2 text-right text-gray-700">الرتبة</th>
-                      <th className="px-4 py-2 text-right text-gray-700">الاسم</th>
-                      <th className="px-4 py-2 text-right text-gray-700">اللقب</th>
-                      <th className="px-4 py-2 text-right text-gray-700">الرقم</th>
-                      <th className="px-4 py-2 text-right text-gray-700">الهاتف</th>
+                      <th className="px-4 py-2 text-right text-muted-foreground">الرتبة</th>
+                      <th className="px-4 py-2 text-right text-muted-foreground">الاسم</th>
+                      <th className="px-4 py-2 text-right text-muted-foreground">اللقب</th>
+                      <th className="px-4 py-2 text-right text-muted-foreground">الرقم</th>
+                      <th className="px-4 py-2 text-right text-muted-foreground">الهاتف</th>
                     </tr>
                   </thead>
                   <tbody>
                     {preview.slice(0, 5).map((row, idx) => (
-                      <tr key={idx} className="border-b hover:bg-gray-50">
+                      <tr key={idx} className="border-b border-border hover:bg-muted/50">
                         <td className="px-4 py-2">{row.rank}</td>
                         <td className="px-4 py-2">{row.name}</td>
                         <td className="px-4 py-2">{row.surname}</td>
@@ -163,7 +163,7 @@ export default function ExcelImportModal({ entityId, onClose, onImport }: ExcelI
                 </table>
               </div>
               {preview.length > 5 && (
-                <p className="text-sm text-gray-600 mt-2">... و {preview.length - 5} موظف آخر</p>
+                <p className="text-sm text-muted-foreground mt-2">... و {preview.length - 5} موظف آخر</p>
               )}
             </div>
           )}
@@ -182,7 +182,7 @@ export default function ExcelImportModal({ entityId, onClose, onImport }: ExcelI
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              className="flex-1 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted/50"
             >
               إلغاء
             </button>

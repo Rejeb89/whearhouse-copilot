@@ -26,7 +26,9 @@ export const createReceiptForDistribution = async (
       serialNumber,
       distributionId,
       createdById,
-      status: 'DRAFT',
+      status: 'APPROVED',
+      approvedAt: new Date(),
+      approvedById: createdById,
     },
   })
 }
@@ -37,10 +39,10 @@ export const getReceiptByDistribution = (distributionId: number) =>
     include: {
       distribution: {
         include: {
-          items: { include: { item: true } },
+          items: { include: { item: { select: { id: true, name: true, sku: true, category: true } } } },
           beneficiary: true,
           assignedTo: { include: { entity: true } },
-          user: { select: { id: true, email: true, name: true } },
+          user: { select: { id: true, email: true, name: true, personalNumber: true, region: true, securityUnit: true } },
         },
       },
       createdBy: { select: { id: true, email: true, name: true } },
@@ -54,10 +56,10 @@ export const getReceiptById = (id: number) =>
     include: {
       distribution: {
         include: {
-          items: { include: { item: true } },
+          items: { include: { item: { select: { id: true, name: true, sku: true, category: true } } } },
           beneficiary: true,
           assignedTo: { include: { entity: true } },
-          user: { select: { id: true, email: true, name: true } },
+          user: { select: { id: true, email: true, name: true, personalNumber: true, region: true, securityUnit: true } },
         },
       },
       createdBy: { select: { id: true, email: true, name: true } },
@@ -74,7 +76,13 @@ export const listReceipts = (page = 1, limit = 20) =>
       distribution: {
         include: {
           beneficiary: { select: { id: true, name: true } },
-          assignedTo: { select: { id: true, name: true, surname: true, rank: true } },
+          assignedTo: { select: { id: true, name: true, surname: true, rank: true, number: true } },
+          user: { select: { id: true, email: true, name: true } },
+          items: {
+            include: {
+              item: { select: { id: true, name: true, sku: true, category: true } },
+            },
+          },
         },
       },
       createdBy: { select: { id: true, email: true, name: true } },

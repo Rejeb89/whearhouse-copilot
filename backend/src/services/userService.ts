@@ -10,6 +10,8 @@ const SAFE_SELECT = {
   role: true,
   personalNumber: true,
   securityUnit: true,
+  region: true,
+  title: true,
   createdAt: true,
 }
 
@@ -29,14 +31,14 @@ export const getUser = (id: number) =>
   prisma.user.findUnique({ where: { id }, select: SAFE_SELECT })
 
 export const createUser = async (
-  data: { email: string; password: string; name?: string; role?: string; personalNumber?: string; securityUnit?: string },
+  data: { email: string; password: string; name?: string; role?: string; personalNumber?: string; securityUnit?: string; region?: string; title?: string },
   actorEmail?: string,
   actorId?: number,
   ip?: string,
 ) => {
   const pw = await hashPassword(data.password)
   const user = await prisma.user.create({
-    data: { email: data.email, password: pw, name: data.name, role: (data.role as any) || 'USER', personalNumber: data.personalNumber, securityUnit: data.securityUnit },
+    data: { email: data.email, password: pw, name: data.name, role: (data.role as any) || 'USER', personalNumber: data.personalNumber, securityUnit: data.securityUnit, region: data.region, title: data.title },
     select: SAFE_SELECT,
   })
   await createLog('CREATE', 'User', user.id, actorId ?? null)
@@ -54,7 +56,7 @@ export const createUser = async (
 
 export const updateUser = async (
   id: number,
-  data: { email?: string; password?: string; name?: string; role?: string; personalNumber?: string; securityUnit?: string },
+  data: { email?: string; password?: string; name?: string; role?: string; personalNumber?: string; securityUnit?: string; region?: string; title?: string },
   actorEmail?: string,
   actorId?: number,
   ip?: string,

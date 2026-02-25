@@ -57,15 +57,15 @@ export default function EmployeeModal({ entityId, employee, onClose, onSave }: E
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" dir="rtl">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+      <div className="bg-card rounded-xl border border-border shadow-lg max-w-md w-full mx-4">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">
+        <div className="flex justify-between items-center p-6 border-b border-border">
+          <h2 className="text-xl font-bold text-foreground">
             {employee ? 'تعديل الموظف' : 'إضافة موظف'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -80,7 +80,7 @@ export default function EmployeeModal({ entityId, employee, onClose, onSave }: E
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               الرتبة *
             </label>
             <input
@@ -89,13 +89,13 @@ export default function EmployeeModal({ entityId, employee, onClose, onSave }: E
               value={formData.rank}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               placeholder="مثال: ملازم"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               الاسم *
             </label>
             <input
@@ -104,13 +104,13 @@ export default function EmployeeModal({ entityId, employee, onClose, onSave }: E
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               placeholder="الاسم الأول"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               اللقب *
             </label>
             <input
@@ -119,13 +119,13 @@ export default function EmployeeModal({ entityId, employee, onClose, onSave }: E
               value={formData.surname}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               placeholder="الاسم الأخير"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               الرقم *
             </label>
             <input
@@ -134,13 +134,13 @@ export default function EmployeeModal({ entityId, employee, onClose, onSave }: E
               value={formData.number}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               placeholder="رقم الموظف"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               الهاتف
             </label>
             <input
@@ -148,7 +148,7 @@ export default function EmployeeModal({ entityId, employee, onClose, onSave }: E
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               placeholder="رقم الهاتف (اختياري)"
             />
           </div>
@@ -158,14 +158,14 @@ export default function EmployeeModal({ entityId, employee, onClose, onSave }: E
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
             >
               {loading ? 'جاري الحفظ...' : 'حفظ'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              className="flex-1 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted/50"
             >
               إلغاء
             </button>

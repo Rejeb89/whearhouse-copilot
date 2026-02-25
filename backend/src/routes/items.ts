@@ -7,6 +7,15 @@ const router = express.Router()
 
 router.use(authGuard)
 
+router.get('/inventory', async (req, res) => {
+  try {
+    const data = await itemService.getInventorySummary()
+    res.json({ data })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 router.get('/', async (req, res) => {
   const items = await itemService.listItems()
   res.json({ data: items })
@@ -32,6 +41,24 @@ router.delete('/:id', roleGuard(['ADMIN','STORE_KEEPER']), async (req, res) => {
     res.json({ data: true })
   } catch (err: any) {
     res.status(400).json({ error: err.message })
+  }
+})
+
+router.get('/:id/admin-numbers', async (req, res) => {
+  try {
+    const numbers = await itemService.getItemAdminNumbers(Number(req.params.id))
+    res.json({ data: numbers })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+router.get('/:id/history', async (req, res) => {
+  try {
+    const history = await itemService.getItemHistory(Number(req.params.id))
+    res.json({ data: history })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
   }
 })
 

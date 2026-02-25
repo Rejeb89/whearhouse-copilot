@@ -1,45 +1,12 @@
-import React, { useContext, useRef, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import { AuthContext } from '../context/AuthContext'
 import {
   FileText, CheckCircle, XCircle, Download, Eye, Search,
-  Printer, AlertTriangle, Clock, ChevronRight, X, Package
+  Printer, AlertTriangle, Clock, ChevronRight, X, Package, Paperclip, Upload, ImageIcon
 } from 'lucide-react'
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-interface Receipt {
-  id: number
-  serialNumber: string
-  status: 'DRAFT' | 'APPROVED' | 'CANCELLED'
-  issuedAt: string
-  approvedAt?: string
-  cancelledAt?: string
-  createdAt: string
-  distribution: {
-    id: number
-    reference: string
-    referenceType?: string
-    referenceNumber?: string
-    referenceDate?: string
-    deliveredByName?: string
-    notes?: string
-    createdAt: string
-    user: { id: number; email: string; name?: string }
-    beneficiary?: { id: number; name: string }
-    assignedTo?: { id: number; name: string; surname: string; rank: string; entity?: { name: string } }
-    items: Array<{
-      id: number
-      quantity: number
-      serialNumber?: string
-      condition: 'NEW' | 'USED' | 'NEEDS_MAINTENANCE'
-      notes?: string
-      item: { id: number; name: string; sku: string; category?: string }
-    }>
-  }
-  createdBy: { id: number; email: string; name?: string }
-  approvedBy?: { id: number; email: string; name?: string }
-}
+import { Receipt, conditionLabel, downloadPDF, ReceiptPrintTemplate } from '../components/ReceiptPrintTemplate'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const statusLabel: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
@@ -48,216 +15,8 @@ const statusLabel: Record<string, { label: string; color: string; bg: string; ic
   CANCELLED: { label: 'ملغي',        color: 'text-red-700',    bg: 'bg-red-50 border-red-200',         icon: <XCircle className="w-3 h-3" /> },
 }
 
-const conditionLabel: Record<string, string> = {
-  NEW: 'جديد',
-  USED: 'مستعمل',
-  NEEDS_MAINTENANCE: 'يحتاج صيانة',
-}
-
 const fetchReceipts = async () => (await client.get('/receipts')).data.data
 const fetchReceiptById = async (id: number) => (await client.get(`/receipts/${id}`)).data.data
-
-// ─── QR Code canvas generation ────────────────────────────────────────────────
-function useQRCode(text: string) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  React.useEffect(() => {
-    if (!canvasRef.current || !text) return
-    // Simple QR using a small inline encoder is complex; use image API fallback
-    const img = new Image()
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(text)}&color=1e3a5f&bgcolor=ffffff`
-    img.onload = () => {
-      const ctx = canvasRef.current?.getContext('2d')
-      if (ctx && canvasRef.current) { ctx.drawImage(img, 0, 0, 140, 140) }
-    }
-  }, [text])
-  return canvasRef
-}
-
-// ─── Print-ready Receipt Component ───────────────────────────────────────────
-const ReceiptPrintTemplate = React.forwardRef<HTMLDivElement, { receipt: Receipt }>(
-  ({ receipt }, ref) => {
-    const d = receipt.distribution
-    const qrUrl = `${window.location.origin}/receipts?id=${receipt.id}`
-
-    return (
-      <div
-        ref={ref}
-        dir="rtl"
-        style={{
-          fontFamily: "'Cairo', 'Arial', sans-serif",
-          backgroundColor: '#fff',
-          color: '#1a1a2e',
-          width: '794px',
-          minHeight: '1123px',
-          padding: '40px',
-          boxSizing: 'border-box',
-          position: 'relative',
-        }}
-      >
-        {/* Watermark CANCELLED */}
-        {receipt.status === 'CANCELLED' && (
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%) rotate(-45deg)',
-            fontSize: '120px', fontWeight: 900, opacity: 0.05,
-            color: '#ef4444', pointerEvents: 'none', zIndex: 0, whiteSpace: 'nowrap',
-          }}>ملغي</div>
-        )}
-
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px solid #1e3a5f', paddingBottom: '20px', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src="/logo.png" alt="logo" style={{ width: '72px', height: '72px', objectFit: 'contain' }} onError={(e) => { (e.target as any).style.display = 'none' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: '13px', color: '#6b7280' }}>الإدارة العامة للحرس الوطني</div>
-              <div style={{ fontSize: '11px', color: '#9ca3af' }}>نظام إدارة المستودع</div>
-            </div>
-          </div>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: '22px', fontWeight: 900, color: '#1e3a5f' }}>وصل تسليم تجهيزات</div>
-            <div style={{ fontSize: '20px', fontWeight: 700, color: '#1e3a5f', direction: 'ltr' }}>{receipt.serialNumber}</div>
-            <div style={{ marginTop: '4px' }}>
-              <span style={{
-                fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '9999px',
-                backgroundColor: receipt.status === 'APPROVED' ? '#dcfce7' : receipt.status === 'CANCELLED' ? '#fee2e2' : '#fef9c3',
-                color: receipt.status === 'APPROVED' ? '#166534' : receipt.status === 'CANCELLED' ? '#991b1b' : '#854d0e',
-                border: `1px solid ${receipt.status === 'APPROVED' ? '#86efac' : receipt.status === 'CANCELLED' ? '#fca5a5' : '#fde047'}`,
-              }}>
-                {receipt.status === 'APPROVED' ? 'مصادق عليه' : receipt.status === 'CANCELLED' ? 'ملغي' : 'مسودة'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Meta grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
-          {[
-            ['تاريخ الإصدار', new Date(receipt.issuedAt).toLocaleString('ar-TN')],
-            ['رقم المرجع', d.referenceNumber || '—'],
-            ['نوع المرجع', d.referenceType || '—'],
-            ['تاريخ المرجع', d.referenceDate ? new Date(d.referenceDate).toLocaleDateString('ar-TN') : '—'],
-            ['الجهة / القسم', d.beneficiary?.name || '—'],
-            ['الموظف المستلم', d.assignedTo ? `${d.assignedTo.rank} ${d.assignedTo.name} ${d.assignedTo.surname}` : '—'],
-            ['اسم المسلِّم', d.deliveredByName || (d.user.name || d.user.email)],
-            ['أنشئ بواسطة', receipt.createdBy.name || receipt.createdBy.email],
-          ].map(([label, value]) => (
-            <div key={label} style={{ backgroundColor: '#f8fafc', borderRadius: '8px', padding: '10px 14px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '2px' }}>{label}</div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#1e3a5f' }}>{value}</div>
-            </div>
-          ))}
-          {receipt.approvedBy && (
-            <div style={{ backgroundColor: '#f0fdf4', borderRadius: '8px', padding: '10px 14px', border: '1px solid #86efac' }}>
-              <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '2px' }}>المصادق عليه</div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#166534' }}>{receipt.approvedBy.name || receipt.approvedBy.email}</div>
-              {receipt.approvedAt && <div style={{ fontSize: '10px', color: '#6b7280' }}>{new Date(receipt.approvedAt).toLocaleString('ar-TN')}</div>}
-            </div>
-          )}
-        </div>
-
-        {/* Items Table */}
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e3a5f', marginBottom: '10px', paddingRight: '4px', borderRight: '3px solid #1e3a5f', paddingLeft: '8px' }}>
-            قائمة التجهيزات
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#1e3a5f', color: '#fff' }}>
-                {['#', 'اسم التجهيز', 'الرقم التسلسلي', 'الكمية', 'الحالة', 'ملاحظات'].map(h => (
-                  <th key={h} style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {d.items.map((di, i) => (
-                <tr key={di.id} style={{ backgroundColor: i % 2 === 0 ? '#f8fafc' : '#fff', borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={{ padding: '9px 12px', color: '#64748b' }}>{i + 1}</td>
-                  <td style={{ padding: '9px 12px', fontWeight: 600, color: '#1e3a5f' }}>{di.item.name}</td>
-                  <td style={{ padding: '9px 12px', color: '#64748b', direction: 'ltr', textAlign: 'right' }}>{di.serialNumber || '—'}</td>
-                  <td style={{ padding: '9px 12px', textAlign: 'center', fontWeight: 700, color: '#1e3a5f' }}>{di.quantity}</td>
-                  <td style={{ padding: '9px 12px' }}>
-                    <span style={{
-                      padding: '2px 8px', borderRadius: '9999px', fontSize: '10px', fontWeight: 600,
-                      backgroundColor: di.condition === 'NEW' ? '#dcfce7' : di.condition === 'USED' ? '#fef9c3' : '#fee2e2',
-                      color: di.condition === 'NEW' ? '#166534' : di.condition === 'USED' ? '#854d0e' : '#991b1b',
-                    }}>{conditionLabel[di.condition]}</span>
-                  </td>
-                  <td style={{ padding: '9px 12px', color: '#64748b', fontSize: '11px' }}>{di.notes || '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Notes */}
-        {d.notes && (
-          <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde047', borderRadius: '8px', padding: '12px 16px', marginBottom: '24px' }}>
-            <div style={{ fontSize: '11px', color: '#854d0e', marginBottom: '4px' }}>ملاحظات</div>
-            <div style={{ fontSize: '13px', color: '#78350f' }}>{d.notes}</div>
-          </div>
-        )}
-
-        {/* Signatures + QR */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '32px' }}>
-          {['إمضاء المسلِّم', 'إمضاء المستلم', 'إمضاء المصادق'].map(label => (
-            <div key={label} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '40px' }}>{label}</div>
-              <div style={{ height: '1px', backgroundColor: '#e2e8f0' }} />
-              <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '6px' }}>التوقيع والختم</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer with QR */}
-        <div style={{ marginTop: '24px', borderTop: '1px solid #e2e8f0', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <div>
-            <div style={{ fontSize: '10px', color: '#9ca3af' }}>رقم الوصل: {receipt.serialNumber}</div>
-            <div style={{ fontSize: '10px', color: '#9ca3af' }}>تاريخ الطباعة: {new Date().toLocaleString('ar-TN')}</div>
-            <div style={{ fontSize: '10px', color: '#9ca3af', direction: 'ltr', marginTop: '4px' }}>{qrUrl}</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrUrl)}&color=1e3a5f`}
-              alt="QR"
-              style={{ width: '80px', height: '80px' }}
-            />
-            <div style={{ fontSize: '9px', color: '#9ca3af', marginTop: '2px' }}>رمز QR للتحقق</div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-)
-ReceiptPrintTemplate.displayName = 'ReceiptPrintTemplate'
-
-// ─── PDF Download ─────────────────────────────────────────────────────────────
-const downloadPDF = async (elementId: string, filename: string) => {
-  const { default: html2canvas } = await import('html2canvas')
-  const { jsPDF } = await import('jspdf')
-  const el = document.getElementById(elementId)
-  if (!el) return
-  const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
-  const imgData = canvas.toDataURL('image/png')
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-  const pageWidth = pdf.internal.pageSize.getWidth()
-  const pageHeight = pdf.internal.pageSize.getHeight()
-  const imgWidth = pageWidth
-  const imgHeight = (canvas.height * imgWidth) / canvas.width
-  let heightLeft = imgHeight
-  let position = 0
-  pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-  heightLeft -= pageHeight
-  while (heightLeft > 0) {
-    position = heightLeft - imgHeight
-    pdf.addPage()
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-    heightLeft -= pageHeight
-  }
-  pdf.save(filename)
-}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Receipts() {
@@ -271,7 +30,27 @@ export default function Receipts() {
   const [printVisible, setPrintVisible] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
 
+  // Signed attachment: local map receiptId → parsed attachment
+  const [signedAtts, setSignedAtts] = useState<Record<number, {name: string; data: string; type: string}>>( {})
+  const [uploadingId, setUploadingId] = useState<number | null>(null)
+  const signedFileRef = useRef<HTMLInputElement>(null)
+  const [activeUploadId, setActiveUploadId] = useState<number | null>(null)
+
   const { data: receipts = [], isLoading } = useQuery<Receipt[]>(['receipts'], fetchReceipts, { refetchInterval: 15000 })
+
+  // Seed signedAtts from list data
+  useEffect(() => {
+    if (!receipts.length) return
+    setSignedAtts(prev => {
+      const next = { ...prev }
+      receipts.forEach((r: any) => {
+        if (r.signedAttachment && !next[r.id]) {
+          try { next[r.id] = JSON.parse(r.signedAttachment) } catch { /* ignore */ }
+        }
+      })
+      return next
+    })
+  }, [receipts])
   const { data: selectedReceipt, isLoading: loadingDetail } = useQuery<Receipt>(
     ['receipt', selectedId],
     () => fetchReceiptById(selectedId!),
@@ -287,11 +66,28 @@ export default function Receipts() {
     { onSuccess: () => { qc.invalidateQueries(['receipts']); qc.invalidateQueries(['receipt', selectedId]) } }
   )
 
-  const filtered = receipts.filter(r =>
-    (statusFilter === 'ALL' || r.status === statusFilter) &&
-    (r.serialNumber.toLowerCase().includes(search.toLowerCase()) ||
-      (r.distribution.beneficiary?.name || '').toLowerCase().includes(search.toLowerCase()))
-  )
+  const filtered = receipts.filter(r => {
+    const s = search.toLowerCase()
+    if (statusFilter !== 'ALL' && r.status !== statusFilter) return false
+    if (!s) return true
+    const d = r.distribution
+    return (
+      r.serialNumber.toLowerCase().includes(s) ||
+      (d.beneficiary?.name || '').toLowerCase().includes(s) ||
+      (d.beneficiary?.phone || '').toLowerCase().includes(s) ||
+      (d.referenceNumber || '').toLowerCase().includes(s) ||
+      (d.referenceType || '').toLowerCase().includes(s) ||
+      (d.notes || '').toLowerCase().includes(s) ||
+      (d.deliveredByName || '').toLowerCase().includes(s) ||
+      (d.assignedTo ? `${d.assignedTo.rank} ${d.assignedTo.name} ${d.assignedTo.surname} ${d.assignedTo.number || ''}`.toLowerCase().includes(s) : false) ||
+      (d.items || []).some((di: any) =>
+        (di.item?.name || '').toLowerCase().includes(s) ||
+        (di.item?.sku || '').toLowerCase().includes(s) ||
+        (di.item?.category || '').toLowerCase().includes(s) ||
+        (di.adminNumber || '').toLowerCase().includes(s)
+      )
+    )
+  })
 
   const handlePrintPDF = async () => {
     if (!selectedReceipt) return
@@ -301,88 +97,148 @@ export default function Receipts() {
     setPrintVisible(false)
   }
 
+  const handleSignedFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || activeUploadId === null) return
+    e.target.value = ''
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      const att = { name: file.name, data: ev.target?.result as string, type: file.type }
+      setUploadingId(activeUploadId)
+      try {
+        await client.patch(`/receipts/${activeUploadId}/signed-attachment`, { signedAttachment: att })
+        setSignedAtts(prev => ({ ...prev, [activeUploadId]: att }))
+        qc.invalidateQueries(['receipts'])
+      } finally {
+        setUploadingId(null)
+        setActiveUploadId(null)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const downloadAtt = (att: {name: string; data: string}) => {
+    const a = document.createElement('a'); a.href = att.data; a.download = att.name
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  }
+
   return (
     <div dir="rtl" className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">وصولات التسليم</h1>
-          <p className="text-sm text-gray-500 mt-0.5">إدارة وطباعة وصولات توزيع التجهيزات</p>
+          <h1 className="text-2xl font-bold text-foreground">وصولات التسليم</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">إدارة وطباعة وصولات خرج التجهيزات</p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <FileText className="w-4 h-4" />
           {receipts.length} وصل
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px]">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="ابحث بالرقم أو الجهة..."
+            placeholder="ابحث بالرقم، الجهة، التجهيز، المرجع..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pr-9 pl-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pr-9 pl-3 py-2 text-sm border border-input bg-background rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
+        <div className="flex flex-wrap gap-2">
         {(['ALL', 'DRAFT', 'APPROVED', 'CANCELLED'] as const).map(s => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
-              statusFilter === s ? 'bg-blue-800 text-white border-blue-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              statusFilter === s ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-muted-foreground border-border hover:bg-muted/50'
             }`}
           >
             {s === 'ALL' ? 'الكل' : statusLabel[s].label}
           </button>
         ))}
+        </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
         {isLoading ? (
-          <div className="py-16 text-center text-gray-400">جارٍ التحميل...</div>
+          <div className="py-16 text-center text-muted-foreground">جارٍ التحميل...</div>
         ) : filtered.length === 0 ? (
-          <div className="py-16 text-center text-gray-400">
+          <div className="py-16 text-center text-muted-foreground">
             <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>لا توجد وصولات</p>
           </div>
         ) : (
           <table className="w-full text-sm text-right">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 font-medium">
-                <th className="px-4 py-3">رقم الوصل</th>
-                <th className="px-4 py-3">الجهة</th>
-                <th className="px-4 py-3">المستلم</th>
-                <th className="px-4 py-3">تاريخ الإصدار</th>
-                <th className="px-4 py-3">الحالة</th>
-                <th className="px-4 py-3">إجراءات</th>
-              </tr>
+                <tr className="border-b border-border bg-muted/50 text-xs text-muted-foreground font-medium">
+                  <th className="px-4 py-3">رقم الوصل</th>
+                  <th className="px-4 py-3">اسم التجهيز</th>
+                  <th className="px-4 py-3">الجهة المنتفعة</th>
+                  <th className="px-4 py-3">المستلم</th>
+                  <th className="px-4 py-3">القائم بالتسليم</th>
+                  <th className="px-4 py-3">تاريخ الإصدار</th>
+                  <th className="px-4 py-3">الوصل بعد الامضاء</th>
+                  <th className="px-4 py-3">إجراءات</th>
+                </tr>
             </thead>
             <tbody>
               {filtered.map(r => {
-                const st = statusLabel[r.status]
                 return (
-                  <tr key={r.id} className="border-b border-gray-50 hover:bg-blue-50/30 transition">
-                    <td className="px-4 py-3 font-mono font-semibold text-blue-800">{r.serialNumber}</td>
-                    <td className="px-4 py-3 text-gray-700">{r.distribution.beneficiary?.name || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600 text-xs">
+                  <tr key={r.id} className="border-b border-border hover:bg-muted/50 transition">
+                    <td className="px-4 py-3 font-mono font-semibold text-primary">{r.serialNumber}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {(r.distribution.items || []).map(i => i.item.name).filter(Boolean).join(', ') || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-foreground">{r.distribution.beneficiary?.name || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
                       {r.distribution.assignedTo
                         ? `${r.distribution.assignedTo.rank} ${r.distribution.assignedTo.name} ${r.distribution.assignedTo.surname}`
                         : '—'}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{new Date(r.issuedAt).toLocaleDateString('ar-TN')}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      {r.distribution.deliveredByName || r.distribution.user?.name || r.distribution.user?.email || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(r.issuedAt).toLocaleDateString('ar-TN')}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${st.bg} ${st.color}`}>
-                        {st.icon} {st.label}
-                      </span>
+                      {(() => {
+                        const att = signedAtts[r.id]
+                        const isUploading = uploadingId === r.id
+                        if (att) {
+                          return (
+                            <div className="flex flex-col gap-1.5">
+                              {att.type?.startsWith('image/') ? (
+                                <img src={att.data} alt={att.name} className="w-14 h-14 object-cover rounded-lg border border-border cursor-pointer hover:opacity-90" onClick={() => window.open(att.data, '_blank')} title="عرض الصورة"/>
+                              ) : (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground"><Paperclip className="w-3.5 h-3.5"/><span className="truncate max-w-[90px]">{att.name}</span></div>
+                              )}
+                              <div className="flex gap-1">
+                                <button onClick={() => downloadAtt(att)} className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-primary/10 text-primary rounded hover:bg-primary/20 transition"><Download className="w-3 h-3"/>تحميل</button>
+                                <button onClick={() => { setActiveUploadId(r.id); signedFileRef.current?.click() }} className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-muted text-muted-foreground rounded hover:bg-muted/70 transition"><Upload className="w-3 h-3"/>تغيير</button>
+                              </div>
+                            </div>
+                          )
+                        }
+                        return (
+                          <button
+                            disabled={isUploading}
+                            onClick={() => { setActiveUploadId(r.id); signedFileRef.current?.click() }}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-dashed border-border rounded-lg text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition disabled:opacity-50"
+                          >
+                            {isUploading ? <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"/> : <Upload className="w-3.5 h-3.5"/>}
+                            {isUploading ? 'جارٍ...' : 'إرفاق'}
+                          </button>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setSelectedId(r.id)}
-                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium"
                       >
                         <Eye className="w-3.5 h-3.5" /> عرض
                       </button>
@@ -398,15 +254,15 @@ export default function Receipts() {
       {/* ── Detail Modal ── */}
       {selectedId && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-8 pb-8 overflow-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 relative">
+        <div className="bg-card rounded-xl border border-border shadow-lg w-full max-w-4xl mx-4 relative">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+            <div className="flex items-center justify-between p-5 border-b border-border">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-blue-700" />
+                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-gray-800">{selectedReceipt?.serialNumber || '...'}</h2>
+                  <h2 className="font-bold text-foreground">{selectedReceipt?.serialNumber || '...'}</h2>
                   {selectedReceipt && (
                     <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${statusLabel[selectedReceipt.status].bg} ${statusLabel[selectedReceipt.status].color}`}>
                       {statusLabel[selectedReceipt.status].icon} {statusLabel[selectedReceipt.status].label}
@@ -414,20 +270,20 @@ export default function Receipts() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center flex-wrap gap-2">
                 {canApprove && selectedReceipt?.status === 'DRAFT' && (
                   <>
                     <button
-                      onClick={() => approveMutation.mutate(selectedReceipt.id)}
-                      disabled={approveMutation.isLoading}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition"
-                    >
-                      <CheckCircle className="w-3.5 h-3.5" /> مصادقة
-                    </button>
+                    onClick={() => approveMutation.mutate(selectedReceipt.id)}
+                    disabled={approveMutation.isLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" /> مصادقة
+                  </button>
                     <button
                       onClick={() => cancelMutation.mutate(selectedReceipt.id)}
                       disabled={cancelMutation.isLoading}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold rounded-lg transition"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs font-semibold rounded-lg transition"
                     >
                       <XCircle className="w-3.5 h-3.5" /> إلغاء
                     </button>
@@ -436,13 +292,13 @@ export default function Receipts() {
                 {selectedReceipt && (
                   <button
                     onClick={handlePrintPDF}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-800 hover:bg-blue-900 text-white text-xs font-semibold rounded-lg transition"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold rounded-lg transition"
                   >
                     <Download className="w-3.5 h-3.5" /> تحميل PDF
                   </button>
                 )}
-                <button onClick={() => setSelectedId(null)} className="p-2 rounded-lg hover:bg-gray-100 transition">
-                  <X className="w-4 h-4 text-gray-500" />
+                <button onClick={() => setSelectedId(null)} className="p-2 rounded-lg hover:bg-muted transition">
+                  <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
             </div>
@@ -450,11 +306,11 @@ export default function Receipts() {
             {/* Modal Body */}
             <div className="p-5 overflow-auto max-h-[75vh]">
               {loadingDetail ? (
-                <div className="py-16 text-center text-gray-400">جارٍ التحميل...</div>
+                <div className="py-16 text-center text-muted-foreground">جارٍ التحميل...</div>
               ) : selectedReceipt ? (
                 <div className="space-y-5">
                   {/* Info Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     {[
                       ['تاريخ الإصدار', new Date(selectedReceipt.issuedAt).toLocaleString('ar-TN')],
                       ['نوع المرجع', selectedReceipt.distribution.referenceType || '—'],
@@ -467,33 +323,33 @@ export default function Receipts() {
                       ['اسم المسلِّم', selectedReceipt.distribution.deliveredByName || (selectedReceipt.distribution.user.name || selectedReceipt.distribution.user.email)],
                       ['أنشئ بواسطة', selectedReceipt.createdBy.name || selectedReceipt.createdBy.email],
                     ].map(([label, value]) => (
-                      <div key={label} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                        <p className="text-xs text-gray-400">{label}</p>
-                        <p className="text-sm font-semibold text-gray-700 mt-0.5">{value}</p>
+                      <div key={label} className="rounded-lg border border-border bg-muted/50 p-3">
+                        <p className="text-xs text-muted-foreground">{label}</p>
+                        <p className="text-sm font-semibold text-foreground mt-0.5">{value}</p>
                       </div>
                     ))}
                   </div>
 
                   {/* Items */}
                   <div>
-                    <h3 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
-                      <Package className="w-4 h-4 text-blue-600" /> قائمة التجهيزات
+                    <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">
+                      <Package className="w-4 h-4 text-primary" /> قائمة التجهيزات
                     </h3>
-                    <div className="overflow-x-auto rounded-lg border border-gray-100">
+                    <div className="overflow-x-auto rounded-lg border border-border">
                       <table className="w-full text-xs text-right">
                         <thead>
-                          <tr className="bg-gray-50 border-b border-gray-100">
+                          <tr className="bg-muted/50 border-b border-border">
                             {['اسم التجهيز', 'الرقم التسلسلي', 'الكمية', 'الحالة', 'ملاحظات'].map(h => (
-                              <th key={h} className="px-3 py-2.5 font-semibold text-gray-600">{h}</th>
+                              <th key={h} className="px-3 py-2.5 font-semibold text-muted-foreground">{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {selectedReceipt.distribution.items.map((di, i) => (
-                            <tr key={di.id} className={`border-b border-gray-50 ${i % 2 === 0 ? '' : 'bg-gray-50/50'}`}>
-                              <td className="px-3 py-2.5 font-medium text-gray-700">{di.item.name}</td>
-                              <td className="px-3 py-2.5 text-gray-500 font-mono">{di.serialNumber || '—'}</td>
-                              <td className="px-3 py-2.5 text-center font-bold text-blue-800">{di.quantity}</td>
+                            <tr key={di.id} className={`border-b border-border ${i % 2 === 0 ? '' : 'bg-muted/30'}`}>
+                              <td className="px-3 py-2.5 font-medium text-foreground">{di.item.name}</td>
+                              <td className="px-3 py-2.5 text-muted-foreground font-mono">{di.serialNumber || '—'}</td>
+                              <td className="px-3 py-2.5 text-center font-bold text-primary">{di.quantity}</td>
                               <td className="px-3 py-2.5">
                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                                   di.condition === 'NEW' ? 'bg-green-100 text-green-700' :
@@ -501,13 +357,41 @@ export default function Receipts() {
                                   'bg-red-100 text-red-700'
                                 }`}>{conditionLabel[di.condition]}</span>
                               </td>
-                              <td className="px-3 py-2.5 text-gray-400">{di.notes || '—'}</td>
+                              <td className="px-3 py-2.5 text-muted-foreground">{di.notes || '—'}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
                   </div>
+
+                  {/* Signed Attachment */}
+                  {(() => {
+                    const att = selectedReceipt?.id ? signedAtts[selectedReceipt.id] : null
+                    return (
+                      <div className="rounded-lg border border-border bg-muted/30 p-4">
+                        <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5 text-primary"/>الوصل بعد الامضاء</p>
+                        {att ? (
+                          <div className="flex flex-col gap-2">
+                            {att.type?.startsWith('image/') ? (
+                              <img src={att.data} alt={att.name} className="max-h-64 rounded-lg border border-border object-contain cursor-pointer" onClick={() => window.open(att.data, '_blank')}/>
+                            ) : (
+                              <div className="flex items-center gap-2 text-sm text-foreground"><Paperclip className="w-4 h-4 text-muted-foreground"/>{att.name}</div>
+                            )}
+                            <div className="flex gap-2">
+                              <button onClick={() => downloadAtt(att)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition"><Download className="w-3.5 h-3.5"/>تحميل</button>
+                              <button onClick={() => { setActiveUploadId(selectedReceipt!.id); signedFileRef.current?.click() }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-muted text-muted-foreground rounded-lg hover:bg-muted/70 transition"><Upload className="w-3.5 h-3.5"/>تغيير الملف</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button onClick={() => { setActiveUploadId(selectedReceipt!.id); signedFileRef.current?.click() }}
+                            className="flex items-center gap-2 w-full border border-dashed border-border rounded-lg p-3 text-sm text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition">
+                            <Upload className="w-4 h-4"/>انقر لإرفاق صورة أو ملف PDF للوصل بعد الامضاء
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })()}
 
                   {/* Approval info */}
                   {selectedReceipt.approvedBy && (
@@ -536,11 +420,20 @@ export default function Receipts() {
         </div>
       )}
 
+      {/* Hidden file input for signed attachment */}
+      <input
+        ref={signedFileRef}
+        type="file"
+        accept="image/*,.pdf,application/pdf"
+        className="hidden"
+        onChange={handleSignedFile}
+      />
+
       {/* Hidden Print Area */}
       {printVisible && selectedReceipt && (
         <div style={{ position: 'fixed', top: '-9999px', left: '-9999px' }}>
           <div id="receipt-print-area">
-            <ReceiptPrintTemplate ref={printRef} receipt={selectedReceipt} />
+            <ReceiptPrintTemplate ref={printRef} receipt={selectedReceipt} currentUser={{ region: user?.region, securityUnit: user?.securityUnit, personalNumber: user?.personalNumber, name: user?.name, title: user?.title }} />
           </div>
         </div>
       )}

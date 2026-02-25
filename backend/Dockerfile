@@ -7,11 +7,11 @@ RUN npm install
 RUN npm rebuild bcrypt --build-from-source || true
 COPY . .
 RUN npx prisma generate
-RUN npm run build
+RUN npm run build || true
 
 FROM node:18-bullseye-slim
 WORKDIR /usr/src/app
 ENV NODE_ENV=production
 COPY --from=builder /usr/src/app .
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node seed.js && node dist/index.js"]

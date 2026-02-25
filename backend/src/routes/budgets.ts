@@ -66,6 +66,36 @@ router.put('/:id', roleGuard(['ADMIN']), async (req, res) => {
   }
 })
 
+/* ─── GET /api/budgets/expenses/by-supplier/:name ─── expenses for a supplier entity ─── */
+router.get('/expenses/by-supplier/:name', async (req, res) => {
+  try {
+    const name = decodeURIComponent(req.params.name)
+    const expenses = await prisma.budgetExpense.findMany({
+      where: { supplier: { equals: name, mode: 'insensitive' } },
+      include: { budget: { select: { id: true, name: true, startDate: true } } },
+      orderBy: { date: 'desc' },
+    })
+    res.json({ data: expenses.map(e => ({ ...e, attachments: JSON.parse(e.attachments || '[]') })) })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/* ─── GET /api/budgets/supply-requests/by-supplier/:name ─── supply requests for a supplier entity ─── */
+router.get('/supply-requests/by-supplier/:name', async (req, res) => {
+  try {
+    const name = decodeURIComponent(req.params.name)
+    const requests = await prisma.supplyRequest.findMany({
+      where: { supplier: { equals: name, mode: 'insensitive' } },
+      include: { budget: { select: { id: true, name: true, startDate: true } } },
+      orderBy: { createdAt: 'desc' },
+    })
+    res.json({ data: requests.map(r => ({ ...r, attachments: JSON.parse(r.attachments || '[]') })) })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 /* ─── DELETE /api/budgets/:id ─── delete budget + cascade expenses (ADMIN only) ─── */
 router.delete('/:id', roleGuard(['ADMIN']), async (req, res) => {
   const id = Number(req.params.id)
@@ -126,6 +156,58 @@ router.delete('/expenses/:id', roleGuard(['ADMIN']), async (req, res) => {
   const id = Number(req.params.id)
   try {
     await prisma.budgetExpense.delete({ where: { id } })
+    res.json({ data: { ok: true } })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/* ─── GET /api/budgets/:id/supply-requests ─── */
+router.get('/:id/supply-requests', async (req, res) => {
+  const budgetId = Number(req.params.id)
+  try {
+    const requests = await prisma.supplyRequest.findMany({
+      where: { budgetId },
+      orderBy: { createdAt: 'desc' },
+    })
+    const result = requests.map(r => ({
+      ...r,
+      attachments: (() => { try { return JSON.parse(r.attachments) } catch { return [] } })(),
+    }))
+    res.json({ data: result })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/* ─── POST /api/budgets/:id/supply-requests ─── */
+router.post('/:id/supply-requests', async (req, res) => {
+  const budgetId = Number(req.params.id)
+  const { title, notes, attachments, supplier } = req.body
+  if (!title) return res.status(400).json({ error: 'title is required' })
+  try {
+    const actor = (req as any).user
+    const request = await prisma.supplyRequest.create({
+      data: {
+        budgetId,
+        title,
+        supplier: supplier ?? null,
+        notes: notes ?? null,
+        attachments: Array.isArray(attachments) ? JSON.stringify(attachments) : '[]',
+        createdBy: actor?.email ?? '',
+      },
+    })
+    res.json({ data: { ...request, attachments: JSON.parse(request.attachments) } })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/* ─── DELETE /api/budgets/supply-requests/:id ─── (ADMIN only) ─── */
+router.delete('/supply-requests/:id', roleGuard(['ADMIN']), async (req, res) => {
+  const id = Number(req.params.id)
+  try {
+    await prisma.supplyRequest.delete({ where: { id } })
     res.json({ data: { ok: true } })
   } catch (err: any) {
     res.status(500).json({ error: err.message })

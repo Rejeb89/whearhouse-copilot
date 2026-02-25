@@ -27,22 +27,30 @@ router.get('/:id', authGuard, async (req, res) => {
   }
 })
 
+// Get distribution count for entity
+router.get('/:id/distributions-count', authGuard, async (req, res) => {
+  try {
+    const count = await entityService.getDistributionsCount(parseInt(req.params.id))
+    res.json({ data: { distributionCount: count } })
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Create entity
 router.post('/', authGuard, roleGuard(['ADMIN', 'STORE_KEEPER']), async (req, res) => {
   try {
-    const { name, type, phone, unitHead, unitHeadPhone } = req.body
+    const { name, type, category, subCategory, phone, unitHead, unitHeadPhone } = req.body
 
     if (!name || !type) {
       return res.status(400).json({ error: 'Missing required fields' })
     }
 
-    // For BENEFICIARY, phone is optional when adding quickly from distribution modal
-    // but required when adding from entities page
-    // For SUPPLIER, phone is required
-
     const entity = await entityService.createEntity({
       name,
       type,
+      category,
+      subCategory,
       phone: phone || '',
       unitHead,
       unitHeadPhone,
@@ -57,10 +65,13 @@ router.post('/', authGuard, roleGuard(['ADMIN', 'STORE_KEEPER']), async (req, re
 // Update entity
 router.put('/:id', authGuard, roleGuard(['ADMIN', 'STORE_KEEPER']), async (req, res) => {
   try {
-    const { name, phone, unitHead, unitHeadPhone } = req.body
+    const { name, category, subCategory, phone, unitHead, unitHeadPhone, type: bodyType } = req.body
 
     const entity = await entityService.updateEntity(parseInt(req.params.id), {
       name,
+      type: bodyType,
+      category,
+      subCategory,
       phone,
       unitHead,
       unitHeadPhone,
@@ -78,7 +89,7 @@ router.delete('/:id', authGuard, roleGuard(['ADMIN']), async (req, res) => {
     await entityService.deleteEntity(parseInt(req.params.id))
     res.json({ message: 'Entity deleted successfully' })
   } catch (error: any) {
-    res.status(500).json({ error: error.message })
+    res.status(400).json({ error: error.message })
   }
 })
 

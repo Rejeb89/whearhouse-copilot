@@ -6,7 +6,7 @@ import { createReceiptForDistribution } from './receiptService'
 export const createDistribution = async (
   userId: number,
   reference: string,
-  items: { itemId: number; quantity: number; serialNumber?: string; condition?: string; notes?: string }[],
+  items: { itemId: number; quantity: number; serialNumber?: string; adminNumber?: string; condition?: string; notes?: string }[],
   beneficiaryId?: number,
   assignedToId?: number,
   notes?: string,
@@ -39,6 +39,7 @@ export const createDistribution = async (
           itemId: it.itemId,
           quantity: it.quantity,
           serialNumber: it.serialNumber ?? null,
+          adminNumber: it.adminNumber ?? null,
           condition: (it.condition as any) ?? 'NEW',
           notes: it.notes ?? null,
         }
@@ -85,6 +86,40 @@ export const getDistributionsByItem = async (itemId: number) => {
   })
 }
 
+export const getAllDistributions = async (filters?: { search?: string; referenceType?: string; dateFrom?: string; dateTo?: string }) => {
+  const where: any = {}
+  if (filters?.referenceType) where.referenceType = filters.referenceType
+  if (filters?.dateFrom || filters?.dateTo) {
+    where.createdAt = {}
+    if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom)
+    if (filters.dateTo) {
+      const to = new Date(filters.dateTo)
+      to.setHours(23, 59, 59, 999)
+      where.createdAt.lte = to
+    }
+  }
+  const list = await prisma.distribution.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      items: { include: { item: true } },
+      beneficiary: { select: { id: true, name: true } },
+      assignedTo: { select: { id: true, rank: true, name: true, surname: true, number: true } },
+    }
+  })
+  if (filters?.search) {
+    const q = filters.search.toLowerCase()
+    return list.filter((d: any) =>
+      (d.items || []).some((di: any) => di.item?.name?.toLowerCase().includes(q)) ||
+      (d.referenceNumber || '').toLowerCase().includes(q) ||
+      (d.referenceType || '').toLowerCase().includes(q) ||
+      (d.beneficiary?.name || '').toLowerCase().includes(q) ||
+      (d.assignedTo ? `${d.assignedTo.rank} ${d.assignedTo.name} ${d.assignedTo.surname}`.toLowerCase().includes(q) : false)
+    )
+  }
+  return list
+}
+
 export const getDistributionsByEntity = async (beneficiaryId: number) => {
   return prisma.distribution.findMany({
     where: { beneficiaryId },
@@ -99,6 +134,22 @@ export const getDistributionsByEntity = async (beneficiaryId: number) => {
           id: true,
           email: true,
           name: true,
+        },
+      },
+      assignedTo: {
+        select: {
+          id: true,
+          rank: true,
+          name: true,
+          surname: true,
+        },
+      },
+      receipt: {
+        select: {
+          id: true,
+          serialNumber: true,
+          status: true,
+          issuedAt: true,
         },
       },
     },
