@@ -354,8 +354,8 @@ export default function Budgets() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-muted-foreground">إدارة وتتبع الاعتمادات المالية والمصاريف</p>
           <h1 className="text-2xl font-bold text-foreground">الاعتمادات المالية</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">إدارة وتتبع الاعتمادات المالية والمصاريف</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {alerts.length > 0 && (

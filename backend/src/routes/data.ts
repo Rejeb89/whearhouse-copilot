@@ -4,7 +4,7 @@ import { roleGuard } from '../middleware/roleGuard'
 import * as dataController from '../controllers/dataController'
 
 const router = Router()
-router.use(authGuard, roleGuard(['ADMIN']))
+router.use(authGuard, roleGuard(['ADMIN', 'SECTION_CHIEF']))
 
 router.get('/export', dataController.exportData)
 router.post('/import', dataController.importData)

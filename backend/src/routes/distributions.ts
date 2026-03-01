@@ -6,7 +6,7 @@ import * as distributionController from '../controllers/distributionController'
 const router = Router()
 router.use(authGuard)
 
-router.post('/', roleGuard(['ADMIN', 'STORE_KEEPER', 'USER']), distributionController.create)
+router.post('/', roleGuard(['ADMIN', 'SECTION_CHIEF', 'USER']), distributionController.create)
 router.get('/', distributionController.list)
 router.get('/recent', distributionController.recent)
 router.get('/item/:id', distributionController.byItem)

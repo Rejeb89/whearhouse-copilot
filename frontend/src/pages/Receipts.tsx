@@ -22,7 +22,7 @@ const fetchReceiptById = async (id: number) => (await client.get(`/receipts/${id
 export default function Receipts() {
   const { user } = useContext(AuthContext)!
   const qc = useQueryClient()
-  const canApprove = user?.role === 'ADMIN' || user?.role === 'STORE_KEEPER'
+  const canApprove = user?.role === 'ADMIN' || user?.role === 'SECTION_CHIEF'
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')

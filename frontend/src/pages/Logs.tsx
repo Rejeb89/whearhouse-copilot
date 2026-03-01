@@ -527,8 +527,8 @@ export default function Logs() {
 
       {/* ── Page header ────────────────────────────────────────── */}
       <div>
-        <p className="text-sm text-muted-foreground">المستودع — إدارة المعلومات</p>
-        <h1 className="text-2xl font-bold text-foreground mt-0.5">التقارير والسجلات</h1>
+        <h1 className="text-2xl font-bold text-foreground">التقارير والسجلات</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">المستودع — إدارة المعلومات</p>
       </div>
 
       {/* ── Tab bar ────────────────────────────────────────────── */}

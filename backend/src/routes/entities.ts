@@ -8,8 +8,8 @@ const router = Router()
 router.get('/', authGuard, entityController.list)
 router.get('/:id', authGuard, entityController.getById)
 router.get('/:id/distributions-count', authGuard, entityController.distributionsCount)
-router.post('/', authGuard, roleGuard(['ADMIN', 'STORE_KEEPER']), entityController.create)
-router.put('/:id', authGuard, roleGuard(['ADMIN', 'STORE_KEEPER']), entityController.update)
-router.delete('/:id', authGuard, roleGuard(['ADMIN']), entityController.remove)
+router.post('/', authGuard, roleGuard(['ADMIN', 'SECTION_CHIEF']), entityController.create)
+router.put('/:id', authGuard, roleGuard(['ADMIN', 'SECTION_CHIEF']), entityController.update)
+router.delete('/:id', authGuard, roleGuard(['ADMIN', 'SECTION_CHIEF']), entityController.remove)
 
 export default router

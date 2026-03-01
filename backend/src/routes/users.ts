@@ -4,7 +4,7 @@ import { roleGuard } from '../middleware/roleGuard'
 import * as userController from '../controllers/userController'
 
 const router = Router()
-router.use(authGuard, roleGuard(['ADMIN']))
+router.use(authGuard, roleGuard(['ADMIN', 'SECTION_CHIEF']))
 
 router.get('/', userController.list)
 router.post('/', userController.create)

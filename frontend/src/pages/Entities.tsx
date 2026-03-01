@@ -63,7 +63,10 @@ export default function Entities() {
     <div dir="rtl" className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-foreground">الجهات</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">الجهات</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">إدارة الجهات والموردين والوحدات</p>
+        </div>
         <button
           onClick={handleAddEntity}
           className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-semibold transition"

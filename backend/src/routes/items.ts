@@ -8,9 +8,9 @@ router.use(authGuard)
 
 router.get('/inventory', itemController.inventory)
 router.get('/', itemController.list)
-router.post('/', roleGuard(['ADMIN', 'STORE_KEEPER']), itemController.create)
-router.put('/:id', roleGuard(['ADMIN', 'STORE_KEEPER']), itemController.update)
-router.delete('/:id', roleGuard(['ADMIN', 'STORE_KEEPER']), itemController.remove)
+router.post('/', roleGuard(['ADMIN', 'SECTION_CHIEF']), itemController.create)
+router.put('/:id', roleGuard(['ADMIN', 'SECTION_CHIEF']), itemController.update)
+router.delete('/:id', roleGuard(['ADMIN', 'SECTION_CHIEF']), itemController.remove)
 router.get('/:id/admin-numbers', itemController.adminNumbers)
 router.get('/:id/history', itemController.history)
 
