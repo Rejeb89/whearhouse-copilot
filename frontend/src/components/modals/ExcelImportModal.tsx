@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Upload } from 'lucide-react';
-import client from '../api/client';
+import client from '../../services/client';
 
 interface ExcelImportModalProps {
   entityId: number;

@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import client from '../api/client'
+import client from '../services/client'
 import { AuthContext } from '../context/AuthContext'
 import {
   Settings,
@@ -45,7 +45,7 @@ const deleteUser = (id: number) => client.delete(`/users/${id}`)
 
 const ROLE_META: Record<string, { label: string; color: string }> = {
   ADMIN: { label: 'مسؤول', color: 'bg-red-100 text-red-700 border border-red-200' },
-  STORE_KEEPER: { label: 'أمين المستودع', color: 'bg-blue-100 text-blue-700 border border-blue-200' },
+  SECTION_CHIEF: { label: 'رئيس قسم', color: 'bg-blue-100 text-blue-700 border border-blue-200' },
   USER: { label: 'مستخدم', color: 'bg-muted text-muted-foreground border border-border' },
 }
 
@@ -264,7 +264,7 @@ function UserModal({ open, editing, onClose, onSaved }: UserModalProps) {
               className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
             >
               <option value="USER">مستخدم</option>
-              <option value="STORE_KEEPER">أمين المستودع</option>
+              <option value="SECTION_CHIEF">رئيس قسم</option>
               <option value="ADMIN">مسؤول</option>
             </select>
           </div>
@@ -413,7 +413,7 @@ function UsersTab() {
           >
             <option value="">جميع الأدوار</option>
             <option value="ADMIN">مسؤول</option>
-            <option value="STORE_KEEPER">أمين المستودع</option>
+            <option value="SECTION_CHIEF">رئيس قسم</option>
             <option value="USER">مستخدم</option>
           </select>
           <button

@@ -1,7 +1,7 @@
 import React, { useContext, useMemo, useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import client from '../api/client'
+import client from '../services/client'
 import { AuthContext } from '../context/AuthContext'
 import {
   Package, AlertTriangle, AlertCircle, ChevronLeft, BarChart2,
@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import Receptions from './Receptions'
 import Distributions from './Distributions'
-import { Receipt, ReceiptPrintTemplate, downloadPDF } from '../components/ReceiptPrintTemplate'
+import { Receipt, ReceiptPrintTemplate, downloadPDF } from '../components/receipts/ReceiptPrintTemplate'
 
 const fetchItems = async () => (await client.get('/items')).data.data
 const fetchItemHistory = async (itemId: number) =>
@@ -252,8 +252,8 @@ export default function Items() {
       {/* Page Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex flex-col gap-1">
-          <p className="text-sm text-muted-foreground">إدارة المستودع</p>
           <h1 className="text-3xl font-bold text-foreground">التجهيزات</h1>
+          <p className="text-sm text-muted-foreground">إدارة المستودع</p>
         </div>
         <div className="flex gap-2">
           <button

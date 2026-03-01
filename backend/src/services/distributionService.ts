@@ -1,4 +1,4 @@
-import prisma from '../prisma'
+import prisma from '../config/database'
 import type { Prisma } from '@prisma/client'
 import { createLog } from './logService'
 import { createReceiptForDistribution } from './receiptService'

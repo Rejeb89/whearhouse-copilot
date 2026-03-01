@@ -15,7 +15,7 @@ import Settings from './pages/Settings'
 import Budgets from './pages/Budgets'
 import Receipts from './pages/Receipts'
 import Vehicles from './pages/Vehicles'
-import Layout from './components/Layout'
+import Layout from './components/common/Layout'
 
 const PrivateRoute: React.FC<{ roles?: string[]; children: JSX.Element }> = ({ roles, children }) => {
   const { user } = useContext(AuthContext)
@@ -46,9 +46,9 @@ export default function App() {
             <Route path="/entities/:id" element={<PrivateRoute children={<EntityDetails />} />} />
             <Route path="/calendar" element={<PrivateRoute children={<Calendar />} />} />
             {/* <Route path="/users" element={<PrivateRoute roles={["ADMIN"]} children={<Users />} />} /> */}
-            <Route path="/logs" element={<PrivateRoute roles={["ADMIN"]} children={<Logs />} />} />
-            <Route path="/settings" element={<PrivateRoute roles={["ADMIN"]} children={<Settings />} />} />
-            <Route path="/budgets" element={<PrivateRoute roles={["ADMIN"]} children={<Budgets />} />} />
+            <Route path="/logs" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF"]} children={<Logs />} />} />
+            <Route path="/settings" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF"]} children={<Settings />} />} />
+            <Route path="/budgets" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF"]} children={<Budgets />} />} />
             <Route path="/receipts" element={<PrivateRoute children={<Receipts />} />} />
             <Route path="/vehicles" element={<PrivateRoute children={<Vehicles />} />} />
           </Routes>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import client from '../api/client'
+import client from '../services/client'
 import { Users, Shield, UserCheck, Plus, Loader2, X, Trash2, Eye, EyeOff, User, Lock } from 'lucide-react'
 
 interface AppUser {
@@ -17,7 +17,7 @@ interface AppUser {
 
 const roleLabel: Record<string, { label: string; color: string }> = {
   ADMIN:        { label: 'مسؤول',          color: 'bg-red-100 text-red-700' },
-  STORE_KEEPER: { label: 'أمين المستودع', color: 'bg-blue-100 text-blue-700' },
+  SECTION_CHIEF: { label: 'رئيس قسم', color: 'bg-blue-100 text-blue-700' },
   USER:         { label: 'مستخدم',         color: 'bg-muted text-muted-foreground' },
 }
 

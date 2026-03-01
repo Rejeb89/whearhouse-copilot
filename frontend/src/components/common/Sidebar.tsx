@@ -1,7 +1,8 @@
 import React, { useContext } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { AuthContext } from '../context/AuthContext'
+import { AuthContext } from '../../context/AuthContext'
 import { LayoutDashboard, Package, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck, Car, X } from 'lucide-react'
+import GlobalSearch from './GlobalSearch'
 
 interface SidebarProps {
   isOpen: boolean
@@ -40,11 +41,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Logo */}
-        <div className="flex flex-row items-center gap-3 h-14 px-4 border-b border-border shrink-0">
+        <div className="flex flex-row items-center gap-3 h-14 px-4 shrink-0">
           <img src="/logo.png" alt="شعار الحرس الوطني" className="h-9 w-9 object-contain shrink-0" />
           {user?.securityUnit && (
             <p className="text-xs font-semibold text-foreground leading-tight">{user.securityUnit}</p>
           )}
+        </div>
+
+        {/* Global Search */}
+        <div className="px-3 pb-2">
+          <GlobalSearch placeholder="بحث..." />
         </div>
 
         {/* Nav */}
@@ -57,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               { to: '/entities',     icon: <Building2 className="w-5 h-5" />,       label: 'الجهات' },
               { to: '/calendar',     icon: <CalendarDays className="w-5 h-5" />,    label: 'الرزنامة' },
               { to: '/receipts',     icon: <ClipboardCheck className="w-5 h-5" />,  label: 'وصولات التسليم' },
-              ...(user?.role === 'ADMIN' ? [
+              ...(user?.role === 'ADMIN' || user?.role === 'SECTION_CHIEF' ? [
                 { to: '/budgets',  icon: <Wallet className="w-5 h-5" />,   label: 'الاعتمادات المالية' },
                 { to: '/logs',     icon: <FileText className="w-5 h-5" />,  label: 'السجلات' },
                 { to: '/settings', icon: <Settings className="w-5 h-5" />, label: 'الإعدادات' },

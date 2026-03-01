@@ -12,23 +12,6 @@ async function main() {
   })
   console.log('Admin created:', admin.email)
 
-  // Ensure company "شركة انيس رضواني" exists
-  const companyName = 'شركة انيس رضواني'
-  const existing = await prisma.entity.findFirst({ where: { name: companyName } })
-  if (!existing) {
-    const comp = await prisma.entity.create({
-      data: {
-        name: companyName,
-        type: 'SUPPLIER',
-        category: 'مزود',
-        phone: ''
-      }
-    })
-    console.log('Inserted company:', comp.name)
-  } else {
-    console.log('Company already exists:', existing.name)
-  }
-
   console.log('Seeding complete')
 }
 

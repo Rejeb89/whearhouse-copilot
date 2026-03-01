@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
-import { AuthContext } from '../context/AuthContext'
+import { AuthContext } from '../../context/AuthContext'
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useContext(AuthContext)

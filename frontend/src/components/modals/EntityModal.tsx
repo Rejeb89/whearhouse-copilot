@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
-import client from '../api/client'
+import client from '../../services/client'
 
 type EntityCategory = string
 

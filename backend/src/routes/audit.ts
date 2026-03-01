@@ -1,18 +1,11 @@
-import express from 'express'
+import { Router } from 'express'
 import { authGuard } from '../middleware/authGuard'
 import { roleGuard } from '../middleware/roleGuard'
-import { listAuditLogs } from '../services/auditService'
+import * as auditController from '../controllers/auditController'
 
-const router = express.Router()
-router.use(authGuard, roleGuard(['ADMIN']))
+const router = Router()
+router.use(authGuard, roleGuard(['ADMIN', 'SECTION_CHIEF']))
 
-router.get('/', async (_req, res) => {
-  try {
-    const logs = await listAuditLogs(300)
-    res.json({ data: logs })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
-  }
-})
+router.get('/', auditController.list)
 
 export default router

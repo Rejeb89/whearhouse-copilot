@@ -1,4 +1,4 @@
-import prisma from '../prisma'
+import prisma from '../config/database'
 
 export const employeeService = {
   async createEmployee(entityId: number, rank: string, name: string, surname: string, number: string, phone?: string) {

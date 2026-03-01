@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import client from '../api/client'
+import client from '../../services/client'
 import { X } from 'lucide-react'
 
 interface AddItemModalProps {

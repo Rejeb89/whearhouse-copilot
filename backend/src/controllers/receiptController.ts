@@ -1,0 +1,67 @@
+import { Request, Response } from 'express'
+import * as receiptService from '../services/receiptService'
+import prisma from '../config/database'
+
+export const list = async (req: Request, res: Response) => {
+  try {
+    const page = parseInt((req.query.page as string) || '1')
+    const limit = parseInt((req.query.limit as string) || '20')
+    const receipts = await receiptService.listReceipts(page, limit)
+    res.json({ data: receipts })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+export const byDistribution = async (req: Request, res: Response) => {
+  try {
+    const receipt = await receiptService.getReceiptByDistribution(parseInt(req.params.distId))
+    if (!receipt) return res.status(404).json({ error: 'لا يوجد وصل لهذه العملية' })
+    res.json({ data: receipt })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+export const getById = async (req: Request, res: Response) => {
+  try {
+    const receipt = await receiptService.getReceiptById(parseInt(req.params.id))
+    if (!receipt) return res.status(404).json({ error: 'الوصل غير موجود' })
+    res.json({ data: receipt })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+export const approve = async (req: Request, res: Response) => {
+  try {
+    const actor = (req as any).user
+    const receipt = await receiptService.approveReceipt(parseInt(req.params.id), actor.id, actor.email)
+    res.json({ data: receipt })
+  } catch (err: any) {
+    res.status(400).json({ error: err.message })
+  }
+}
+
+export const cancel = async (req: Request, res: Response) => {
+  try {
+    const actor = (req as any).user
+    const receipt = await receiptService.cancelReceipt(parseInt(req.params.id), actor.id, actor.email)
+    res.json({ data: receipt })
+  } catch (err: any) {
+    res.status(400).json({ error: err.message })
+  }
+}
+
+export const uploadSignedAttachment = async (req: Request, res: Response) => {
+  try {
+    const { signedAttachment } = req.body
+    const receipt = await (prisma as any).deliveryReceipt.update({
+      where: { id: parseInt(req.params.id) },
+      data: { signedAttachment: signedAttachment ? JSON.stringify(signedAttachment) : null },
+    })
+    res.json({ data: receipt })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+}
