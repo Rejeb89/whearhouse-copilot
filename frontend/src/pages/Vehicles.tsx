@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import client from '../api/client'
+import client from '../services/client'
 import { Plus, Search, Pencil, Trash2, X, Car, Fuel, Building2, ChevronDown } from 'lucide-react'
 
 // ─── Constants ────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import prisma from '../prisma'
+import prisma from '../config/database'
 
 export interface AuditParams {
   action: string

@@ -1,5 +1,5 @@
 import React, { createContext, useEffect, useState } from 'react'
-import client from '../api/client'
+import client from '../services/client'
 
 type User = { id: number; email: string; role: string; name: string; personalNumber?: string; securityUnit?: string; region?: string; title?: string }
 

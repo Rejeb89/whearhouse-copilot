@@ -1,11 +1,11 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import client from '../api/client'
+import client from '../services/client'
 import { AuthContext } from '../context/AuthContext'
-import DistributeItemModal from '../components/DistributeItemModal'
+import DistributeItemModal from '../components/modals/DistributeItemModal'
 import { Truck, AlertCircle, User, Package, TrendingDown, TrendingUp, BarChart3, LogOut, X, Search, CalendarDays, Wallet, DollarSign, PiggyBank, ArrowRightLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import LowStockChordChart from '../components/LowStockChordChart'
+import LowStockChordChart from '../components/charts/LowStockChordChart'
 
 const fetchItems = async () => (await client.get('/items')).data.data
 const fetchDistributions = async () => (await client.get('/distributions/recent')).data.data

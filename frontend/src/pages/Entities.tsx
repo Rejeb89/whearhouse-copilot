@@ -1,9 +1,9 @@
 ﻿import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import client from '../api/client'
+import client from '../services/client'
 import { Plus, Building2, Phone, User, Landmark, Users, Globe } from 'lucide-react'
-import EntityModal from '../components/EntityModal'
+import EntityModal from '../components/modals/EntityModal'
 
 type TabKey = 'الادارات المركزية' | 'الوحدات المتنفعة' | 'جهات مختلفة'
 

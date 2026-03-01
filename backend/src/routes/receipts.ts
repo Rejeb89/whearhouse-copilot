@@ -1,80 +1,16 @@
-import express from 'express'
+import { Router } from 'express'
 import { authGuard } from '../middleware/authGuard'
 import { roleGuard } from '../middleware/roleGuard'
-import * as receiptService from '../services/receiptService'
-import prisma from '../prisma'
+import * as receiptController from '../controllers/receiptController'
 
-const router = express.Router()
+const router = Router()
 router.use(authGuard)
 
-// List all receipts
-router.get('/', async (req, res) => {
-  try {
-    const page = parseInt((req.query.page as string) || '1')
-    const limit = parseInt((req.query.limit as string) || '20')
-    const receipts = await receiptService.listReceipts(page, limit)
-    res.json({ data: receipts })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// Get receipt by distribution ID  (must be before /:id to avoid shadowing)
-router.get('/distribution/:distId', async (req, res) => {
-  try {
-    const receipt = await receiptService.getReceiptByDistribution(parseInt(req.params.distId))
-    if (!receipt) return res.status(404).json({ error: 'لا يوجد وصل لهذه العملية' })
-    res.json({ data: receipt })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// Get receipt by ID
-router.get('/:id', async (req, res) => {
-  try {
-    const receipt = await receiptService.getReceiptById(parseInt(req.params.id))
-    if (!receipt) return res.status(404).json({ error: 'الوصل غير موجود' })
-    res.json({ data: receipt })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// Approve receipt (ADMIN or STORE_KEEPER only)
-router.patch('/:id/approve', roleGuard(['ADMIN', 'STORE_KEEPER']), async (req, res) => {
-  try {
-    const actor = (req as any).user
-    const receipt = await receiptService.approveReceipt(parseInt(req.params.id), actor.id, actor.email)
-    res.json({ data: receipt })
-  } catch (err: any) {
-    res.status(400).json({ error: err.message })
-  }
-})
-
-// Cancel receipt (ADMIN or STORE_KEEPER only)
-router.patch('/:id/cancel', roleGuard(['ADMIN', 'STORE_KEEPER']), async (req, res) => {
-  try {
-    const actor = (req as any).user
-    const receipt = await receiptService.cancelReceipt(parseInt(req.params.id), actor.id, actor.email)
-    res.json({ data: receipt })
-  } catch (err: any) {
-    res.status(400).json({ error: err.message })
-  }
-})
-
-// Upload signed attachment
-router.patch('/:id/signed-attachment', async (req, res) => {
-  try {
-    const { signedAttachment } = req.body
-    const receipt = await (prisma as any).deliveryReceipt.update({
-      where: { id: parseInt(req.params.id) },
-      data: { signedAttachment: signedAttachment ? JSON.stringify(signedAttachment) : null },
-    })
-    res.json({ data: receipt })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
-  }
-})
+router.get('/', receiptController.list)
+router.get('/distribution/:distId', receiptController.byDistribution)
+router.get('/:id', receiptController.getById)
+router.patch('/:id/approve', roleGuard(['ADMIN', 'STORE_KEEPER']), receiptController.approve)
+router.patch('/:id/cancel', roleGuard(['ADMIN', 'STORE_KEEPER']), receiptController.cancel)
+router.patch('/:id/signed-attachment', receiptController.uploadSignedAttachment)
 
 export default router

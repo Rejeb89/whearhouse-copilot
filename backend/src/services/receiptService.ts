@@ -1,4 +1,4 @@
-import prisma from '../prisma'
+import prisma from '../config/database'
 
 // Generate serial number: BL-YYYY-XXXX
 export const generateSerialNumber = async (): Promise<string> => {

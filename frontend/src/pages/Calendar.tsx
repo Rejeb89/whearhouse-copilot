@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import client from '../api/client'
+import client from '../services/client'
 import {
   CalendarDays,
   ChevronLeft,

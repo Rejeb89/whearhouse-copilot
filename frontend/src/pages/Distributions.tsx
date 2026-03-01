@@ -1,12 +1,12 @@
 ﻿import React, { useMemo, useState, useEffect, useCallback, useContext, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import client from '../api/client'
+import client from '../services/client'
 import { AuthContext } from '../context/AuthContext'
 import { Check, Download, Eye, Loader2, Plus, Search, UserCheck, RefreshCw, Info, ChevronDown, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import { ReceiptPrintTemplate, downloadPDF } from '../components/ReceiptPrintTemplate'
-import type { Receipt, ReceiptCurrentUser } from '../components/ReceiptPrintTemplate'
+import { ReceiptPrintTemplate, downloadPDF } from '../components/receipts/ReceiptPrintTemplate'
+import type { Receipt, ReceiptCurrentUser } from '../components/receipts/ReceiptPrintTemplate'
 
 interface Item {
   id: number

@@ -1,6 +1,6 @@
 ﻿import React, { useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import client from '../api/client'
+import client from '../services/client'
 import { Check, ChevronDown, Download, Eye, Loader2, Plus, Search, Truck, User, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
 

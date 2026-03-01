@@ -1,4 +1,4 @@
-import prisma from '../prisma'
+import prisma from '../config/database'
 import { hashPassword } from '../utils/hash'
 import { createLog } from './logService'
 import { createAuditLog } from './auditService'

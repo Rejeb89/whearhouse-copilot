@@ -3,16 +3,16 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
-import client from '../api/client';
+import client from '../services/client';
 import {
   ArrowLeft, Phone, User, Plus, Search, Trash2, Edit2, Upload,
   Download, FileText, Filter, X, ChevronDown, Package, CalendarRange,
   ShoppingCart, Paperclip, Building2, Inbox, Pencil, Car, Fuel
 } from 'lucide-react';
-import EmployeeModal from '../components/EmployeeModal';
-import ExcelImportModal from '../components/ExcelImportModal';
-import EntityModal from '../components/EntityModal';
-import { Receipt, ReceiptPrintTemplate, downloadPDF } from '../components/ReceiptPrintTemplate';
+import EmployeeModal from '../components/modals/EmployeeModal';
+import ExcelImportModal from '../components/modals/ExcelImportModal';
+import EntityModal from '../components/modals/EntityModal';
+import { Receipt, ReceiptPrintTemplate, downloadPDF } from '../components/receipts/ReceiptPrintTemplate';
 
 interface Entity {
   id: number;

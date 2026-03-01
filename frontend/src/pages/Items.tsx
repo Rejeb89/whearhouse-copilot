@@ -1,7 +1,7 @@
 import React, { useContext, useMemo, useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import client from '../api/client'
+import client from '../services/client'
 import { AuthContext } from '../context/AuthContext'
 import {
   Package, AlertTriangle, AlertCircle, ChevronLeft, BarChart2,
@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import Receptions from './Receptions'
 import Distributions from './Distributions'
-import { Receipt, ReceiptPrintTemplate, downloadPDF } from '../components/ReceiptPrintTemplate'
+import { Receipt, ReceiptPrintTemplate, downloadPDF } from '../components/receipts/ReceiptPrintTemplate'
 
 const fetchItems = async () => (await client.get('/items')).data.data
 const fetchItemHistory = async (itemId: number) =>

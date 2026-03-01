@@ -1,12 +1,12 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import client from '../api/client'
+import client from '../services/client'
 import { AuthContext } from '../context/AuthContext'
 import {
   FileText, CheckCircle, XCircle, Download, Eye, Search,
   Printer, AlertTriangle, Clock, ChevronRight, X, Package, Paperclip, Upload, ImageIcon
 } from 'lucide-react'
-import { Receipt, conditionLabel, downloadPDF, ReceiptPrintTemplate } from '../components/ReceiptPrintTemplate'
+import { Receipt, conditionLabel, downloadPDF, ReceiptPrintTemplate } from '../components/receipts/ReceiptPrintTemplate'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const statusLabel: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {

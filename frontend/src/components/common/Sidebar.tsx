@@ -1,6 +1,6 @@
 import React, { useContext } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { AuthContext } from '../context/AuthContext'
+import { AuthContext } from '../../context/AuthContext'
 import { LayoutDashboard, Package, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck, Car, X } from 'lucide-react'
 
 interface SidebarProps {

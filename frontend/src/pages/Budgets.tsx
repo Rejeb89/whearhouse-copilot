@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AuthContext } from '../context/AuthContext'
-import client from '../api/client'
+import client from '../services/client'
 import html2pdf from 'html2pdf.js'
 import * as XLSX from 'xlsx'
 

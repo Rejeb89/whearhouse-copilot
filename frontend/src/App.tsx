@@ -15,7 +15,7 @@ import Settings from './pages/Settings'
 import Budgets from './pages/Budgets'
 import Receipts from './pages/Receipts'
 import Vehicles from './pages/Vehicles'
-import Layout from './components/Layout'
+import Layout from './components/common/Layout'
 
 const PrivateRoute: React.FC<{ roles?: string[]; children: JSX.Element }> = ({ roles, children }) => {
   const { user } = useContext(AuthContext)

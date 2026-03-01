@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import client from '../api/client'
+import client from '../../services/client'
 import { X, ChevronDown } from 'lucide-react'
 
 interface DistributeItemModalProps {
