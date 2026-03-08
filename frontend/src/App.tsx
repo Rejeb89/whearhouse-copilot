@@ -15,12 +15,23 @@ import Settings from './pages/Settings'
 import Budgets from './pages/Budgets'
 import Receipts from './pages/Receipts'
 import Vehicles from './pages/Vehicles'
+import AdminMonitoring from './pages/AdminMonitoring'
+import MonitoringItemDetail from './pages/MonitoringItemDetail'
 import Layout from './components/common/Layout'
+
+const MONITORING_ONLY_ROLES = ['REGION_CHIEF', 'DISTRICT_MANAGER']
 
 const PrivateRoute: React.FC<{ roles?: string[]; children: JSX.Element }> = ({ roles, children }) => {
   const { user } = useContext(AuthContext)
   if (!user) return <Navigate to="/login" replace />
-  if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />
+  if (roles && !roles.includes(user.role)) {
+    // Monitoring-only roles have a restricted set of pages — send them to their home
+    return <Navigate to={MONITORING_ONLY_ROLES.includes(user.role) ? '/monitoring' : '/'} replace />
+  }
+  // Redirect monitoring-only roles away from pages they shouldn't access (e.g. Dashboard at "/")
+  if (!roles && MONITORING_ONLY_ROLES.includes(user.role)) {
+    return <Navigate to="/monitoring" replace />
+  }
   return children
 }
 
@@ -43,14 +54,16 @@ export default function App() {
             <Route path="/items" element={<PrivateRoute children={<Items />} />} />
             <Route path="/distributions" element={<PrivateRoute children={<Distributions />} />} />
             <Route path="/entities" element={<PrivateRoute children={<Entities />} />} />
-            <Route path="/entities/:id" element={<PrivateRoute children={<EntityDetails />} />} />
+            <Route path="/entities/:id" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF", "USER", "REGION_CHIEF", "DISTRICT_MANAGER"]} children={<EntityDetails />} />} />
             <Route path="/calendar" element={<PrivateRoute children={<Calendar />} />} />
             {/* <Route path="/users" element={<PrivateRoute roles={["ADMIN"]} children={<Users />} />} /> */}
             <Route path="/logs" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF"]} children={<Logs />} />} />
-            <Route path="/settings" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF"]} children={<Settings />} />} />
+            <Route path="/settings" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF", "REGION_CHIEF", "DISTRICT_MANAGER"]} children={<Settings />} />} />
             <Route path="/budgets" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF"]} children={<Budgets />} />} />
             <Route path="/receipts" element={<PrivateRoute children={<Receipts />} />} />
             <Route path="/vehicles" element={<PrivateRoute children={<Vehicles />} />} />
+            <Route path="/monitoring/units/:unit/items/:itemId" element={<PrivateRoute roles={["ADMIN", "REGION_CHIEF", "DISTRICT_MANAGER"]} children={<MonitoringItemDetail />} />} />
+            <Route path="/monitoring" element={<PrivateRoute roles={["ADMIN", "REGION_CHIEF", "DISTRICT_MANAGER"]} children={<AdminMonitoring />} />} />
           </Routes>
         </Layout>
       </BrowserRouter>

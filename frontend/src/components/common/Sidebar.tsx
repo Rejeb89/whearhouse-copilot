@@ -1,7 +1,7 @@
 import React, { useContext } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AuthContext } from '../../context/AuthContext'
-import { LayoutDashboard, Package, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck, Car, X } from 'lucide-react'
+import { LayoutDashboard, Package, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck, Car, X, Shield } from 'lucide-react'
 import GlobalSearch from './GlobalSearch'
 
 interface SidebarProps {
@@ -56,19 +56,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto p-3">
           <ul className="space-y-1">
-            {[
-              { to: '/',             icon: <LayoutDashboard className="w-5 h-5" />, label: 'لوحة التحكم' },
-              { to: '/items',        icon: <Package className="w-5 h-5" />,         label: 'التجهيزات' },
-              { to: '/vehicles',     icon: <Car className="w-5 h-5" />,             label: 'الوسائل' },
-              { to: '/entities',     icon: <Building2 className="w-5 h-5" />,       label: 'الجهات' },
-              { to: '/calendar',     icon: <CalendarDays className="w-5 h-5" />,    label: 'الرزنامة' },
-              { to: '/receipts',     icon: <ClipboardCheck className="w-5 h-5" />,  label: 'وصولات التسليم' },
-              ...(user?.role === 'ADMIN' || user?.role === 'SECTION_CHIEF' ? [
-                { to: '/budgets',  icon: <Wallet className="w-5 h-5" />,   label: 'الاعتمادات المالية' },
-                { to: '/logs',     icon: <FileText className="w-5 h-5" />,  label: 'السجلات' },
-                { to: '/settings', icon: <Settings className="w-5 h-5" />, label: 'الإعدادات' },
-              ] : []),
-            ].map(({ to, icon, label }) => {
+            {(
+              user?.role === 'REGION_CHIEF' || user?.role === 'DISTRICT_MANAGER' ? [
+                { to: '/monitoring', icon: <Shield className="w-5 h-5" />,   label: 'لوحة المراقبة' },
+                { to: '/settings',   icon: <Settings className="w-5 h-5" />, label: 'الإعدادات' },
+              ] :
+              user?.role === 'ADMIN' ? [
+                { to: '/monitoring', icon: <Shield className="w-5 h-5" />,          label: 'لوحة المراقبة' },
+                { to: '/calendar',   icon: <CalendarDays className="w-5 h-5" />,    label: 'الرزنامة' },
+                { to: '/settings',   icon: <Settings className="w-5 h-5" />,        label: 'الإعدادات' },
+              ] : [
+                { to: '/',             icon: <LayoutDashboard className="w-5 h-5" />, label: 'لوحة التحكم' },
+                { to: '/items',        icon: <Package className="w-5 h-5" />,         label: 'التجهيزات' },
+                { to: '/vehicles',     icon: <Car className="w-5 h-5" />,             label: 'الوسائل' },
+                { to: '/entities',     icon: <Building2 className="w-5 h-5" />,       label: 'الجهات' },
+                { to: '/calendar',     icon: <CalendarDays className="w-5 h-5" />,    label: 'الرزنامة' },
+                { to: '/receipts',     icon: <ClipboardCheck className="w-5 h-5" />,  label: 'وصولات التسليم' },
+                ...(user?.role === 'SECTION_CHIEF' ? [
+                  { to: '/budgets',  icon: <Wallet className="w-5 h-5" />,   label: 'الاعتمادات المالية' },
+                  { to: '/logs',     icon: <FileText className="w-5 h-5" />,  label: 'السجلات' },
+                  { to: '/settings', icon: <Settings className="w-5 h-5" />, label: 'الإعدادات' },
+                ] : []),
+              ]
+            ).map(({ to, icon, label }) => {
               const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
               return (
               <li key={to}>

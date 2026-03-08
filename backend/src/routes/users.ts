@@ -4,12 +4,16 @@ import { roleGuard } from '../middleware/roleGuard'
 import * as userController from '../controllers/userController'
 
 const router = Router()
-router.use(authGuard, roleGuard(['ADMIN', 'SECTION_CHIEF']))
+const readRoles  = ['ADMIN', 'SECTION_CHIEF', 'REGION_CHIEF', 'DISTRICT_MANAGER']
+const writeRoles = ['ADMIN', 'SECTION_CHIEF']
 
-router.get('/', userController.list)
-router.post('/', userController.create)
-router.get('/:id', userController.getById)
-router.put('/:id', userController.update)
-router.delete('/:id', userController.remove)
+router.use(authGuard)
+
+router.get('/',      roleGuard(readRoles),  userController.list)
+router.get('/meta',  roleGuard(readRoles),  userController.getMeta)
+router.post('/',     roleGuard(writeRoles), userController.create)
+router.get('/:id',   roleGuard(readRoles),  userController.getById)
+router.put('/:id',   roleGuard(writeRoles), userController.update)
+router.delete('/:id',roleGuard(writeRoles), userController.remove)
 
 export default router

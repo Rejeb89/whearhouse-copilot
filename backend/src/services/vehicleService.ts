@@ -22,9 +22,19 @@ export const getVehicleById = async (id: number, securityUnit?: string | null) =
   })
 }
 
+const normalizeVehicleData = (data: CreateVehicleInput | UpdateVehicleInput) => {
+  const { breakdownDate, ...rest } = data as any
+  return {
+    ...rest,
+    ...(breakdownDate !== undefined
+      ? { breakdownDate: breakdownDate ? new Date(breakdownDate) : null }
+      : {}),
+  }
+}
+
 export const createVehicle = async (data: CreateVehicleInput, securityUnit?: string | null) => {
   return prisma.vehicle.create({
-    data: { ...data, securityUnit: securityUnit ?? null },
+    data: { ...normalizeVehicleData(data), securityUnit: securityUnit ?? null },
     include: { entity: { select: { id: true, name: true } } },
   })
 }
@@ -36,7 +46,7 @@ export const updateVehicle = async (id: number, data: UpdateVehicleInput, securi
   }
   return prisma.vehicle.update({
     where: { id },
-    data,
+    data: normalizeVehicleData(data),
     include: { entity: { select: { id: true, name: true } } },
   })
 }
