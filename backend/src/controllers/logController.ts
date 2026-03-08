@@ -1,9 +1,10 @@
 import { Request, Response } from 'express'
 import * as logQueryService from '../services/logQueryService'
 
+const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER']
 const getSU = (req: Request) => {
   const u = (req as any).user
-  return u?.role === 'ADMIN' ? undefined : (u?.securityUnit ?? undefined)
+  return UNRESTRICTED_ROLES.includes(u?.role) ? undefined : (u?.securityUnit ?? undefined)
 }
 
 export const list = async (req: Request, res: Response) => {

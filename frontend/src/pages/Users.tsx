@@ -16,9 +16,11 @@ interface AppUser {
 }
 
 const roleLabel: Record<string, { label: string; color: string }> = {
-  ADMIN:        { label: 'مسؤول',          color: 'bg-red-100 text-red-700' },
-  SECTION_CHIEF: { label: 'رئيس قسم', color: 'bg-blue-100 text-blue-700' },
-  USER:         { label: 'مستخدم',         color: 'bg-muted text-muted-foreground' },
+  ADMIN:            { label: 'مسؤول',         color: 'bg-red-100 text-red-700' },
+  SECTION_CHIEF:    { label: 'رئيس قسم',     color: 'bg-blue-100 text-blue-700' },
+  USER:             { label: 'مستخدم',        color: 'bg-muted text-muted-foreground' },
+  REGION_CHIEF:     { label: 'رئيس منطقة',   color: 'bg-purple-100 text-purple-700' },
+  DISTRICT_MANAGER: { label: 'مدير اقليم',   color: 'bg-orange-100 text-orange-700' },
 }
 
 const EMPTY_FORM = { email: '', password: '', name: '', role: 'USER', personalNumber: '', securityUnit: '', region: '', title: '' }
@@ -288,9 +290,18 @@ export default function UsersList() {
                     className="w-full border border-input bg-background p-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="USER">مستخدم</option>
-                    <option value="STORE_KEEPER">أمين المستودع</option>
+                    <option value="SECTION_CHIEF">رئيس قسم</option>
+                    <option value="REGION_CHIEF">رئيس منطقة (مراقب وحدة)</option>
+                    <option value="DISTRICT_MANAGER">مدير اقليم (مراقب إقليم)</option>
                     <option value="ADMIN">مسؤول</option>
                   </select>
+                  {(form.role === 'REGION_CHIEF' || form.role === 'DISTRICT_MANAGER') && (
+                    <p className="text-xs text-amber-600 mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                      {form.role === 'REGION_CHIEF'
+                        ? '⚠️ رئيس منطقة: يملك صلاحية مراقبة وحدته الأمنية فقط. تأكد من تحديد الوحدة الأمنية.'
+                        : '⚠️ مدير اقليم: يملك صلاحية مراقبة جميع الوحدات في نفس الإقليم. تأكد من تحديد حقل الإقليم.'}
+                    </p>
+                  )}
                 </div>
               </div>
 

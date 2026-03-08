@@ -3,9 +3,10 @@ import * as itemService from '../services/itemService'
 import { humanizePrismaError } from '../utils/prismaError'
 
 /** ADMIN sees all data; other users are scoped to their securityUnit */
+const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER']
 const getSU = (req: Request) => {
   const u = (req as any).user
-  return u?.role === 'ADMIN' ? undefined : (u?.securityUnit ?? undefined)
+  return UNRESTRICTED_ROLES.includes(u?.role) ? undefined : (u?.securityUnit ?? undefined)
 }
 
 export const inventory = async (req: Request, res: Response) => {

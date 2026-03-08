@@ -149,6 +149,8 @@ enum Role {
   ADMIN
   SECTION_CHIEF
   USER
+  REGION_CHIEF
+  DISTRICT_MANAGER
 }
 
 enum EntityType {
@@ -178,6 +180,11 @@ model AuditLog {
   details     String?
   ip          String?
   createdAt   DateTime @default(now())
+}
+
+enum VehicleStatus {
+  OPERATIONAL
+  BROKEN
 }
 
 enum BudgetState {
@@ -250,14 +257,18 @@ model DeliveryReceipt {
 }
 
 model Vehicle {
-  id          Int      @id @default(autoincrement())
-  adminNumber String   @unique
-  type        String   // نوع الوسيلة: "50" | "غزوال عادي" | إلخ
-  fuelType    String   // نوع الوقود: "بنزين رفيع" | "غزوال"
-  entity      Entity   @relation(fields: [entityId], references: [id])
-  entityId    Int
-  notes       String?
-  securityUnit String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              Int           @id @default(autoincrement())
+  adminNumber     String        @unique
+  type            String        // نوع الوسيلة: "50" | "غزوال عادي" | إلخ
+  fuelType        String        // نوع الوقود: "بنزين رفيع" | "غزوال"
+  fuelQuota       Float?        // المقرر بالتر
+  status          VehicleStatus @default(OPERATIONAL) // حالة الوسيلة
+  breakdownRef    String?       // رقم برقية التعطب
+  breakdownDate   DateTime?     // تاريخ برقية التعطب
+  entity          Entity        @relation(fields: [entityId], references: [id])
+  entityId        Int
+  notes           String?
+  securityUnit    String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 }

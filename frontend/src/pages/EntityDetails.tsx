@@ -5,7 +5,7 @@ import { AuthContext } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
 import client from '../services/client';
 import {
-  ArrowLeft, Phone, User, Plus, Search, Trash2, Edit2, Upload,
+  ArrowRight, Phone, User, Plus, Search, Trash2, Edit2, Upload,
   Download, FileText, Filter, X, ChevronDown, Package, CalendarRange,
   ShoppingCart, Paperclip, Building2, Inbox, Pencil, Car, Fuel
 } from 'lucide-react';
@@ -61,11 +61,15 @@ interface Vehicle {
   notes?: string;
 }
 
+const MONITORING_ONLY_ROLES = ['REGION_CHIEF', 'DISTRICT_MANAGER'];
+
 export default function EntityDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user: entityUser } = useContext(AuthContext);
+  const isReadOnly = MONITORING_ONLY_ROLES.includes(entityUser?.role ?? '');
+  const backPath = isReadOnly ? '/monitoring' : '/entities';
   const [searchTerm, setSearchTerm] = useState('');
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
   const [showExcelModal, setShowExcelModal] = useState(false);
@@ -425,8 +429,8 @@ export default function EntityDetails() {
       <div className="text-center py-10">
         <p className="text-red-600 mb-2">حدث خطأ في تحميل الجهة</p>
         <p className="text-muted-foreground text-sm">{(entityError as any).message}</p>
-        <Link to="/entities" className="text-blue-600 hover:underline mt-4 inline-block">
-          العودة للجهات
+        <Link to={backPath} className="text-blue-600 hover:underline mt-4 inline-block">
+          {isReadOnly ? 'العودة للمراقبة' : 'العودة للجهات'}
         </Link>
       </div>
     );
@@ -436,8 +440,8 @@ export default function EntityDetails() {
     return (
       <div className="text-center py-10">
         <p className="text-red-600 mb-2">لم يتم العثور على الجهة</p>
-        <Link to="/entities" className="text-blue-600 hover:underline mt-4 inline-block">
-          العودة للجهات
+        <Link to={backPath} className="text-blue-600 hover:underline mt-4 inline-block">
+          {isReadOnly ? 'العودة للمراقبة' : 'العودة للجهات'}
         </Link>
       </div>
     );
@@ -451,15 +455,16 @@ export default function EntityDetails() {
         {/* Header */}
         <div className="flex items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
-            <Link to="/entities" className="text-primary hover:text-primary/80">
-              <ArrowLeft className="w-6 h-6" />
-            </Link>
+            <button onClick={() => navigate(backPath)} className="text-primary hover:text-primary/80">
+              <ArrowRight className="w-6 h-6" />
+            </button>
             <div>
               <h1 className="text-3xl font-bold text-foreground">{entity.name}</h1>
               <p className="text-muted-foreground mt-1">{typeLabel}</p>
             </div>
           </div>
           {/* Edit / Delete buttons — top left */}
+          {!isReadOnly && (
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowEntityModal(true)}
@@ -474,6 +479,7 @@ export default function EntityDetails() {
               <Trash2 className="w-4 h-4" />حذف
             </button>
           </div>
+          )}
         </div>
 
         {/* Entity Info Cards */}
@@ -1077,6 +1083,7 @@ export default function EntityDetails() {
               <User className="w-6 h-6 text-primary" />
               موظفو الجهة
             </h2>
+            {!isReadOnly && (
             <div className="flex gap-2">
               <button
                 onClick={() => {
@@ -1096,6 +1103,7 @@ export default function EntityDetails() {
                 استيراد من Excel
               </button>
             </div>
+            )}
           </div>
 
           {/* Employees Table */}
@@ -1112,7 +1120,7 @@ export default function EntityDetails() {
                       <th className="px-4 py-3 text-right font-semibold text-muted-foreground">اللقب</th>
                       <th className="px-4 py-3 text-right font-semibold text-muted-foreground">الرقم</th>
                       <th className="px-4 py-3 text-right font-semibold text-muted-foreground">الهاتف</th>
-                      <th className="px-4 py-3 text-right font-semibold text-muted-foreground">الإجراءات</th>
+                      {!isReadOnly && <th className="px-4 py-3 text-right font-semibold text-muted-foreground">الإجراءات</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -1123,6 +1131,7 @@ export default function EntityDetails() {
                         <td className="px-4 py-3 text-foreground">{emp.surname}</td>
                         <td className="px-4 py-3 text-foreground">{emp.number}</td>
                         <td className="px-4 py-3 text-muted-foreground">{emp.phone || '-'}</td>
+                        {!isReadOnly && (
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
                             <button
@@ -1142,6 +1151,7 @@ export default function EntityDetails() {
                             </button>
                           </div>
                         </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

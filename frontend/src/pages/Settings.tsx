@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react'
+import React, { useState, useContext, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../services/client'
 import { AuthContext } from '../context/AuthContext'
@@ -23,6 +23,12 @@ import {
   FileJson,
   Trash,
   Info,
+  ChevronDown,
+  UserPlus,
+  UserMinus,
+  UserCog,
+  Filter,
+  Clock,
 } from 'lucide-react'
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
@@ -40,22 +46,117 @@ const fetchDbStats = async () => (await client.get('/data/stats')).data.data
 const createUser = (data: any) => client.post('/users', data)
 const updateUser = (id: number, data: any) => client.put(`/users/${id}`, data)
 const deleteUser = (id: number) => client.delete(`/users/${id}`)
+const fetchUserMeta = async () => (await client.get('/users/meta')).data.data
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ROLE_META: Record<string, { label: string; color: string }> = {
-  ADMIN: { label: 'مسؤول', color: 'bg-red-100 text-red-700 border border-red-200' },
-  SECTION_CHIEF: { label: 'رئيس قسم', color: 'bg-blue-100 text-blue-700 border border-blue-200' },
-  USER: { label: 'مستخدم', color: 'bg-muted text-muted-foreground border border-border' },
+  ADMIN:            { label: 'مسؤول',         color: 'bg-red-100 text-red-700 border border-red-200' },
+  SECTION_CHIEF:    { label: 'رئيس قسم',     color: 'bg-blue-100 text-blue-700 border border-blue-200' },
+  USER:             { label: 'مستخدم',        color: 'bg-muted text-muted-foreground border border-border' },
+  REGION_CHIEF:     { label: 'رئيس منطقة',   color: 'bg-purple-100 text-purple-700 border border-purple-200' },
+  DISTRICT_MANAGER: { label: 'مدير اقليم',    color: 'bg-orange-100 text-orange-700 border border-orange-200' },
 }
 
-const AUDIT_ACTION_COLORS: Record<string, string> = {
-  CREATE_USER: 'bg-green-100 text-green-700',
-  UPDATE_USER: 'bg-yellow-100 text-yellow-700',
-  DELETE_USER: 'bg-red-100 text-red-700',
+const AUDIT_ACTION_META: Record<string, {
+  label: string
+  sentence: string
+  icon: React.ReactNode
+  bg: string
+  text: string
+  border: string
+  dot: string
+}> = {
+  CREATE_USER: {
+    label: 'إضافة مستخدم',
+    sentence: 'أضاف مستخدماً جديداً',
+    icon: <UserPlus className="w-3.5 h-3.5" />,
+    bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500',
+  },
+  UPDATE_USER: {
+    label: 'تعديل مستخدم',
+    sentence: 'عدّل بيانات مستخدم',
+    icon: <UserCog className="w-3.5 h-3.5" />,
+    bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500',
+  },
+  DELETE_USER: {
+    label: 'حذف مستخدم',
+    sentence: 'حذف مستخدماً',
+    icon: <UserMinus className="w-3.5 h-3.5" />,
+    bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', dot: 'bg-red-500',
+  },
 }
 
 const EMPTY_FORM = { name: '', email: '', password: '', role: 'USER' as string, personalNumber: '', securityUnit: '', region: '', title: '' }
+
+// ─── ComboBox ─────────────────────────────────────────────────────────────────
+
+function ComboBox({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string
+  onChange: (v: string) => void
+  options: string[]
+  placeholder?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState(value)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { setQuery(value) }, [value])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const filtered = query
+    ? options.filter(o => o.toLowerCase().includes(query.toLowerCase()))
+    : options
+
+  return (
+    <div ref={containerRef} className="relative">
+      <input
+        value={query}
+        onChange={(e) => { setQuery(e.target.value); onChange(e.target.value); setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        placeholder={placeholder}
+        className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent pl-9"
+      />
+      <button
+        type="button"
+        onMouseDown={(e) => { e.preventDefault(); setOpen(prev => !prev) }}
+        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+        tabIndex={-1}
+      >
+        <ChevronDown className={`w-4 h-4 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg max-h-48 overflow-y-auto text-sm">
+          {filtered.map(opt => (
+            <li key={opt}>
+              <button
+                type="button"
+                onMouseDown={() => { onChange(opt); setQuery(opt); setOpen(false) }}
+                className={`w-full text-right px-3.5 py-2 hover:bg-muted transition-colors ${
+                  opt === value ? 'bg-primary/10 text-primary font-medium' : 'text-foreground'
+                }`}
+              >
+                {opt}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -107,6 +208,7 @@ interface UserModalProps {
 function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalProps) {
   const isSectionChief = currentUser?.role === 'SECTION_CHIEF'
   const [form, setForm] = useState(EMPTY_FORM)
+  const { data: meta } = useQuery(['userMeta'], fetchUserMeta, { staleTime: 60_000 })
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -200,11 +302,11 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
                   {currentUser?.region || '—'}
                 </div>
               ) : (
-                <input
+                <ComboBox
                   value={(form as any).region || ''}
-                  onChange={(e) => setForm({ ...form, region: e.target.value } as any)}
+                  onChange={(v) => setForm({ ...form, region: v } as any)}
+                  options={meta?.regions ?? []}
                   placeholder="اسم الإقليم"
-                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               )}
             </div>
@@ -216,11 +318,11 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
                   <span className="truncate">{currentUser?.securityUnit ?? '—'}</span>
                 </div>
               ) : (
-                <input
+                <ComboBox
                   value={form.securityUnit}
-                  onChange={(e) => setForm({ ...form, securityUnit: e.target.value })}
+                  onChange={(v) => setForm({ ...form, securityUnit: v })}
+                  options={meta?.securityUnits ?? []}
                   placeholder="اسم الوحدة"
-                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               )}
             </div>
@@ -233,11 +335,11 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
                 {currentUser?.title || '—'}
               </div>
             ) : (
-              <input
+              <ComboBox
                 value={(form as any).title || ''}
-                onChange={(e) => setForm({ ...form, title: e.target.value } as any)}
+                onChange={(v) => setForm({ ...form, title: v } as any)}
+                options={meta?.titles ?? []}
                 placeholder="مثال: أمين المستودع بوحدة كذا"
-                className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
               />
             )}
           </div>
@@ -285,15 +387,26 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
                 <span>مستخدم</span>
               </div>
             ) : (
-              <select
-                value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-              >
-                <option value="USER">مستخدم</option>
-                <option value="SECTION_CHIEF">رئيس قسم</option>
-                <option value="ADMIN">مسؤول</option>
-              </select>
+              <>
+                <select
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                >
+                  <option value="USER">مستخدم</option>
+                  <option value="SECTION_CHIEF">رئيس قسم</option>
+                  <option value="REGION_CHIEF">رئيس منطقة (مراقب وحدة)</option>
+                  <option value="DISTRICT_MANAGER">مدير اقليم (مراقب إقليم)</option>
+                  <option value="ADMIN">مسؤول</option>
+                </select>
+                {(form.role === 'REGION_CHIEF' || form.role === 'DISTRICT_MANAGER') && (
+                  <p className="text-xs text-amber-600 mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                    {form.role === 'REGION_CHIEF'
+                      ? '⚠️ رئيس منطقة: تأكد من تحديد الوحدة الأمنية — يرى وحدته فقط في لوحة المراقبة.'
+                      : '⚠️ مدير اقليم: تأكد من تحديد حقل الإقليم — يرى جميع وحدات نفس الإقليم.'}
+                  </p>
+                )}
+              </>
             )}
           </div>
 
@@ -509,6 +622,8 @@ function UsersTab() {
             <option value="">جميع الأدوار</option>
             <option value="ADMIN">مسؤول</option>
             <option value="SECTION_CHIEF">رئيس قسم</option>
+            <option value="REGION_CHIEF">رئيس منطقة</option>
+            <option value="DISTRICT_MANAGER">مدير اقليم</option>
             <option value="USER">مستخدم</option>
           </select>
           <button
@@ -646,89 +761,195 @@ function UsersTab() {
 
 // ─── Audit Log Tab ────────────────────────────────────────────────────────────
 
+const AUDIT_FIELD_LABELS: Record<string, string> = {
+  name: 'الاسم', email: 'البريد', role: 'الدور', securityUnit: 'الوحدة الأمنية',
+  region: 'الإقليم', title: 'العنوان', personalNumber: 'الرقم الشخصي', password: 'كلمة المرور',
+}
+const AUDIT_ROLE_LABELS: Record<string, string> = {
+  ADMIN: 'مسؤول', SECTION_CHIEF: 'رئيس قسم', USER: 'مستخدم',
+  REGION_CHIEF: 'رئيس منطقة', DISTRICT_MANAGER: 'مدير اقليم',
+}
+
+function relativeTime(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'الآن'
+  if (mins < 60) return `منذ ${mins} دقيقة`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `منذ ${hours} ساعة`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `منذ ${days} يوم`
+  if (days < 30) return `منذ ${Math.floor(days / 7)} أسبوع`
+  return new Date(dateStr).toLocaleDateString('ar-TN', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function parseAuditDetails(raw: string | null): Record<string, string> {
+  if (!raw) return {}
+  try { return JSON.parse(raw) } catch { return { info: raw } }
+}
+
+function actorInitials(email?: string | null) {
+  if (!email) return '؟'
+  const local = email.split('@')[0]
+  return local.slice(0, 2).toUpperCase()
+}
+
 function AuditTab() {
   const { data: logs = [], isLoading, refetch } = useQuery(['audit'], fetchAuditLogs, { refetchInterval: 30000 })
+  const [search, setSearch] = useState('')
+  const [actionFilter, setActionFilter] = useState('')
 
-  const formatAction = (action: string) =>
-    action === 'CREATE_USER' ? 'إضافة' : action === 'UPDATE_USER' ? 'تعديل' : action === 'DELETE_USER' ? 'حذف' : action
+  const filtered = (logs as any[]).filter(log => {
+    const matchAction = !actionFilter || log.action === actionFilter
+    const q = search.toLowerCase()
+    const details = log.details ?? ''
+    const matchSearch = !q ||
+      (log.actorEmail ?? '').toLowerCase().includes(q) ||
+      details.toLowerCase().includes(q)
+    return matchAction && matchSearch
+  })
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">آخر 300 إجراء</p>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-1.5 hover:bg-muted/50"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          تحديث
-        </button>
-      </div>
-      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-muted/50 border-b border-border">
-                <th className="text-right px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase">الإجراء</th>
-                <th className="text-right px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase">الكيان</th>
-                <th className="text-right px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase">المنفذ</th>
-                <th className="text-right px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase">التفاصيل</th>
-                <th className="text-right px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase">التاريخ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-muted-foreground">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
-                    جارٍ التحميل...
-                  </td>
-                </tr>
-              ) : logs.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">
-                    <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    لا توجد سجلات مراجعة بعد
-                  </td>
-                </tr>
-              ) : (
-                logs.map((log: any) => (
-                  <tr key={log.id} className="hover:bg-muted/50 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ${AUDIT_ACTION_COLORS[log.action] ?? 'bg-muted text-muted-foreground'}`}>
-                        {formatAction(log.action)}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-muted-foreground">
-                      {log.entity}{log.entityId ? ` #${log.entityId}` : ''}
-                    </td>
-                    <td className="px-5 py-3.5 text-muted-foreground text-xs" dir="ltr">
-                      {log.actorEmail ?? '—'}
-                    </td>
-                    <td className="px-5 py-3.5 text-muted-foreground text-xs max-w-xs truncate">
-                      {log.details
-                        ? (() => {
-                            try {
-                              const p = JSON.parse(log.details)
-                              return Object.entries(p)
-                                .map(([k, v]) => `${k}: ${v}`)
-                                .join(' | ')
-                            } catch {
-                              return log.details
-                            }
-                          })()
-                        : '—'}
-                    </td>
-                    <td className="px-5 py-3.5 text-muted-foreground text-xs whitespace-nowrap">
-                      {new Date(log.createdAt).toLocaleString('en-GB')}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex gap-2 flex-1 flex-wrap">
+          <div className="relative flex-1 min-w-44">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="بحث بالبريد أو التفاصيل..."
+              className="w-full rounded-lg border border-input bg-background pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div className="relative">
+            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <select
+              value={actionFilter}
+              onChange={(e) => setActionFilter(e.target.value)}
+              className="rounded-lg border border-input bg-background pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">جميع الإجراءات</option>
+              <option value="CREATE_USER">إضافة مستخدم</option>
+              <option value="UPDATE_USER">تعديل مستخدم</option>
+              <option value="DELETE_USER">حذف مستخدم</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">{filtered.length} سجل</span>
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-1.5 hover:bg-muted/50"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            تحديث
+          </button>
         </div>
       </div>
+
+      {/* Feed */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin" />
+          <p className="text-sm">جارٍ التحميل...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+          <ClipboardList className="w-10 h-10 opacity-30" />
+          <p className="text-sm">{search || actionFilter ? 'لا توجد نتائج مطابقة' : 'لا توجد سجلات مراجعة بعد'}</p>
+        </div>
+      ) : (
+        <div className="relative">
+          {/* Timeline line */}
+          <div className="absolute right-6 top-0 bottom-0 w-px bg-border" />
+
+          <ul className="space-y-0">
+            {filtered.map((log: any) => {
+              const meta = AUDIT_ACTION_META[log.action] ?? {
+                label: log.action, sentence: log.action,
+                icon: <Info className="w-3.5 h-3.5" />,
+                bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-border', dot: 'bg-muted-foreground',
+              }
+              const details = parseAuditDetails(log.details)
+              const targetName = details.name || details.email || (log.entityId ? `#${log.entityId}` : '')
+              const fullDate = new Date(log.createdAt).toLocaleString('ar-TN', {
+                year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+              })
+
+              return (
+                <li key={log.id} className="relative flex gap-4 pb-6 pr-14 pl-2">
+                  {/* Timeline dot */}
+                  <div className={`absolute right-4 top-3 w-4 h-4 rounded-full border-2 border-background ${meta.dot} z-10 shadow-sm`} />
+
+                  {/* Card */}
+                  <div className="flex-1 bg-card rounded-xl border border-border shadow-sm px-4 py-3.5 hover:shadow-md transition-shadow">
+                    <div className="flex items-start gap-3">
+                      {/* Actor avatar */}
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
+                        {actorInitials(log.actorEmail)}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        {/* Top row: action badge + time */}
+                        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                          <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${meta.bg} ${meta.text} ${meta.border}`}>
+                            {meta.icon}
+                            {meta.label}
+                          </span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1" title={fullDate}>
+                            <Clock className="w-3 h-3" />
+                            {relativeTime(log.createdAt)}
+                          </span>
+                        </div>
+
+                        {/* Human-readable sentence */}
+                        <p className="text-sm text-foreground leading-relaxed">
+                          <span className="font-medium text-primary" dir="ltr">{log.actorEmail ?? 'مجهول'}</span>
+                          {' '}
+                          <span className="text-muted-foreground">{meta.sentence}</span>
+                          {targetName && (
+                            <>
+                              {': '}
+                              <span className="font-semibold text-foreground">{targetName}</span>
+                            </>
+                          )}
+                        </p>
+
+                        {/* Detail chips */}
+                        {Object.keys(details).length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {Object.entries(details).map(([k, v]) => {
+                              if (k === 'password') return (
+                                <span key={k} className="inline-flex items-center gap-1 text-xs bg-muted border border-border px-2 py-0.5 rounded-md text-muted-foreground">
+                                  <span className="font-medium">كلمة المرور:</span> ••••••
+                                </span>
+                              )
+                              const label = AUDIT_FIELD_LABELS[k] ?? k
+                              const display = k === 'role' ? (AUDIT_ROLE_LABELS[v as string] ?? v) : String(v)
+                              return (
+                                <span key={k} className="inline-flex items-center gap-1 text-xs bg-muted border border-border px-2 py-0.5 rounded-md text-foreground">
+                                  <span className="text-muted-foreground">{label}:</span>
+                                  <span className="font-medium">{display}</span>
+                                </span>
+                              )
+                            })}
+                          </div>
+                        )}
+
+                        {/* Full date tooltip row */}
+                        <p className="mt-1.5 text-xs text-muted-foreground/60">{fullDate}</p>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
@@ -1130,7 +1351,7 @@ export default function SettingsPage() {
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'users', label: 'إدارة المستخدمين', icon: <Users className="w-4 h-4" /> },
     { key: 'audit', label: 'سجل المراجعة', icon: <ClipboardList className="w-4 h-4" /> },
-    { key: 'data', label: 'إدارة البيانات', icon: <Database className="w-4 h-4" /> },
+    ...(isAdmin ? [{ key: 'data' as Tab, label: 'إدارة البيانات', icon: <Database className="w-4 h-4" /> }] : []),
   ]
 
   return (
@@ -1176,7 +1397,7 @@ export default function SettingsPage() {
       {/* Tab Content */}
       {activeTab === 'users' && <UsersTab />}
       {activeTab === 'audit' && <AuditTab />}
-      {activeTab === 'data' && <DataTab />}
+      {activeTab === 'data' && isAdmin && <DataTab />}
     </div>
   )
 }
