@@ -3,24 +3,39 @@ import type { Prisma } from '@prisma/client'
 import { createLog } from './logService'
 import { LOW_STOCK_THRESHOLD } from '../config'
 
-export const listItems = () => prisma.item.findMany()
+export const listItems = (securityUnit?: string | null) => {
+  const where: any = {}
+  if (securityUnit) where.securityUnit = securityUnit
+  return prisma.item.findMany({ where })
+}
 
-export const getItem = (id: number) => prisma.item.findUnique({ where: { id } })
+export const getItem = (id: number, securityUnit?: string | null) => {
+  const where: any = { id }
+  if (securityUnit) where.securityUnit = securityUnit
+  return prisma.item.findFirst({ where })
+}
 
-export const createItem = async (data: { name: string; sku: string; category?: string; description?: string; quantity?: number; lowStockThreshold?: number }) => {
-  const item = await prisma.item.create({ data: { ...data } })
-  await createLog('CREATE', 'Item', item.id, null)
+export const createItem = async (data: { name: string; sku: string; category?: string; description?: string; quantity?: number; lowStockThreshold?: number }, securityUnit?: string | null) => {
+  const item = await prisma.item.create({ data: { ...data, securityUnit: securityUnit ?? null } })
+  await createLog('CREATE', 'Item', item.id, null, securityUnit)
   return item
 }
 
-export const updateItem = async (id: number, data: any) => {
+export const updateItem = async (id: number, data: any, securityUnit?: string | null) => {
+  if (securityUnit) {
+    const existing = await prisma.item.findFirst({ where: { id, securityUnit } })
+    if (!existing) throw new Error('العنصر غير موجود أو لا يمكنك تعديله')
+  }
   const item = await prisma.item.update({ where: { id }, data })
-  await createLog('UPDATE', 'Item', item.id, null)
+  await createLog('UPDATE', 'Item', item.id, null, securityUnit)
   return item
 }
 
-export const deleteItem = async (id: number) => {
-  // Check if item has any distribution items (prevent deletion if it does)
+export const deleteItem = async (id: number, securityUnit?: string | null) => {
+  if (securityUnit) {
+    const existing = await prisma.item.findFirst({ where: { id, securityUnit } })
+    if (!existing) throw new Error('العنصر غير موجود أو لا يمكنك حذفه')
+  }
   const distributionCount = await prisma.distributionItem.count({
     where: { itemId: id }
   })
@@ -29,31 +44,36 @@ export const deleteItem = async (id: number) => {
     throw new Error(`لا يمكن حذف هذا التجهيز. يوجد ${distributionCount} عملية تسليم مرتبطة به`)
   }
 
-  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    // Delete all reception items for this item (allowed even if exist)
+  await prisma.$transaction(async (tx) => {
     await tx.receptionItem.deleteMany({ where: { itemId: id } })
-    
-    // Delete the item itself
     await tx.item.delete({ where: { id } })
   })
   
-  await createLog('DELETE', 'Item', id, null)
+  await createLog('DELETE', 'Item', id, null, securityUnit)
   return true
 }
 
-export const getItemAdminNumbers = async (id: number) => {
+export const getItemAdminNumbers = async (id: number, securityUnit?: string | null) => {
+  const where: any = { itemId: id, adminNumber: { not: null } }
+  if (securityUnit) where.reception = { securityUnit }
   const rows = await prisma.receptionItem.findMany({
-    where: { itemId: id, adminNumber: { not: null } },
+    where,
     select: { adminNumber: true },
     distinct: ['adminNumber'],
   })
   return rows.map(r => r.adminNumber as string)
 }
 
-export const getItemHistory = async (id: number) => {
+export const getItemHistory = async (id: number, securityUnit?: string | null) => {
+  const recWhere: any = { itemId: id }
+  const distWhere: any = { itemId: id }
+  if (securityUnit) {
+    recWhere.reception = { securityUnit }
+    distWhere.distribution = { securityUnit }
+  }
   const [receptions, distributions] = await Promise.all([
     prisma.receptionItem.findMany({
-      where: { itemId: id },
+      where: recWhere,
       include: {
         reception: {
           include: {
@@ -65,7 +85,7 @@ export const getItemHistory = async (id: number) => {
       orderBy: { reception: { createdAt: 'desc' } }
     }),
     prisma.distributionItem.findMany({
-      where: { itemId: id },
+      where: distWhere,
       include: {
         distribution: {
           include: {
@@ -83,7 +103,7 @@ export const getItemHistory = async (id: number) => {
 }
 
 export const adjustStock = async (itemId: number, quantityDelta: number) => {
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  return prisma.$transaction(async (tx) => {
     const item = await tx.item.findUnique({ where: { id: itemId } })
     if (!item) throw new Error('Item not found')
     const newQty = item.quantity + quantityDelta
@@ -96,8 +116,11 @@ export const adjustStock = async (itemId: number, quantityDelta: number) => {
   })
 }
 
-export const getInventorySummary = async () => {
+export const getInventorySummary = async (securityUnit?: string | null) => {
+  const where: any = {}
+  if (securityUnit) where.securityUnit = securityUnit
   const items = await prisma.item.findMany({
+    where,
     include: {
       receptionItems: {
         include: {

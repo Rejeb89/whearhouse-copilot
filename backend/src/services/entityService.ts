@@ -8,7 +8,7 @@ export const createEntity = async (data: {
   phone: string
   unitHead?: string
   unitHeadPhone?: string
-}) => {
+}, securityUnit?: string | null) => {
   return prisma.entity.create({
     data: {
       name: data.name,
@@ -18,21 +18,25 @@ export const createEntity = async (data: {
       phone: data.phone,
       unitHead: data.unitHead,
       unitHeadPhone: data.unitHeadPhone,
+      securityUnit: securityUnit ?? null,
     }
   })
 }
 
-export const getEntities = async (type?: 'SUPPLIER' | 'BENEFICIARY') => {
+export const getEntities = async (type?: 'SUPPLIER' | 'BENEFICIARY', securityUnit?: string | null) => {
+  const where: any = {}
+  if (type) where.type = type
+  if (securityUnit) where.securityUnit = securityUnit
   return prisma.entity.findMany({
-    where: type ? { type } : undefined,
+    where,
     orderBy: { createdAt: 'desc' }
   })
 }
 
-export const getEntityById = async (id: number) => {
-  return prisma.entity.findUnique({
-    where: { id }
-  })
+export const getEntityById = async (id: number, securityUnit?: string | null) => {
+  const where: any = { id }
+  if (securityUnit) where.securityUnit = securityUnit
+  return prisma.entity.findFirst({ where })
 }
 
 export const updateEntity = async (id: number, data: {
@@ -43,7 +47,11 @@ export const updateEntity = async (id: number, data: {
   phone?: string
   unitHead?: string
   unitHeadPhone?: string
-}) => {
+}, securityUnit?: string | null) => {
+  if (securityUnit) {
+    const existing = await prisma.entity.findFirst({ where: { id, securityUnit } })
+    if (!existing) throw new Error('الجهة غير موجودة أو لا يمكنك تعديلها')
+  }
   return prisma.entity.update({
     where: { id },
     data: {
@@ -58,7 +66,11 @@ export const updateEntity = async (id: number, data: {
   })
 }
 
-export const deleteEntity = async (id: number) => {
+export const deleteEntity = async (id: number, securityUnit?: string | null) => {
+  if (securityUnit) {
+    const existing = await prisma.entity.findFirst({ where: { id, securityUnit } })
+    if (!existing) throw new Error('الجهة غير موجودة أو لا يمكنك حذفها')
+  }
   // Check if entity has any distributions
   const distributionCount = await prisma.distribution.count({
     where: { beneficiaryId: id }
@@ -82,8 +94,8 @@ export const deleteEntity = async (id: number) => {
   })
 }
 
-export const getDistributionsCount = async (id: number) => {
-  return prisma.distribution.count({
-    where: { beneficiaryId: id }
-  })
+export const getDistributionsCount = async (id: number, securityUnit?: string | null) => {
+  const where: any = { beneficiaryId: id }
+  if (securityUnit) where.securityUnit = securityUnit
+  return prisma.distribution.count({ where })
 }

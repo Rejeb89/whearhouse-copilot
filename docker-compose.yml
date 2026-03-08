@@ -25,6 +25,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/warehouse
+      APP_DATABASE_URL: postgres://app_user:app_secure_2024@postgres:5432/warehouse
       JWT_SECRET: supersecret_jwt_key
       LOW_STOCK_THRESHOLD: '5'
     ports:

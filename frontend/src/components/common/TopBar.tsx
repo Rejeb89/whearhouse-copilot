@@ -71,7 +71,7 @@ const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
             <div className="absolute left-0 mt-2 w-52 rounded-lg border border-border bg-card shadow-md p-3 text-right z-50">
               <p className="text-xs text-muted-foreground">الحساب</p>
               <p className="text-sm font-semibold text-foreground truncate mt-0.5">{user.email}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{user.role === 'ADMIN' ? 'مدير النظام' : 'مستخدم'}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{user.role === 'ADMIN' ? 'مدير النظام' : user.role === 'SECTION_CHIEF' ? 'رئيس القسم' : 'مستخدم'}</p>
               <hr className="my-2 border-border" />
               <button
                 onClick={() => { setShowMenu(false); handleLogout() }}

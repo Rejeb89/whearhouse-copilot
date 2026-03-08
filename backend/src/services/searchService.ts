@@ -1,14 +1,17 @@
 import prisma from '../config/database'
 
-export const globalSearch = async (q: string) => {
+export const globalSearch = async (q: string, securityUnit?: string | null) => {
   if (!q || q.length < 2) {
     return { items: [], receptions: [], distributions: [], entities: [], employees: [], users: [] }
   }
+
+  const suFilter: any = securityUnit ? { securityUnit } : {}
 
   const [items, receptions, distributions, entities, employees, users] = await Promise.all([
     // Search Items
     prisma.item.findMany({
       where: {
+        ...suFilter,
         OR: [
           { name: { contains: q, mode: 'insensitive' } },
           { sku: { contains: q, mode: 'insensitive' } },
@@ -23,6 +26,7 @@ export const globalSearch = async (q: string) => {
     // Search Receptions
     prisma.reception.findMany({
       where: {
+        ...suFilter,
         OR: [
           { reference: { contains: q, mode: 'insensitive' } },
           { referenceNumber: { contains: q, mode: 'insensitive' } },
@@ -49,6 +53,7 @@ export const globalSearch = async (q: string) => {
     // Search Distributions
     prisma.distribution.findMany({
       where: {
+        ...suFilter,
         OR: [
           { reference: { contains: q, mode: 'insensitive' } },
           { referenceNumber: { contains: q, mode: 'insensitive' } },
@@ -77,6 +82,7 @@ export const globalSearch = async (q: string) => {
     // Search Entities
     prisma.entity.findMany({
       where: {
+        ...suFilter,
         OR: [
           { name: { contains: q, mode: 'insensitive' } },
           { phone: { contains: q, mode: 'insensitive' } },
@@ -90,6 +96,7 @@ export const globalSearch = async (q: string) => {
     // Search Employees
     prisma.employee.findMany({
       where: {
+        ...(securityUnit ? { entity: { securityUnit } } : {}),
         OR: [
           { name: { contains: q, mode: 'insensitive' } },
           { surname: { contains: q, mode: 'insensitive' } },
@@ -106,6 +113,7 @@ export const globalSearch = async (q: string) => {
     // Search Users
     prisma.user.findMany({
       where: {
+        ...(securityUnit ? { securityUnit } : {}),
         OR: [
           { email: { contains: q, mode: 'insensitive' } },
           { name: { contains: q, mode: 'insensitive' } },

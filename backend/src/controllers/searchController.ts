@@ -1,6 +1,11 @@
 import { Request, Response } from 'express'
 import { globalSearch } from '../services/searchService'
 
+const getSU = (req: Request) => {
+  const u = (req as any).user
+  return u?.role === 'ADMIN' ? undefined : (u?.securityUnit ?? undefined)
+}
+
 export const search = async (req: Request, res: Response) => {
   const q = (req.query.q as string || '').trim().toLowerCase()
 
@@ -9,7 +14,7 @@ export const search = async (req: Request, res: Response) => {
   }
 
   try {
-    const data = await globalSearch(q)
+    const data = await globalSearch(q, getSU(req))
     res.json({ data })
   } catch (error: any) {
     res.status(500).json({ error: error.message })

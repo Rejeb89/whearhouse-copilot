@@ -2,11 +2,16 @@ import { Request, Response } from 'express'
 import * as receiptService from '../services/receiptService'
 import prisma from '../config/database'
 
+const getSU = (req: Request) => {
+  const u = (req as any).user
+  return u?.role === 'ADMIN' ? undefined : (u?.securityUnit ?? undefined)
+}
+
 export const list = async (req: Request, res: Response) => {
   try {
     const page = parseInt((req.query.page as string) || '1')
     const limit = parseInt((req.query.limit as string) || '20')
-    const receipts = await receiptService.listReceipts(page, limit)
+    const receipts = await receiptService.listReceipts(page, limit, getSU(req))
     res.json({ data: receipts })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
@@ -15,7 +20,7 @@ export const list = async (req: Request, res: Response) => {
 
 export const byDistribution = async (req: Request, res: Response) => {
   try {
-    const receipt = await receiptService.getReceiptByDistribution(parseInt(req.params.distId))
+    const receipt = await receiptService.getReceiptByDistribution(parseInt(req.params.distId), getSU(req))
     if (!receipt) return res.status(404).json({ error: 'لا يوجد وصل لهذه العملية' })
     res.json({ data: receipt })
   } catch (err: any) {
@@ -25,7 +30,7 @@ export const byDistribution = async (req: Request, res: Response) => {
 
 export const getById = async (req: Request, res: Response) => {
   try {
-    const receipt = await receiptService.getReceiptById(parseInt(req.params.id))
+    const receipt = await receiptService.getReceiptById(parseInt(req.params.id), getSU(req))
     if (!receipt) return res.status(404).json({ error: 'الوصل غير موجود' })
     res.json({ data: receipt })
   } catch (err: any) {

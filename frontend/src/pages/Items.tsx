@@ -46,7 +46,7 @@ type PageTab = 'items' | 'receptions' | 'distributions' | 'lowStock'
 
 export default function Items() {
   const { user } = useContext(AuthContext)!
-  const isAdmin = user?.role === 'ADMIN'
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SECTION_CHIEF'
   const qc = useQueryClient()
   const location = useLocation()
 

@@ -33,9 +33,11 @@ export const createReceiptForDistribution = async (
   })
 }
 
-export const getReceiptByDistribution = (distributionId: number) =>
-  prisma.deliveryReceipt.findUnique({
-    where: { distributionId },
+export const getReceiptByDistribution = (distributionId: number, securityUnit?: string | null) => {
+  const where: any = { distributionId }
+  if (securityUnit) where.distribution = { securityUnit }
+  return prisma.deliveryReceipt.findFirst({
+    where,
     include: {
       distribution: {
         include: {
@@ -49,10 +51,13 @@ export const getReceiptByDistribution = (distributionId: number) =>
       approvedBy: { select: { id: true, email: true, name: true } },
     },
   })
+}
 
-export const getReceiptById = (id: number) =>
-  prisma.deliveryReceipt.findUnique({
-    where: { id },
+export const getReceiptById = (id: number, securityUnit?: string | null) => {
+  const where: any = { id }
+  if (securityUnit) where.distribution = { securityUnit }
+  return prisma.deliveryReceipt.findFirst({
+    where,
     include: {
       distribution: {
         include: {
@@ -66,9 +71,13 @@ export const getReceiptById = (id: number) =>
       approvedBy: { select: { id: true, email: true, name: true } },
     },
   })
+}
 
-export const listReceipts = (page = 1, limit = 20) =>
-  prisma.deliveryReceipt.findMany({
+export const listReceipts = (page = 1, limit = 20, securityUnit?: string | null) => {
+  const where: any = {}
+  if (securityUnit) where.distribution = { securityUnit }
+  return prisma.deliveryReceipt.findMany({
+    where,
     orderBy: { createdAt: 'desc' },
     skip: (page - 1) * limit,
     take: limit,
@@ -88,6 +97,7 @@ export const listReceipts = (page = 1, limit = 20) =>
       createdBy: { select: { id: true, email: true, name: true } },
     },
   })
+}
 
 export const approveReceipt = async (id: number, approvedById: number, approvedByEmail: string) => {
   const receipt = await prisma.deliveryReceipt.findUnique({ where: { id } })

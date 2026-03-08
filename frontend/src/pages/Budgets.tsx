@@ -60,6 +60,7 @@ const fetchExpenses = (id: number) => client.get(`/budgets/${id}/expenses`).then
 export default function Budgets() {
   const { user } = useContext(AuthContext)
   const role = user?.role ?? 'USER'
+  const canManage = role === 'ADMIN' || role === 'SECTION_CHIEF'
   const queryClient = useQueryClient()
 
   const { data: budgets = [], isLoading: budgetsLoading } = useQuery(['budgets'], fetchBudgets, { refetchInterval: 30000 })
@@ -366,7 +367,7 @@ export default function Budgets() {
           )}
           <button onClick={exportPDF} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-muted-foreground hover:bg-muted/50 text-sm transition"><FileText className="w-4 h-4" /> PDF</button>
           <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-muted-foreground hover:bg-muted/50 text-sm transition"><Download className="w-4 h-4" /> Excel</button>
-          {role === 'ADMIN' && <button onClick={openAddBudget} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium transition"><Plus className="w-4 h-4" /> اعتماد جديد</button>}
+          {canManage && <button onClick={openAddBudget} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium transition"><Plus className="w-4 h-4" /> اعتماد جديد</button>}
         </div>
       </div>
 
@@ -483,7 +484,7 @@ export default function Budgets() {
                     <div className="flex gap-2">
                       <button onClick={()=>setSelectedBudget(b)} className="flex-1 text-xs py-1.5 rounded-lg border border-border text-primary hover:bg-primary/10 transition flex items-center justify-center gap-1"><ChevronRight className="w-3.5 h-3.5"/> التفاصيل</button>
 
-                      {role==='ADMIN'&&<><button onClick={()=>openEditBudget(b)} className="px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted/50 transition"><Edit2 className="w-3.5 h-3.5"/></button>{b.status!=='closed'&&<button onClick={()=>archiveBudget(b)} className="px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-amber-50 hover:border-amber-200 hover:text-amber-600 transition"><Archive className="w-3.5 h-3.5"/></button>}</>}
+                      {canManage&&<><button onClick={()=>openEditBudget(b)} className="px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted/50 transition"><Edit2 className="w-3.5 h-3.5"/></button>{b.status!=='closed'&&<button onClick={()=>archiveBudget(b)} className="px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-amber-50 hover:border-amber-200 hover:text-amber-600 transition"><Archive className="w-3.5 h-3.5"/></button>}</>}
                     </div>
                   </div>
                 )
@@ -502,7 +503,7 @@ export default function Budgets() {
             <div className="rounded-xl border border-border bg-card shadow-sm p-5">
               <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                 <div><h2 className="text-xl font-bold text-foreground">{b.name}</h2><p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5"><Building2 className="w-4 h-4"/>{b.department}</p></div>
-                <div className="flex items-center gap-2"><span className={`text-xs px-3 py-1 rounded-full border font-medium ${st.bg} ${st.color}`}>{st.label}</span>{role==='ADMIN'&&<button onClick={()=>openEditBudget(b)} className="px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted/50 text-sm flex items-center gap-1.5 transition"><Edit2 className="w-3.5 h-3.5"/> تعديل</button>}</div>
+                <div className="flex items-center gap-2"><span className={`text-xs px-3 py-1 rounded-full border font-medium ${st.bg} ${st.color}`}>{st.label}</span>{canManage&&<button onClick={()=>openEditBudget(b)} className="px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted/50 text-sm flex items-center gap-1.5 transition"><Edit2 className="w-3.5 h-3.5"/> تعديل</button>}</div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                 {[['المبلغ المعتمد',fmt(b.amount)+' د','text-primary'],['إجمالي المصاريف',fmt(s)+' د','text-red-600'],['المبلغ المتبقي',fmt(rem)+' د',rem>=0?'text-emerald-700':'text-red-600'],['نسبة الاستهلاك',p+'%',p>=80?'text-red-600':'text-primary']].map(([l,v,c])=>(<div key={l} className="bg-muted/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">{l}</p><p className={`text-lg font-bold ${c}`}>{v}</p></div>))}
@@ -513,14 +514,14 @@ export default function Budgets() {
             <div className="rounded-xl border border-border bg-card shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-foreground">المصاريف المرتبطة ({budgetExpenses.length})</h3>
-                {role==='ADMIN'&&b.status==='active'&&<button onClick={()=>{setExpenseAttachments([]);setExpenseForm({date:'',supplier:'',invoiceNumber:'',amount:0,notes:''});setSupplierSearch('');setShowSupplierDropdown(false);setShowExpenseModal(true)}} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium transition"><Plus className="w-3.5 h-3.5"/> إضافة صرف</button>}
+                {canManage&&b.status==='active'&&<button onClick={()=>{setExpenseAttachments([]);setExpenseForm({date:'',supplier:'',invoiceNumber:'',amount:0,notes:''});setSupplierSearch('');setShowSupplierDropdown(false);setShowExpenseModal(true)}} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium transition"><Plus className="w-3.5 h-3.5"/> إضافة صرف</button>}
               </div>
               {expensesQuery.isLoading?<div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"/></div>:budgetExpenses.length===0?(
                 <div className="text-center py-10 text-muted-foreground"><FileText className="w-10 h-10 mx-auto mb-2 opacity-30"/><p className="text-sm">لا توجد مصاريف مسجلة</p></div>
               ):(
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-right">
-                    <thead><tr className="border-b border-border text-xs text-muted-foreground"><th className="pb-2 pr-2">التاريخ</th><th className="pb-2">المورد</th><th className="pb-2">رقم الفاتورة</th><th className="pb-2">المبلغ</th><th className="pb-2">ملاحظات</th><th className="pb-2">المرفقات</th><th className="pb-2">أضيف بواسطة</th>{role==='ADMIN'&&<th className="pb-2">إجراء</th>}</tr></thead>
+                    <thead><tr className="border-b border-border text-xs text-muted-foreground"><th className="pb-2 pr-2">التاريخ</th><th className="pb-2">المورد</th><th className="pb-2">رقم الفاتورة</th><th className="pb-2">المبلغ</th><th className="pb-2">ملاحظات</th><th className="pb-2">المرفقات</th><th className="pb-2">أضيف بواسطة</th>{canManage&&<th className="pb-2">إجراء</th>}</tr></thead>
                     <tbody>{budgetExpenses.map(e=>(
                       <tr key={e.id} className="border-b border-border hover:bg-muted/50">
                         <td className="py-2 pr-2 text-muted-foreground">{e.date}</td><td className="py-2 font-medium">{e.supplier}</td>
@@ -541,10 +542,10 @@ export default function Budgets() {
                           )
                         })}</div>}</td>
                         <td className="py-2 text-xs text-muted-foreground">{e.addedBy}</td>
-                        {role==='ADMIN'&&<td className="py-2"><button onClick={()=>deleteExpense(e)} className="p-1 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition"><X className="w-3.5 h-3.5"/></button></td>}
+                        {canManage&&<td className="py-2"><button onClick={()=>deleteExpense(e)} className="p-1 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition"><X className="w-3.5 h-3.5"/></button></td>}
                       </tr>
                     ))}</tbody>
-                    <tfoot><tr className="border-t-2 border-border"><td colSpan={3} className="pt-2 text-xs font-semibold text-muted-foreground">الإجمالي</td><td className="pt-2 font-bold text-red-600">{fmt(s)} د.ت</td><td colSpan={role==='ADMIN'?4:3}/></tr></tfoot>
+                    <tfoot><tr className="border-t-2 border-border"><td colSpan={3} className="pt-2 text-xs font-semibold text-muted-foreground">الإجمالي</td><td className="pt-2 font-bold text-red-600">{fmt(s)} د.ت</td><td colSpan={canManage?4:3}/></tr></tfoot>
                   </table>
                 </div>
               )}
@@ -645,7 +646,7 @@ export default function Budgets() {
                       <div key={req.id} className="rounded-xl border border-border bg-background p-4">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0"><p className="font-semibold text-sm text-foreground">{req.title}</p>{req.supplier&&<p className="text-xs text-emerald-700 mt-0.5 flex items-center gap-1"><Building2 className="w-3 h-3 shrink-0"/>{req.supplier}</p>}{req.notes&&<p className="text-xs text-muted-foreground mt-1">{req.notes}</p>}<p className="text-[11px] text-muted-foreground/70 mt-1.5">{req.createdBy} · {new Date(req.createdAt).toLocaleDateString('ar-DZ')}</p></div>
-                          {role==='ADMIN'&&<button onClick={()=>deleteSupplyRequest.mutate({id:req.id,budgetId:supplyBudget!.id})} className="p-1 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition shrink-0"><X className="w-3.5 h-3.5"/></button>}
+                          {canManage&&<button onClick={()=>deleteSupplyRequest.mutate({id:req.id,budgetId:supplyBudget!.id})} className="p-1 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition shrink-0"><X className="w-3.5 h-3.5"/></button>}
                         </div>
                         {req.attachments.length>0&&(
                           <div className="mt-3 pt-3 border-t border-border"><p className="text-[11px] text-muted-foreground mb-2">المرفقات ({req.attachments.length})</p><div className="flex flex-wrap gap-2">{req.attachments.map((att,i)=>{if(att.type&&att.type.startsWith('image/'))return(
