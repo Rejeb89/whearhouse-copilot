@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { login, register } from '../services/authService'
 import prisma from '../config/database'
+import { signToken } from '../utils/jwt'
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -39,12 +40,15 @@ export const getMe = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user) return res.status(404).json({ error: 'المستخدم غير موجود' })
+    // Issue a fresh JWT so that any admin-side changes (role, securityUnit, etc.) take effect immediately
+    const freshToken = signToken({ id: user.id, role: user.role, email: user.email, securityUnit: user.securityUnit })
     res.json({
       data: {
         id: user.id, email: user.email, role: user.role, name: user.name,
         personalNumber: user.personalNumber, securityUnit: user.securityUnit,
         region: user.region, title: user.title,
       },
+      token: freshToken,
     })
   } catch (err: any) {
     res.status(500).json({ error: err.message })

@@ -13,9 +13,10 @@ export const createDistribution = async (
   referenceType?: string,
   referenceNumber?: string,
   referenceDate?: string,
-  deliveredByName?: string
+  deliveredByName?: string,
+  securityUnit?: string | null,
 ) => {
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  return prisma.$transaction(async (tx) => {
     const distribution = await tx.distribution.create({
       data: {
         reference,
@@ -27,6 +28,7 @@ export const createDistribution = async (
         referenceNumber: referenceNumber ?? null,
         referenceDate: referenceDate ? new Date(referenceDate) : null,
         deliveredByName: deliveredByName ?? null,
+        securityUnit: securityUnit ?? null,
       }
     })
     for (const it of items) {
@@ -46,7 +48,7 @@ export const createDistribution = async (
       })
       await tx.item.update({ where: { id: it.itemId }, data: { quantity: { decrement: it.quantity } } })
     }
-    await createLog('CREATE', 'Distribution', distribution.id, userId)
+    await createLog('CREATE', 'Distribution', distribution.id, userId, securityUnit)
     return distribution
   }).then(async (distribution) => {
     // Auto-create receipt after transaction commits
@@ -59,20 +61,27 @@ export const createDistribution = async (
   })
 }
 
-export const recentDistributions = (limit = 10) => prisma.distribution.findMany({ 
-  orderBy: { createdAt: 'desc' }, 
-  take: limit, 
-  include: { 
-    items: {
-      include: { item: true }
-    },
-    beneficiary: { select: { id: true, name: true } }
-  } 
-})
+export const recentDistributions = (limit = 10, securityUnit?: string | null) => {
+  const where: any = {}
+  if (securityUnit) where.securityUnit = securityUnit
+  return prisma.distribution.findMany({ 
+    where,
+    orderBy: { createdAt: 'desc' }, 
+    take: limit, 
+    include: { 
+      items: {
+        include: { item: true }
+      },
+      beneficiary: { select: { id: true, name: true } }
+    } 
+  })
+}
 
-export const getDistributionsByItem = async (itemId: number) => {
+export const getDistributionsByItem = async (itemId: number, securityUnit?: string | null) => {
+  const where: any = { itemId }
+  if (securityUnit) where.distribution = { securityUnit }
   return prisma.distributionItem.findMany({
-    where: { itemId },
+    where,
     include: {
       distribution: {
         include: {
@@ -86,8 +95,9 @@ export const getDistributionsByItem = async (itemId: number) => {
   })
 }
 
-export const getAllDistributions = async (filters?: { search?: string; referenceType?: string; dateFrom?: string; dateTo?: string }) => {
+export const getAllDistributions = async (filters?: { search?: string; referenceType?: string; dateFrom?: string; dateTo?: string }, securityUnit?: string | null) => {
   const where: any = {}
+  if (securityUnit) where.securityUnit = securityUnit
   if (filters?.referenceType) where.referenceType = filters.referenceType
   if (filters?.dateFrom || filters?.dateTo) {
     where.createdAt = {}
@@ -120,9 +130,11 @@ export const getAllDistributions = async (filters?: { search?: string; reference
   return list
 }
 
-export const getDistributionsByEntity = async (beneficiaryId: number) => {
+export const getDistributionsByEntity = async (beneficiaryId: number, securityUnit?: string | null) => {
+  const where: any = { beneficiaryId }
+  if (securityUnit) where.securityUnit = securityUnit
   return prisma.distribution.findMany({
-    where: { beneficiaryId },
+    where,
     include: {
       items: {
         include: {

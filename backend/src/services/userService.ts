@@ -15,8 +15,9 @@ const SAFE_SELECT = {
   createdAt: true,
 }
 
-export const listUsers = (search?: string, role?: string) => {
+export const listUsers = (search?: string, role?: string, securityUnit?: string | null) => {
   const where: any = {}
+  if (securityUnit) where.securityUnit = securityUnit
   if (search) {
     where.OR = [
       { email: { contains: search, mode: 'insensitive' } },
@@ -27,8 +28,11 @@ export const listUsers = (search?: string, role?: string) => {
   return prisma.user.findMany({ where, select: SAFE_SELECT, orderBy: { createdAt: 'desc' } })
 }
 
-export const getUser = (id: number) =>
-  prisma.user.findUnique({ where: { id }, select: SAFE_SELECT })
+export const getUser = (id: number, securityUnit?: string | null) => {
+  const where: any = { id }
+  if (securityUnit) where.securityUnit = securityUnit
+  return prisma.user.findFirst({ where, select: SAFE_SELECT })
+}
 
 export const createUser = async (
   data: { email: string; password: string; name?: string; role?: string; personalNumber?: string; securityUnit?: string; region?: string; title?: string },
@@ -38,7 +42,7 @@ export const createUser = async (
 ) => {
   const pw = await hashPassword(data.password)
   const user = await prisma.user.create({
-    data: { email: data.email, password: pw, name: data.name, role: (data.role as any) || 'USER', personalNumber: data.personalNumber, securityUnit: data.securityUnit, region: data.region, title: data.title },
+    data: { email: data.email, password: pw, name: data.name, role: (data.role as any) || 'USER', personalNumber: data.personalNumber, securityUnit: data.securityUnit?.trim() || null, region: data.region, title: data.title },
     select: SAFE_SELECT,
   })
   await createLog('CREATE', 'User', user.id, actorId ?? null)
@@ -62,6 +66,7 @@ export const updateUser = async (
   ip?: string,
 ) => {
   const payload: any = { ...data }
+  if (payload.securityUnit !== undefined) payload.securityUnit = payload.securityUnit?.trim() || null
   if (data.password) payload.password = await hashPassword(data.password)
   else delete payload.password
   const user = await prisma.user.update({ where: { id }, data: payload, select: SAFE_SELECT })
@@ -86,10 +91,7 @@ export const deleteUser = async (
 ) => {
   const targetUser = await prisma.user.findUnique({ where: { id } })
   if (targetUser?.role === 'ADMIN') {
-    const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } })
-    if (adminCount <= 1) {
-      throw new Error('لا يمكن حذف آخر مسؤول في النظام')
-    }
+    throw new Error('لا يمكن حذف حساب المسؤول، يمكن التعديل عليه فقط')
   }
   await prisma.user.delete({ where: { id } })
   await createLog('DELETE', 'User', id, actorId ?? null)

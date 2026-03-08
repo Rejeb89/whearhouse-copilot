@@ -3,9 +3,9 @@ import type { Prisma } from '@prisma/client'
 import { createLog } from './logService'
 import { adjustStock } from './itemService'
 
-export const createReception = async (userId: number, reference: string, items: { itemId?: number; itemName?: string; category?: string; quantity: number; lowStockThreshold?: number; adminNumber?: string }[], data?: { referenceNumber?: string; referenceType?: string; referenceDate?: Date; supplierId?: number; collectorId?: number; notes?: string }) => {
+export const createReception = async (userId: number, reference: string, items: { itemId?: number; itemName?: string; category?: string; quantity: number; lowStockThreshold?: number; adminNumber?: string }[], data?: { referenceNumber?: string; referenceType?: string; referenceDate?: Date; supplierId?: number; collectorId?: number; notes?: string }, securityUnit?: string | null) => {
   try {
-    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return await prisma.$transaction(async (tx) => {
       const reception = await tx.reception.create({ 
         data: { 
           reference, 
@@ -15,7 +15,8 @@ export const createReception = async (userId: number, reference: string, items: 
           referenceDate: data?.referenceDate,
           supplierId: data?.supplierId,
           collectorId: data?.collectorId,
-          notes: data?.notes
+          notes: data?.notes,
+          securityUnit: securityUnit ?? null,
         } 
       })
       
@@ -42,7 +43,8 @@ export const createReception = async (userId: number, reference: string, items: 
                 category: it.category || 'بدون صنف',
                 lowStockThreshold: it.lowStockThreshold ?? 5,
                 quantity: 0,
-                sku: `SKU-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+                sku: `SKU-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+                securityUnit: securityUnit ?? null,
               }
             })
             itemId = newItem.id
@@ -55,7 +57,7 @@ export const createReception = async (userId: number, reference: string, items: 
         }
       }
       
-      await createLog('CREATE', 'Reception', reception.id, userId)
+      await createLog('CREATE', 'Reception', reception.id, userId, securityUnit)
       return reception
     })
   } catch (error: any) {
@@ -66,9 +68,11 @@ export const createReception = async (userId: number, reference: string, items: 
   }
 }
 
-export const getReferenceTypes = async () => {
+export const getReferenceTypes = async (securityUnit?: string | null) => {
+  const where: any = { referenceType: { not: null } }
+  if (securityUnit) where.securityUnit = securityUnit
   const types = await prisma.reception.findMany({
-    where: { referenceType: { not: null } },
+    where,
     select: { referenceType: true },
     distinct: ['referenceType'],
     orderBy: { referenceType: 'asc' }
@@ -76,9 +80,11 @@ export const getReferenceTypes = async () => {
   return types.map((t: any) => t.referenceType).filter(Boolean)
 }
 
-export const getLatestReceptionByItem = async (itemId: number) => {
+export const getLatestReceptionByItem = async (itemId: number, securityUnit?: string | null) => {
+  const where: any = { itemId }
+  if (securityUnit) where.reception = { securityUnit }
   const receptionItem = await prisma.receptionItem.findFirst({
-    where: { itemId },
+    where,
     orderBy: { reception: { createdAt: 'desc' } },
     include: {
       reception: {
@@ -97,10 +103,15 @@ export const getLatestReceptionByItem = async (itemId: number) => {
   return receptionItem?.reception ?? null
 }
 
-export const recentReceptions = (limit = 10) => prisma.reception.findMany({ orderBy: { createdAt: 'desc' }, take: limit, include: { items: { include: { item: true } }, supplier: true } })
-
-export const getAllReceptions = async (filters?: { search?: string; referenceType?: string; dateFrom?: string; dateTo?: string }) => {
+export const recentReceptions = (limit = 10, securityUnit?: string | null) => {
   const where: any = {}
+  if (securityUnit) where.securityUnit = securityUnit
+  return prisma.reception.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit, include: { items: { include: { item: true } }, supplier: true } })
+}
+
+export const getAllReceptions = async (filters?: { search?: string; referenceType?: string; dateFrom?: string; dateTo?: string }, securityUnit?: string | null) => {
+  const where: any = {}
+  if (securityUnit) where.securityUnit = securityUnit
   if (filters?.referenceType) where.referenceType = filters.referenceType
   if (filters?.dateFrom || filters?.dateTo) {
     where.createdAt = {}
@@ -132,9 +143,11 @@ export const getAllReceptions = async (filters?: { search?: string; referenceTyp
   }
   return list
 }
-export const getReceptionsBySupplier = async (supplierId: number) => {
+export const getReceptionsBySupplier = async (supplierId: number, securityUnit?: string | null) => {
+  const where: any = { supplierId }
+  if (securityUnit) where.securityUnit = securityUnit
   return prisma.reception.findMany({
-    where: { supplierId },
+    where,
     orderBy: { createdAt: 'desc' },
     include: {
       items: { include: { item: true } },

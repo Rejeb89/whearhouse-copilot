@@ -155,8 +155,9 @@ export const queryLogs = async (filters: {
   from?: string; to?: string;
   action?: string; table?: string;
   limit?: string; page?: string;
-}) => {
+}, securityUnit?: string | null) => {
   const where: any = {}
+  if (securityUnit) where.securityUnit = securityUnit
   if (filters.from || filters.to) {
     where.createdAt = {}
     if (filters.from) where.createdAt.gte = new Date(filters.from)
@@ -184,12 +185,15 @@ export const queryLogs = async (filters: {
   return { data: enrichedLogs, meta: { total, page: Number(filters.page), limit: take } }
 }
 
-export const getLogStats = async (targetYear: number) => {
+export const getLogStats = async (targetYear: number, securityUnit?: string | null) => {
   const from = new Date(`${targetYear}-01-01T00:00:00.000Z`)
   const to   = new Date(`${targetYear}-12-31T23:59:59.999Z`)
 
+  const logWhere: any = { createdAt: { gte: from, lte: to } }
+  if (securityUnit) logWhere.securityUnit = securityUnit
+
   const all = await prisma.log.findMany({
-    where: { createdAt: { gte: from, lte: to } },
+    where: logWhere,
     select: { id: true, action: true, table: true, createdAt: true },
   })
 
@@ -213,15 +217,15 @@ export const getLogStats = async (targetYear: number) => {
   all.forEach((l: { action: string; table: string; createdAt: Date }) => { byTable[l.table] = (byTable[l.table] ?? 0) + 1 })
 
   // All-time totals
+  const countWhere: any = {}
+  if (securityUnit) countWhere.securityUnit = securityUnit
+  const countThisMonthWhere: any = {
+    createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
+  }
+  if (securityUnit) countThisMonthWhere.securityUnit = securityUnit
   const [totalLogs, totalThisMonth] = await Promise.all([
-    prisma.log.count(),
-    prisma.log.count({
-      where: {
-        createdAt: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        },
-      },
-    }),
+    prisma.log.count({ where: countWhere }),
+    prisma.log.count({ where: countThisMonthWhere }),
   ])
 
   return {
@@ -238,12 +242,15 @@ export const getLogStats = async (targetYear: number) => {
   }
 }
 
-export const getMonthlyReport = async (year: number, month: number) => {
+export const getMonthlyReport = async (year: number, month: number, securityUnit?: string | null) => {
   const from = new Date(year, month - 1, 1)
   const to   = new Date(year, month, 0, 23, 59, 59, 999)
 
+  const logWhere: any = { createdAt: { gte: from, lte: to } }
+  if (securityUnit) logWhere.securityUnit = securityUnit
+
   const logs = await prisma.log.findMany({
-    where: { createdAt: { gte: from, lte: to } },
+    where: logWhere,
     orderBy: { createdAt: 'asc' },
     include: { user: { select: { email: true, name: true } } },
   })

@@ -14,27 +14,37 @@ export const employeeService = {
     });
   },
 
-  async getEmployeesByEntity(entityId: number) {
+  async getEmployeesByEntity(entityId: number, securityUnit?: string | null) {
+    const where: any = { entityId }
+    if (securityUnit) where.entity = { securityUnit }
     return prisma.employee.findMany({
-      where: { entityId },
+      where,
       orderBy: { createdAt: 'desc' },
     });
   },
 
-  async getEmployeeById(id: number) {
-    return prisma.employee.findUnique({
-      where: { id },
-    });
+  async getEmployeeById(id: number, securityUnit?: string | null) {
+    const where: any = { id }
+    if (securityUnit) where.entity = { securityUnit }
+    return prisma.employee.findFirst({ where });
   },
 
-  async updateEmployee(id: number, data: any) {
+  async updateEmployee(id: number, data: any, securityUnit?: string | null) {
+    if (securityUnit) {
+      const existing = await prisma.employee.findFirst({ where: { id, entity: { securityUnit } } })
+      if (!existing) throw new Error('الموظف غير موجود أو لا يمكنك تعديله')
+    }
     return prisma.employee.update({
       where: { id },
       data,
     });
   },
 
-  async deleteEmployee(id: number) {
+  async deleteEmployee(id: number, securityUnit?: string | null) {
+    if (securityUnit) {
+      const existing = await prisma.employee.findFirst({ where: { id, entity: { securityUnit } } })
+      if (!existing) throw new Error('الموظف غير موجود أو لا يمكنك حذفه')
+    }
     return prisma.employee.delete({
       where: { id },
     });

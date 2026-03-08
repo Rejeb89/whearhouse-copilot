@@ -15,7 +15,7 @@ export const login = async (email: string, password: string) => {
   if (!user) throw new Error('Invalid credentials')
   const ok = await comparePassword(password, user.password)
   if (!ok) throw new Error('Invalid credentials')
-  const token = signToken({ id: user.id, role: user.role, email: user.email })
+  const token = signToken({ id: user.id, role: user.role, email: user.email, securityUnit: user.securityUnit })
   await createLog('LOGIN', 'User', user.id, user.id)
   return { user, token }
 }

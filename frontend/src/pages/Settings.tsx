@@ -101,9 +101,11 @@ interface UserModalProps {
   editing: any | null
   onClose: () => void
   onSaved: () => void
+  currentUser?: any
 }
 
-function UserModal({ open, editing, onClose, onSaved }: UserModalProps) {
+function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalProps) {
+  const isSectionChief = currentUser?.role === 'SECTION_CHIEF'
   const [form, setForm] = useState(EMPTY_FORM)
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
@@ -114,7 +116,7 @@ function UserModal({ open, editing, onClose, onSaved }: UserModalProps) {
       setForm(
         editing
           ? { name: editing.name ?? '', email: editing.email, password: '', role: editing.role, personalNumber: editing.personalNumber ?? '', securityUnit: editing.securityUnit ?? '', region: editing.region ?? '', title: (editing as any).title ?? '' }
-          : EMPTY_FORM,
+          : { ...EMPTY_FORM, role: 'USER', securityUnit: isSectionChief ? (currentUser?.securityUnit ?? '') : '', region: isSectionChief ? (currentUser?.region ?? '') : '', title: isSectionChief ? (currentUser?.title ?? '') : '' },
       )
       setError('')
       setShowPw(false)
@@ -193,32 +195,51 @@ function UserModal({ open, editing, onClose, onSaved }: UserModalProps) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">الإقليم الحالي</label>
-              <input
-                value={(form as any).region || ''}
-                onChange={(e) => setForm({ ...form, region: e.target.value } as any)}
-                placeholder="اسم الإقليم"
-                className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-              />
+              {isSectionChief ? (
+                <div className="w-full rounded-lg border border-input bg-muted/60 px-3.5 py-2.5 text-sm text-foreground">
+                  {currentUser?.region || '—'}
+                </div>
+              ) : (
+                <input
+                  value={(form as any).region || ''}
+                  onChange={(e) => setForm({ ...form, region: e.target.value } as any)}
+                  placeholder="اسم الإقليم"
+                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">الوحدة الأمنية الحالية</label>
-              <input
-                value={form.securityUnit}
-                onChange={(e) => setForm({ ...form, securityUnit: e.target.value })}
-                placeholder="اسم الوحدة"
-                className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-              />
+              {isSectionChief ? (
+                <div className="w-full rounded-lg border border-input bg-muted/60 px-3.5 py-2.5 text-sm text-foreground flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+                  <span className="truncate">{currentUser?.securityUnit ?? '—'}</span>
+                </div>
+              ) : (
+                <input
+                  value={form.securityUnit}
+                  onChange={(e) => setForm({ ...form, securityUnit: e.target.value })}
+                  placeholder="اسم الوحدة"
+                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                />
+              )}
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">العنوان</label>
-            <input
-              value={(form as any).title || ''}
-              onChange={(e) => setForm({ ...form, title: e.target.value } as any)}
-              placeholder="مثال: أمين المستودع بوحدة كذا"
-              className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-            />
+            {isSectionChief ? (
+              <div className="w-full rounded-lg border border-input bg-muted/60 px-3.5 py-2.5 text-sm text-foreground">
+                {currentUser?.title || '—'}
+              </div>
+            ) : (
+              <input
+                value={(form as any).title || ''}
+                onChange={(e) => setForm({ ...form, title: e.target.value } as any)}
+                placeholder="مثال: أمين المستودع بوحدة كذا"
+                className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+              />
+            )}
           </div>
 
           <div>
@@ -258,15 +279,22 @@ function UserModal({ open, editing, onClose, onSaved }: UserModalProps) {
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">الدور الوظيفي</label>
-            <select
-              value={form.role}
-              onChange={(e) => setForm({ ...form, role: e.target.value })}
-              className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-            >
-              <option value="USER">مستخدم</option>
-              <option value="SECTION_CHIEF">رئيس قسم</option>
-              <option value="ADMIN">مسؤول</option>
-            </select>
+            {isSectionChief ? (
+              <div className="w-full rounded-lg border border-input bg-muted/60 px-3.5 py-2.5 text-sm text-foreground flex items-center gap-2">
+                <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span>مستخدم</span>
+              </div>
+            ) : (
+              <select
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+              >
+                <option value="USER">مستخدم</option>
+                <option value="SECTION_CHIEF">رئيس قسم</option>
+                <option value="ADMIN">مسؤول</option>
+              </select>
+            )}
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -352,16 +380,83 @@ function DeleteModal({ user, onClose, onConfirm }: DeleteModalProps) {
   )
 }
 
+// ─── User Details Modal ──────────────────────────────────────────────────────
+
+function UserDetailsModal({ user, onClose, onEdit }: { user: any | null; onClose: () => void; onEdit: () => void }) {
+  if (!user) return null
+  const fields = [
+    { label: 'الاسم الكامل', value: user.name || '—' },
+    { label: 'البريد الإلكتروني', value: user.email, ltr: true },
+    { label: 'الرقم الشخصي', value: user.personalNumber || '—', mono: true },
+    { label: 'الدور الوظيفي', value: <RoleBadge role={user.role} /> },
+    { label: 'الوحدة الأمنية', value: user.securityUnit || '—' },
+    { label: 'الإقليم', value: user.region || '—' },
+    { label: 'العنوان', value: user.title || '—' },
+    { label: 'تاريخ الإنشاء', value: new Date(user.createdAt).toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' }) },
+    { label: 'آخر تحديث', value: new Date(user.updatedAt).toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' }) },
+  ]
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md border border-border" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+              {(user.name ?? user.email).charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h2 className="font-semibold text-foreground text-base">{user.name || 'مستخدم'}</h2>
+              <p className="text-xs text-muted-foreground" dir="ltr">{user.email}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted/60 text-muted-foreground transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        {/* Fields */}
+        <div className="px-6 py-4 grid grid-cols-2 gap-3">
+          {fields.map(({ label, value, ltr, mono }) => (
+            <div key={label} className="bg-muted/40 rounded-xl px-3.5 py-3">
+              <p className="text-xs text-muted-foreground mb-1">{label}</p>
+              {typeof value === 'string' ? (
+                <p className={`text-sm font-medium text-foreground ${ltr ? 'text-left font-mono' : ''} ${mono ? 'font-mono' : ''}`} dir={ltr ? 'ltr' : undefined}>{value}</p>
+              ) : value}
+            </div>
+          ))}
+        </div>
+        {/* Actions */}
+        <div className="px-6 pb-5 pt-1 flex gap-3">
+          <button
+            onClick={onEdit}
+            className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Pencil className="w-4 h-4" />
+            تعديل البيانات
+          </button>
+          <button
+            onClick={onClose}
+            className="px-5 bg-muted text-foreground rounded-xl py-2.5 text-sm font-medium hover:bg-muted/80 transition-colors"
+          >
+            إغلاق
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Users Tab ────────────────────────────────────────────────────────────────
 
 function UsersTab() {
   const queryClient = useQueryClient()
+  const { user: currentUser } = useContext(AuthContext)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [addOpen, setAddOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any | null>(null)
   const [deletingUser, setDeletingUser] = useState<any | null>(null)
+  const [viewingUser, setViewingUser] = useState<any | null>(null)
   const [toast, setToast] = useState<{ type: 'error' | 'success'; message: string }>({ type: 'success', message: '' })
 
   useEffect(() => {
@@ -469,7 +564,7 @@ function UsersTab() {
                 </tr>
               ) : (
                 users.map((u: any) => (
-                  <tr key={u.id} className="hover:bg-muted/50 transition-colors">
+                  <tr key={u.id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setViewingUser(u)}>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
@@ -493,7 +588,7 @@ function UsersTab() {
                         year: 'numeric', month: 'short', day: 'numeric',
                       })}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => { setEditingUser(u); setAddOpen(true) }}
@@ -502,13 +597,15 @@ function UsersTab() {
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => setDeletingUser(u)}
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          title="حذف"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {u.role !== 'ADMIN' && (
+                          <button
+                            onClick={() => setDeletingUser(u)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title="حذف"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -531,11 +628,17 @@ function UsersTab() {
         editing={editingUser}
         onClose={() => { setAddOpen(false); setEditingUser(null) }}
         onSaved={handleSaved}
+        currentUser={currentUser}
       />
       <DeleteModal
         user={deletingUser}
         onClose={() => setDeletingUser(null)}
         onConfirm={handleDeleteConfirm}
+      />
+      <UserDetailsModal
+        user={viewingUser}
+        onClose={() => setViewingUser(null)}
+        onEdit={() => { setEditingUser(viewingUser); setAddOpen(true); setViewingUser(null) }}
       />
     </div>
   )

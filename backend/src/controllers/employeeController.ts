@@ -2,9 +2,16 @@ import { Request, Response } from 'express'
 import { employeeService } from '../services/employeeService'
 import prisma from '../config/database'
 
-export const listAll = async (_req: Request, res: Response) => {
+const getSU = (req: Request) => {
+  const u = (req as any).user
+  return u?.role === 'ADMIN' ? undefined : (u?.securityUnit ?? undefined)
+}
+
+export const listAll = async (req: Request, res: Response) => {
   try {
+    const su = getSU(req)
     const employees = await prisma.employee.findMany({
+      where: su ? { entity: { securityUnit: su } } : undefined,
       include: { entity: { select: { id: true, name: true } } },
       orderBy: [{ rank: 'asc' }, { name: 'asc' }],
     })
@@ -16,7 +23,7 @@ export const listAll = async (_req: Request, res: Response) => {
 
 export const listByEntity = async (req: Request, res: Response) => {
   try {
-    const employees = await employeeService.getEmployeesByEntity(parseInt(req.params.entityId))
+    const employees = await employeeService.getEmployeesByEntity(parseInt(req.params.entityId), getSU(req))
     res.json({ success: true, data: employees })
   } catch (error) {
     res.status(500).json({ success: false, error: (error as any).message })
@@ -25,7 +32,7 @@ export const listByEntity = async (req: Request, res: Response) => {
 
 export const getById = async (req: Request, res: Response) => {
   try {
-    const employee = await employeeService.getEmployeeById(parseInt(req.params.id))
+    const employee = await employeeService.getEmployeeById(parseInt(req.params.id), getSU(req))
     if (!employee) return res.status(404).json({ success: false, error: 'Employee not found' })
     res.json({ success: true, data: employee })
   } catch (error) {
@@ -87,7 +94,7 @@ export const update = async (req: Request, res: Response) => {
     const { rank, name, surname, number, phone } = req.body
     const employee = await employeeService.updateEmployee(parseInt(req.params.id), {
       rank, name, surname, number, phone,
-    })
+    }, getSU(req))
     res.json({ success: true, data: employee })
   } catch (error) {
     res.status(500).json({ success: false, error: (error as any).message })
@@ -96,7 +103,7 @@ export const update = async (req: Request, res: Response) => {
 
 export const remove = async (req: Request, res: Response) => {
   try {
-    const employee = await employeeService.deleteEmployee(parseInt(req.params.id))
+    const employee = await employeeService.deleteEmployee(parseInt(req.params.id), getSU(req))
     res.json({ success: true, data: employee })
   } catch (error) {
     res.status(500).json({ success: false, error: (error as any).message })

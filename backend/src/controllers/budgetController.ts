@@ -1,9 +1,14 @@
 import { Request, Response } from 'express'
 import * as budgetService from '../services/budgetService'
 
-export const list = async (_req: Request, res: Response) => {
+const getSU = (req: Request) => {
+  const u = (req as any).user
+  return u?.role === 'ADMIN' ? undefined : (u?.securityUnit ?? undefined)
+}
+
+export const list = async (req: Request, res: Response) => {
   try {
-    const data = await budgetService.listBudgets()
+    const data = await budgetService.listBudgets(getSU(req))
     res.json({ data })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
@@ -18,7 +23,7 @@ export const create = async (req: Request, res: Response) => {
   try {
     const actor = (req as any).user
     const budget = await budgetService.createBudget(
-      { name, department, amount, startDate, endDate, status, notes }, actor?.email,
+      { name, department, amount, startDate, endDate, status, notes }, actor?.email, actor?.securityUnit,
     )
     res.json({ data: budget })
   } catch (err: any) {
@@ -28,7 +33,7 @@ export const create = async (req: Request, res: Response) => {
 
 export const update = async (req: Request, res: Response) => {
   try {
-    const budget = await budgetService.updateBudget(Number(req.params.id), req.body)
+    const budget = await budgetService.updateBudget(Number(req.params.id), req.body, getSU(req))
     res.json({ data: budget })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
@@ -37,7 +42,7 @@ export const update = async (req: Request, res: Response) => {
 
 export const remove = async (req: Request, res: Response) => {
   try {
-    await budgetService.deleteBudget(Number(req.params.id))
+    await budgetService.deleteBudget(Number(req.params.id), getSU(req))
     res.json({ data: { ok: true } })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
@@ -81,7 +86,7 @@ export const deleteExpense = async (req: Request, res: Response) => {
 export const expensesBySupplier = async (req: Request, res: Response) => {
   try {
     const name = decodeURIComponent(req.params.name)
-    const data = await budgetService.getExpensesBySupplier(name)
+    const data = await budgetService.getExpensesBySupplier(name, getSU(req))
     res.json({ data })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
@@ -123,7 +128,7 @@ export const deleteSupplyRequest = async (req: Request, res: Response) => {
 export const supplyRequestsBySupplier = async (req: Request, res: Response) => {
   try {
     const name = decodeURIComponent(req.params.name)
-    const data = await budgetService.getSupplyRequestsBySupplier(name)
+    const data = await budgetService.getSupplyRequestsBySupplier(name, getSU(req))
     res.json({ data })
   } catch (err: any) {
     res.status(500).json({ error: err.message })

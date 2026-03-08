@@ -13,8 +13,19 @@ export interface AuditParams {
 export const createAuditLog = (params: AuditParams) =>
   prisma.auditLog.create({ data: params })
 
-export const listAuditLogs = (limit = 200) =>
-  prisma.auditLog.findMany({
+export const listAuditLogs = async (limit = 200, securityUnit?: string | null) => {
+  if (!securityUnit) {
+    return prisma.auditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    })
+  }
+  // Filter: only show audit logs created by users in the same securityUnit
+  const users = await prisma.user.findMany({ where: { securityUnit }, select: { id: true } })
+  const userIds = users.map(u => u.id)
+  return prisma.auditLog.findMany({
+    where: { actorId: { in: userIds } },
     orderBy: { createdAt: 'desc' },
     take: limit,
   })
+}

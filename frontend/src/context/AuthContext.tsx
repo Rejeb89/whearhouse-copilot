@@ -28,6 +28,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (token) {
       client.get('/auth/me').then(res => {
         setUser(res.data.data)
+        // Refresh the JWT so admin-side changes (securityUnit, role) take effect
+        if (res.data.token) {
+          setToken(res.data.token)
+          localStorage.setItem('token', res.data.token)
+        }
       }).catch(() => {})
     }
   }, [])

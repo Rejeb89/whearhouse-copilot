@@ -20,6 +20,6 @@ router.delete('/expenses/:id', roleGuard(['ADMIN', 'SECTION_CHIEF']), budgetCont
 
 router.get('/:id/supply-requests', budgetController.listSupplyRequests)
 router.post('/:id/supply-requests', budgetController.createSupplyRequest)
-router.delete('/supply-requests/:id', roleGuard(['ADMIN']), budgetController.deleteSupplyRequest)
+router.delete('/supply-requests/:id', roleGuard(['ADMIN', 'SECTION_CHIEF']), budgetController.deleteSupplyRequest)
 
 export default router
