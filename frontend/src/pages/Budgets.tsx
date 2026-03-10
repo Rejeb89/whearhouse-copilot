@@ -411,9 +411,27 @@ export default function Budgets() {
             <div className="rounded-xl border border-border bg-card shadow-sm p-5">
               <h3 className="text-sm font-semibold text-foreground mb-4">نسبة استهلاك الاعتمادات النشطة</h3>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={budgets.filter(b=>b.status==='active').map(b=>({name:b.name.length>20?b.name.slice(0,20)+'...':b.name,spent:spentByBudget[b.id]??0,remaining:Math.max(b.amount-(spentByBudget[b.id]??0),0)}))} barSize={20}>
-                  <XAxis dataKey="name" tick={{fontSize:10}}/><YAxis tick={{fontSize:10}}/><Tooltip formatter={(v:number)=>fmt(v)+' د'}/><Legend/>
-                  <Bar dataKey="spent" name="مصروف" fill="#ef4444" radius={[4,4,0,0]}/><Bar dataKey="remaining" name="متبقي" fill="#2563eb" radius={[4,4,0,0]}/>
+                <BarChart
+                  data={budgets.filter(b=>b.status==='active').map(b=>({
+                    name: b.name.length>18 ? b.name.slice(0,18)+'…' : b.name,
+                    spent: spentByBudget[b.id]??0,
+                    remaining: Math.max(b.amount-(spentByBudget[b.id]??0),0)
+                  }))}
+                  barSize={18}
+                  margin={{top:4, right:8, left:0, bottom:0}}
+                >
+                  <XAxis dataKey="name" tick={{fontSize:10, fill:'#6b7280'}} tickLine={false} axisLine={false} />
+                  <YAxis tick={{fontSize:10, fill:'#6b7280'}} tickLine={false} axisLine={false} width={48}
+                    tickFormatter={(v:number)=>v>=1000?Math.round(v/1000)+'k':String(v)} />
+                  <Tooltip
+                    formatter={(v:number, name:string)=>[fmt(v)+' د', name]}
+                    contentStyle={{background:'#ffffff', border:'1px solid #e5e7eb', borderRadius:'10px', fontSize:'12px', padding:'8px 12px', color:'#111827', boxShadow:'0 4px 12px rgba(0,0,0,0.08)'}}
+                    labelStyle={{fontWeight:600, color:'#111827', marginBottom:4}}
+                    cursor={{fill:'rgba(0,0,0,0.04)'}}
+                  />
+                  <Legend wrapperStyle={{fontSize:'12px', paddingTop:'8px'}} />
+                  <Bar dataKey="spent" name="مصروف" fill="#ef4444" radius={[4,4,0,0]} />
+                  <Bar dataKey="remaining" name="متبقي" fill="#3b82f6" radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -421,10 +439,34 @@ export default function Budgets() {
               <h3 className="text-sm font-semibold text-foreground mb-4">توزيع الإجمالي المالي</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={[{name:'مصروف',value:totalSpent},{name:'متبقي',value:Math.max(totalRemaining,0)}]} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`}>
-                    {[0,1].map(i=><Cell key={i} fill={['#ef4444','#2563eb'][i]}/>)}
+                  <Pie
+                    data={[{name:'مصروف',value:totalSpent},{name:'متبقي',value:Math.max(totalRemaining,0)}]}
+                    cx="50%" cy="50%"
+                    innerRadius={55}
+                    outerRadius={85}
+                    dataKey="value"
+                    paddingAngle={3}
+                    label={({cx,cy,midAngle,innerRadius,outerRadius,percent,name})=>{
+                      const RADIAN=Math.PI/180
+                      const r=innerRadius+(outerRadius-innerRadius)*1.5
+                      const x=Number(cx)+r*Math.cos(-midAngle*RADIAN)
+                      const y=Number(cy)+r*Math.sin(-midAngle*RADIAN)
+                      return percent>0.03?(
+                        <text x={x} y={y} fill="#374151" textAnchor={x>Number(cx)?'start':'end'} dominantBaseline="central" fontSize={11} fontWeight={600}>
+                          {`${name} ${(percent*100).toFixed(0)}%`}
+                        </text>
+                      ):null
+                    }}
+                    labelLine={{stroke:'#d1d5db', strokeWidth:1}}
+                  >
+                    <Cell fill="#ef4444" />
+                    <Cell fill="#3b82f6" />
                   </Pie>
-                  <Tooltip formatter={(v:number)=>fmt(v)+' د'}/><Legend/>
+                  <Tooltip
+                    formatter={(v:number, name:string)=>[fmt(v)+' د', name]}
+                    contentStyle={{background:'#ffffff', border:'1px solid #e5e7eb', borderRadius:'10px', fontSize:'12px', padding:'8px 12px', color:'#111827', boxShadow:'0 4px 12px rgba(0,0,0,0.08)'}}
+                  />
+                  <Legend wrapperStyle={{fontSize:'12px', paddingTop:'4px'}} />
                 </PieChart>
               </ResponsiveContainer>
             </div>

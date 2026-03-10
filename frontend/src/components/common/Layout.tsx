@@ -7,16 +7,18 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useContext(AuthContext)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  const hideSidebar = user?.role === 'REGION_CHIEF' || user?.role === 'DISTRICT_MANAGER'
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {user && (
+      {user && !hideSidebar && (
         <Sidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
       )}
       <div className="flex flex-col flex-1 overflow-hidden">
-        <TopBar onToggleSidebar={() => setSidebarOpen((o) => !o)} />
+        <TopBar onToggleSidebar={hideSidebar ? undefined : () => setSidebarOpen((o) => !o)} />
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>

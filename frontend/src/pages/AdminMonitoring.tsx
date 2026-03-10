@@ -209,7 +209,7 @@ function UnitsList({ user, search, setSearch, onSelect }: { user: any; search: s
       {/* Header */}
       <div className="bg-gradient-to-l from-red-600 via-rose-600 to-pink-700 rounded-2xl p-6 text-white shadow-xl">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-white/15 rounded-xl backdrop-blur-sm"><Shield className="w-7 h-7" /></div>
+          <div className="p-1 bg-white/15 rounded-xl backdrop-blur-sm"><img src="/logo.png" alt="شعار الحرس الوطني" className="w-12 h-12 object-contain drop-shadow-lg" /></div>
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight">لوحة المراقبة المركزية</h1>
             <p className="text-sm text-white/75 mt-0.5">
@@ -330,7 +330,7 @@ function UnitDetail({ unit, onBack }: { unit: string; onBack?: () => void }) {
           {onBack && (
             <button onClick={onBack} className="p-2 rounded-xl bg-white/15 hover:bg-white/25 transition-colors"><ArrowRight className="w-5 h-5" /></button>
           )}
-          <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm"><Shield className="w-5 h-5" /></div>
+          <div className="p-1 bg-white/15 rounded-xl backdrop-blur-sm"><img src="/logo.png" alt="شعار الحرس الوطني" className="w-9 h-9 object-contain drop-shadow" /></div>
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-extrabold truncate">{unit}</h1>
             <p className="text-xs text-white/70">لوحة مراقبة الوحدة الأمنية</p>

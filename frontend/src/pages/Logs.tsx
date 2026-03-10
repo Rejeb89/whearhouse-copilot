@@ -514,12 +514,15 @@ export default function Logs() {
 
   const TooltipStyle = {
     contentStyle: {
-      background: 'hsl(var(--card))',
-      border: '1px solid hsl(var(--border))',
-      borderRadius: 8,
-      color: 'hsl(var(--foreground))',
+      background: '#ffffff',
+      border: '1px solid #e5e7eb',
+      borderRadius: 10,
+      fontSize: 12,
+      padding: '8px 12px',
+      color: '#111827',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
     },
-    labelStyle: { color: 'hsl(var(--muted-foreground))', fontWeight: 600 },
+    labelStyle: { fontWeight: 600, color: '#111827', marginBottom: 4 },
   }
 
   return (
@@ -676,18 +679,36 @@ export default function Logs() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="rounded-xl border border-border bg-card p-5">
                   <h3 className="text-sm font-semibold text-foreground mb-4">توزيع العمليات حسب النوع</h3>
-                  <ResponsiveContainer width="100%" height={200}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
                       <Pie
                         data={stats.byAction}
                         dataKey="count"
                         nameKey="action"
                         cx="50%" cy="50%"
-                        outerRadius={75}
+                        innerRadius={48}
+                        outerRadius={72}
                         paddingAngle={3}
-                        label={({ name, percent }: any) =>
-                          `${ACTION_LABELS[name] ?? name} ${(percent * 100).toFixed(0)}%`}
-                        labelLine={false}
+                        label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
+                          if (percent < 0.04) return null;
+                          const RADIAN = Math.PI / 180;
+                          const r = innerRadius + (outerRadius - innerRadius) * 1.65;
+                          const x = Number(cx) + r * Math.cos(-midAngle * RADIAN);
+                          const y = Number(cy) + r * Math.sin(-midAngle * RADIAN);
+                          return (
+                            <text
+                              x={x} y={y}
+                              fill="#374151"
+                              textAnchor={x > Number(cx) ? 'start' : 'end'}
+                              dominantBaseline="central"
+                              fontSize={10}
+                              fontWeight={600}
+                            >
+                              {`${ACTION_LABELS[name] ?? name} ${(percent * 100).toFixed(0)}%`}
+                            </text>
+                          );
+                        }}
+                        labelLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
                       >
                         {stats.byAction.map((_: any, i: number) => (
                           <Cell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />

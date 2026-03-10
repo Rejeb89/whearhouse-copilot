@@ -57,9 +57,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <nav className="flex-1 overflow-y-auto p-3">
           <ul className="space-y-1">
             {(
-              user?.role === 'REGION_CHIEF' || user?.role === 'DISTRICT_MANAGER' ? [
-                { to: '/monitoring', icon: <Shield className="w-5 h-5" />,   label: 'لوحة المراقبة' },
-                { to: '/settings',   icon: <Settings className="w-5 h-5" />, label: 'الإعدادات' },
+              user?.role === 'DISTRICT_MANAGER' ? [
+                { to: '/monitoring', icon: <Shield className="w-5 h-5" />, label: 'لوحة المراقبة' },
               ] :
               user?.role === 'ADMIN' ? [
                 { to: '/monitoring', icon: <Shield className="w-5 h-5" />,          label: 'لوحة المراقبة' },

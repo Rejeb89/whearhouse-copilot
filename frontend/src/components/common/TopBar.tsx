@@ -51,7 +51,7 @@ const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
       </button>
 
       <div className="shrink-0 text-right">
-        <div className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">{timeStr}</span> {dateStr}</div>
+        <div className="text-sm text-muted-foreground">{dateStr} الساعة <span className="font-semibold text-foreground">{timeStr}</span></div>
       </div>
 
       <div className="relative shrink-0">
