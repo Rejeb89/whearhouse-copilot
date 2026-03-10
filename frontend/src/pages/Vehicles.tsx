@@ -4,11 +4,12 @@ import client from '../services/client'
 import { Plus, Search, Pencil, Trash2, X, Car, Fuel, Building2, ChevronDown, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const VEHICLE_TYPES = ['50', 'غزوال عادي', 'غزوال بيك أب', 'P4', 'حافلة', 'شاحنة', 'سيارة إدارية']
-const FUEL_TYPES    = ['بنزين رفيع', 'غزوال']
+const VEHICLE_TYPES = ['وسيلة نقل إدارية', 'مضخة مياه', 'مولد كهربائي', 'أخرى']
+const FUEL_TYPES    = ['بنزين رفيع', 'غزوال', 'غزوال رفيع']
 
 const EMPTY_FORM = {
   adminNumber:   '',
+  vehicleType:   '',
   type:          '',
   fuelType:      '',
   fuelQuota:     '' as string | number,
@@ -23,6 +24,7 @@ interface Entity { id: number; name: string; category?: string }
 interface Vehicle {
   id:            number
   adminNumber:   string
+  vehicleType?:  string | null
   type:          string
   fuelType:      string
   fuelQuota?:    number | null
@@ -46,7 +48,6 @@ export default function Vehicles() {
   const [form, setForm]                 = useState(EMPTY_FORM)
   const [error, setError]               = useState('')
   const [typeInput, setTypeInput]       = useState('')
-  const [showTypeDrop, setShowTypeDrop] = useState(false)
 
   // ── Queries ──────────────────────────────────────────────────────────────
   const { data: vehicles = [], isLoading } = useQuery<Vehicle[]>(
@@ -91,6 +92,7 @@ export default function Vehicles() {
       return (
         v.adminNumber.toLowerCase().includes(q) ||
         v.type.toLowerCase().includes(q) ||
+        (v.vehicleType || '').toLowerCase().includes(q) ||
         v.fuelType.toLowerCase().includes(q) ||
         (v.entity?.name || '').toLowerCase().includes(q) ||
         (v.notes || '').toLowerCase().includes(q)
@@ -117,6 +119,7 @@ export default function Vehicles() {
     setEditing(v)
     setForm({
       adminNumber:   v.adminNumber,
+      vehicleType:   (v as any).vehicleType || '',
       type:          v.type,
       fuelType:      v.fuelType,
       fuelQuota:     v.fuelQuota ?? '',
@@ -136,7 +139,7 @@ export default function Vehicles() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.adminNumber.trim()) return setError('الرقم الإداري مطلوب')
-    if (!form.type.trim())        return setError('نوع الوسيلة مطلوب')
+    if (!form.type.trim())        return setError('صنف الوسيلة مطلوب')
     if (!form.fuelType)           return setError('نوع الوقود مطلوب')
     if (!form.entityId)           return setError('الوحدة التابعة مطلوبة')
     if (form.status === 'BROKEN' && !form.breakdownRef?.trim()) return setError('رقم برقية التعطب مطلوب')
@@ -151,11 +154,10 @@ export default function Vehicles() {
     saveMut.mutate(payload)
   }
 
-  const selectType = (t: string) => { setForm(p => ({ ...p, type: t })); setTypeInput(t); setShowTypeDrop(false) }
-
   const fuelColor: Record<string, string> = {
-    'بنزين رفيع': 'bg-blue-100 text-blue-700',
-    'غزوال':      'bg-amber-100 text-amber-700',
+    'بنزين رفيع':  'bg-blue-100 text-blue-700',
+    'غزوال':       'bg-amber-100 text-amber-700',
+    'غزوال رفيع': 'bg-orange-100 text-orange-700',
   }
 
   const typeFilterOptions = VEHICLE_TYPES
@@ -268,6 +270,7 @@ export default function Vehicles() {
                 <tr>
                   <th className="px-4 py-3 text-right font-semibold text-muted-foreground">الرقم الإداري</th>
                   <th className="px-4 py-3 text-right font-semibold text-muted-foreground">نوع الوسيلة</th>
+                  <th className="px-4 py-3 text-right font-semibold text-muted-foreground">صنف الوسيلة</th>
                   <th className="px-4 py-3 text-right font-semibold text-muted-foreground">نوع الوقود</th>
                   <th className="px-4 py-3 text-right font-semibold text-muted-foreground">المقرر (لتر)</th>
                   <th className="px-4 py-3 text-right font-semibold text-muted-foreground">الحالة</th>
@@ -281,6 +284,9 @@ export default function Vehicles() {
                 {filtered.map(v => (
                   <tr key={v.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition">
                     <td className="px-4 py-3 font-mono font-semibold text-foreground">{v.adminNumber}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">
+                      {(v as any).vehicleType ? (v as any).vehicleType : <span className="text-muted-foreground">—</span>}
+                    </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium">
                         <Car className="w-3 h-3" />{v.type}
@@ -372,63 +378,45 @@ export default function Vehicles() {
                 />
               </div>
 
-              {/* نوع الوسيلة */}
+              {/* نوع الوسيلة - نص حر */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">نوع الوسيلة <span className="text-destructive">*</span></label>
-                <div className="relative">
-                  <input
-                    value={typeInput}
-                    onChange={e => { setTypeInput(e.target.value); setForm(p => ({ ...p, type: e.target.value })); setShowTypeDrop(true) }}
-                    onFocus={() => setShowTypeDrop(true)}
-                    placeholder="اختر أو اكتب النوع..."
-                    className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    autoComplete="off"
-                  />
-                  {showTypeDrop && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setShowTypeDrop(false)} />
-                      <div className="absolute top-full mt-1 w-full z-20 rounded-lg border border-border bg-card shadow-lg overflow-hidden">
-                        {VEHICLE_TYPES.filter(t => t.toLowerCase().includes(typeInput.toLowerCase())).map(t => (
-                          <button
-                            key={t}
-                            type="button"
-                            onClick={() => selectType(t)}
-                            className="w-full text-right px-4 py-2 text-sm hover:bg-muted transition-colors"
-                          >{t}</button>
-                        ))}
-                        {typeInput && !VEHICLE_TYPES.includes(typeInput) && (
-                          <button
-                            type="button"
-                            onClick={() => selectType(typeInput)}
-                            className="w-full text-right px-4 py-2 text-sm hover:bg-muted transition-colors text-primary"
-                          >استخدام "{typeInput}"</button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">نوع الوسيلة</label>
+                <input
+                  value={(form as any).vehicleType || ''}
+                  onChange={e => setForm(p => ({ ...p, vehicleType: e.target.value }))}
+                  placeholder="مثال: غزوال بيك آب، P4..."
+                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+
+              {/* صنف الوسيلة */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">صنف الوسيلة <span className="text-destructive">*</span></label>
+                <select
+                  value={form.type}
+                  onChange={e => { setForm(p => ({ ...p, type: e.target.value })); setTypeInput(e.target.value) }}
+                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">اختر صنف الوسيلة...</option>
+                  {VEHICLE_TYPES.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
 
               {/* نوع الوقود */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">نوع الوقود <span className="text-destructive">*</span></label>
-                <div className="grid grid-cols-3 gap-2">
+                <select
+                  value={form.fuelType}
+                  onChange={e => setForm(p => ({ ...p, fuelType: e.target.value }))}
+                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">اختر نوع الوقود...</option>
                   {FUEL_TYPES.map(f => (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => setForm(p => ({ ...p, fuelType: f }))}
-                      className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
-                        form.fuelType === f
-                          ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary'
-                          : 'border-input bg-background text-muted-foreground hover:bg-muted'
-                      }`}
-                    >
-                      <Fuel className="w-3.5 h-3.5" />
-                      {f}
-                    </button>
+                    <option key={f} value={f}>{f}</option>
                   ))}
-                </div>
+                </select>
               </div>
 
               {/* المقرر بالتر */}
@@ -448,26 +436,14 @@ export default function Vehicles() {
               {/* حالة الوسيلة */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">حالة الوسيلة</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['OPERATIONAL', 'BROKEN'] as const).map(s => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setForm(p => ({ ...p, status: s, breakdownRef: '', breakdownDate: '' }))}
-                      className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                        form.status === s
-                          ? s === 'BROKEN'
-                            ? 'border-destructive bg-destructive/10 text-destructive ring-1 ring-destructive'
-                            : 'border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500 dark:bg-emerald-900/20 dark:text-emerald-400'
-                          : 'border-input bg-background text-muted-foreground hover:bg-muted'
-                      }`}
-                    >
-                      {s === 'BROKEN'
-                        ? <><AlertTriangle className="w-4 h-4" />معطبة</>
-                        : <><CheckCircle2 className="w-4 h-4" />صالحة</>}
-                    </button>
-                  ))}
-                </div>
+                <select
+                  value={form.status}
+                  onChange={e => setForm(p => ({ ...p, status: e.target.value as 'OPERATIONAL' | 'BROKEN', breakdownRef: '', breakdownDate: '' }))}
+                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="OPERATIONAL">صالحة</option>
+                  <option value="BROKEN">معطبة</option>
+                </select>
               </div>
 
               {/* حقول التعطب — تظهر فقط عند اختيار معطبة */}

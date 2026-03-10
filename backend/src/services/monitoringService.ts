@@ -13,7 +13,7 @@ export const listSecurityUnits = async () => {
 
   const result = await Promise.all(
     uniqueUnits.map(async (unit) => {
-      const [users, items, vehicles, receptions, distributions, entities, budgets] =
+      const [users, items, vehicles, receptions, distributions, entities, budgets, projects] =
         await Promise.all([
           prisma.user.count({ where: { securityUnit: unit } }),
           prisma.item.count({ where: { securityUnit: unit } }),
@@ -22,8 +22,9 @@ export const listSecurityUnits = async () => {
           prisma.distribution.count({ where: { securityUnit: unit } }),
           prisma.entity.count({ where: { securityUnit: unit } }),
           prisma.budget.count({ where: { securityUnit: unit } }),
+          prisma.project.count({ where: { securityUnit: unit } }),
         ])
-      return { securityUnit: unit, users, items, vehicles, receptions, distributions, entities, budgets }
+      return { securityUnit: unit, users, items, vehicles, receptions, distributions, entities, budgets, projects }
     })
   )
 
@@ -33,7 +34,7 @@ export const listSecurityUnits = async () => {
 /* ─── Get unit overview (stats for a single unit) ─── */
 export const getUnitOverview = async (unit: string) => {
   const [
-    users, items, vehicles, receptions, distributions, entities, budgets, logs,
+    users, items, vehicles, receptions, distributions, entities, budgets, logs, projects,
     lowStockItems, recentLogs, recentDistributions, activeBudgets,
   ] = await Promise.all([
     prisma.user.count({ where: { securityUnit: unit } }),
@@ -44,6 +45,8 @@ export const getUnitOverview = async (unit: string) => {
     prisma.entity.count({ where: { securityUnit: unit } }),
     prisma.budget.count({ where: { securityUnit: unit } }),
     prisma.log.count({ where: { securityUnit: unit } }),
+    prisma.project.count({ where: { securityUnit: unit } }),
+
     prisma.item.findMany({
       where: { securityUnit: unit },
       orderBy: { quantity: 'asc' },
@@ -88,11 +91,20 @@ export const getUnitOverview = async (unit: string) => {
   }
 
   return {
-    users, items, vehicles, receptions, distributions, entities, budgets, logs,
+    users, items, vehicles, receptions, distributions, entities, budgets, logs, projects,
     lowStockItems, recentLogs,
     recentDistributions,
     financialSummary,
   }
+}
+
+/* ─── Get projects for a specific unit ─── */
+export const getUnitProjects = async (unit: string) => {
+  return prisma.project.findMany({
+    where: { securityUnit: unit },
+    include: { entity: { select: { id: true, name: true, type: true } } },
+    orderBy: { createdAt: 'desc' },
+  })
 }
 
 /* ─── Get items for a specific unit ─── */

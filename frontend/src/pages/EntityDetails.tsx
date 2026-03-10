@@ -7,7 +7,9 @@ import client from '../services/client';
 import {
   ArrowRight, Phone, User, Plus, Search, Trash2, Edit2, Upload,
   Download, FileText, Filter, X, ChevronDown, Package, CalendarRange,
-  ShoppingCart, Paperclip, Building2, Inbox, Pencil, Car, Fuel
+  ShoppingCart, Paperclip, Building2, Inbox, Pencil, Car, Fuel,
+  HardHat, Hammer, BookOpen, CheckCircle2, AlertTriangle, BadgePercent,
+  CalendarDays, DollarSign
 } from 'lucide-react';
 import EmployeeModal from '../components/modals/EmployeeModal';
 import ExcelImportModal from '../components/modals/ExcelImportModal';
@@ -60,6 +62,51 @@ interface Vehicle {
   entityId: number;
   notes?: string;
 }
+
+interface Project {
+  id: number;
+  name: string;
+  type: 'CONSTRUCTION' | 'DEVELOPMENT' | 'PROTECTION';
+  status: 'STUDY' | 'WORK' | 'COMPLETED' | 'SUSPENDED';
+  entityId: number;
+  progress: number;
+  budget: number;
+  budgetYear: number;
+  extraBudget?: number;
+  extraBudgetYear?: number;
+  startDate?: string;
+  expectedEndDate?: string;
+  notes?: string;
+}
+
+const PROJ_TYPE_LABELS: Record<string, string> = {
+  CONSTRUCTION: 'بناء',
+  DEVELOPMENT: 'تهيئة',
+  PROTECTION: 'حماية وتسييج',
+};
+const PROJ_STATUS_LABELS: Record<string, string> = {
+  STUDY: 'طور الدراسات',
+  WORK: 'طور الأشغال',
+  COMPLETED: 'مكتمل',
+  SUSPENDED: 'موقوف',
+};
+const PROJ_STATUS_BADGE: Record<string, string> = {
+  STUDY: 'bg-blue-100 text-blue-700 border border-blue-200',
+  WORK: 'bg-green-100 text-green-700 border border-green-200',
+  COMPLETED: 'bg-slate-100 text-slate-600 border border-slate-200',
+  SUSPENDED: 'bg-red-100 text-red-600 border border-red-200',
+};
+const PROJ_TYPE_BAR: Record<string, string> = {
+  CONSTRUCTION: 'bg-orange-500',
+  DEVELOPMENT: 'bg-violet-500',
+  PROTECTION: 'bg-teal-500',
+};
+const projProgressColor = (p: number) => {
+  if (p >= 100) return 'bg-emerald-500';
+  if (p >= 60) return 'bg-blue-500';
+  if (p >= 30) return 'bg-amber-400';
+  return 'bg-red-400';
+};
 
 const MONITORING_ONLY_ROLES = ['REGION_CHIEF', 'DISTRICT_MANAGER'];
 
@@ -147,6 +194,16 @@ export default function EntityDetails() {
       return res.data.data as any[];
     },
     enabled: !!entity && isSupplier,
+  });
+
+  // Fetch projects for this entity
+  const { data: entityProjects = [] } = useQuery<Project[]>({
+    queryKey: [`projects-entity-${id}`],
+    queryFn: async () => {
+      const res = await client.get(`/projects?entityId=${id}`);
+      return res.data.data as Project[];
+    },
+    enabled: !!id,
   });
 
   // Fetch vehicles for this entity
@@ -587,6 +644,72 @@ export default function EntityDetails() {
               {/* unknown types */}
               {entityVehicles.filter(v => !['50','غزوال عادي','غزوال بيك أب','P4','حافلة','شاحنة','سيارة إدارية'].includes(v.type)).map(v => (
                 <span key={v.id}>{v.type}: <strong className="text-foreground">1</strong></span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Projects section */}
+        {entityProjects.length > 0 && (
+          <div className="rounded-xl border border-border bg-card mb-8 overflow-hidden">
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                <HardHat className="w-4 h-4 text-primary" />
+                المشاريع الجارية
+                <span className="text-xs font-normal text-muted-foreground bg-muted rounded-full px-2 py-0.5">{entityProjects.length} مشروع</span>
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+              {entityProjects.map((p) => (
+                <div key={p.id} className="rounded-xl border border-border bg-background overflow-hidden">
+                  <div className={`h-1 w-full ${PROJ_TYPE_BAR[p.type]}`} />
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${PROJ_STATUS_BADGE[p.status]} mb-1`}>
+                          {p.status === 'STUDY' && <BookOpen className="w-3 h-3" />}
+                          {p.status === 'WORK' && <Hammer className="w-3 h-3" />}
+                          {p.status === 'COMPLETED' && <CheckCircle2 className="w-3 h-3" />}
+                          {p.status === 'SUSPENDED' && <AlertTriangle className="w-3 h-3" />}
+                          {PROJ_STATUS_LABELS[p.status]}
+                        </span>
+                        <p className="font-bold text-foreground text-sm">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">{PROJ_TYPE_LABELS[p.type]}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">نسبة الإنجاز</span>
+                        <span className="font-bold text-foreground">{p.progress}%</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                        <div className={`h-2 rounded-full transition-all ${projProgressColor(p.progress)}`} style={{ width: `${p.progress}%` }} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-lg bg-muted/50 px-3 py-2">
+                        <div className="text-muted-foreground flex items-center gap-1 mb-0.5"><DollarSign className="w-3 h-3" />الاعتماد</div>
+                        <div className="font-bold text-foreground">{p.budget.toLocaleString('ar-TN')} <span className="font-normal text-muted-foreground">د.ت</span></div>
+                        <div className="text-muted-foreground">{p.budgetYear}</div>
+                      </div>
+                      {p.extraBudget != null && p.extraBudget > 0 ? (
+                        <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
+                          <div className="text-amber-700 flex items-center gap-1 mb-0.5"><BadgePercent className="w-3 h-3" />إضافي</div>
+                          <div className="font-bold text-amber-800">{p.extraBudget.toLocaleString('ar-TN')} <span className="font-normal">د.ت</span></div>
+                          {p.extraBudgetYear && <div className="text-amber-600">{p.extraBudgetYear}</div>}
+                        </div>
+                      ) : (
+                        <div className="rounded-lg bg-muted/50 px-3 py-2">
+                          <div className="text-muted-foreground flex items-center gap-1 mb-0.5"><CalendarDays className="w-3 h-3" />بداية</div>
+                          <div className="font-bold text-foreground">{p.startDate ? new Date(p.startDate).toLocaleDateString('ar-TN') : '—'}</div>
+                        </div>
+                      )}
+                    </div>
+                    {p.notes && (
+                      <p className="text-xs text-muted-foreground border-t border-dashed border-border pt-2 line-clamp-2">{p.notes}</p>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
           </div>

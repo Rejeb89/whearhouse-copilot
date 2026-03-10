@@ -1,7 +1,7 @@
 import React, { useContext } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AuthContext } from '../../context/AuthContext'
-import { LayoutDashboard, Package, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck, Car, X, Shield } from 'lucide-react'
+import { LayoutDashboard, Package, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck, Car, X, Shield, HardHat } from 'lucide-react'
 import GlobalSearch from './GlobalSearch'
 
 interface SidebarProps {
@@ -59,6 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             {(
               user?.role === 'DISTRICT_MANAGER' ? [
                 { to: '/monitoring', icon: <Shield className="w-5 h-5" />, label: 'لوحة المراقبة' },
+                { to: '/projects',   icon: <HardHat className="w-5 h-5" />, label: 'المشاريع الجارية' },
               ] :
               user?.role === 'ADMIN' ? [
                 { to: '/monitoring', icon: <Shield className="w-5 h-5" />,          label: 'لوحة المراقبة' },
@@ -69,6 +70,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 { to: '/items',        icon: <Package className="w-5 h-5" />,         label: 'التجهيزات' },
                 { to: '/vehicles',     icon: <Car className="w-5 h-5" />,             label: 'الوسائل' },
                 { to: '/entities',     icon: <Building2 className="w-5 h-5" />,       label: 'الجهات' },
+                { to: '/projects',     icon: <HardHat className="w-5 h-5" />,          label: 'المشاريع الجارية' },
                 { to: '/calendar',     icon: <CalendarDays className="w-5 h-5" />,    label: 'الرزنامة' },
                 { to: '/receipts',     icon: <ClipboardCheck className="w-5 h-5" />,  label: 'وصولات التسليم' },
                 ...(user?.role === 'SECTION_CHIEF' ? [

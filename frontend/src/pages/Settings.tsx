@@ -87,7 +87,7 @@ const AUDIT_ACTION_META: Record<string, {
   },
 }
 
-const EMPTY_FORM = { name: '', email: '', password: '', role: 'USER' as string, personalNumber: '', securityUnit: '', region: '', title: '' }
+const EMPTY_FORM = { name: '', email: '', password: '', role: 'USER' as string, personalNumber: '', securityUnit: '', region: '', regionChief: '', title: '' }
 
 // ─── ComboBox ─────────────────────────────────────────────────────────────────
 
@@ -217,8 +217,8 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
     if (open) {
       setForm(
         editing
-          ? { name: editing.name ?? '', email: editing.email, password: '', role: editing.role, personalNumber: editing.personalNumber ?? '', securityUnit: editing.securityUnit ?? '', region: editing.region ?? '', title: (editing as any).title ?? '' }
-          : { ...EMPTY_FORM, role: 'USER', securityUnit: isSectionChief ? (currentUser?.securityUnit ?? '') : '', region: isSectionChief ? (currentUser?.region ?? '') : '', title: isSectionChief ? (currentUser?.title ?? '') : '' },
+          ? { name: editing.name ?? '', email: editing.email, password: '', role: editing.role, personalNumber: editing.personalNumber ?? '', securityUnit: editing.securityUnit ?? '', region: editing.region ?? '', regionChief: (editing as any).regionChief ?? '', title: (editing as any).title ?? '' }
+          : { ...EMPTY_FORM, role: 'USER', securityUnit: isSectionChief ? (currentUser?.securityUnit ?? '') : '', region: isSectionChief ? (currentUser?.region ?? '') : '', regionChief: isSectionChief ? ((currentUser as any)?.regionChief ?? '') : '', title: isSectionChief ? (currentUser?.title ?? '') : '' },
       )
       setError('')
       setShowPw(false)
@@ -241,7 +241,7 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
     setLoading(true)
     setError('')
     try {
-      const payload: any = { name: form.name, email: form.email, role: form.role, personalNumber: form.personalNumber || undefined, securityUnit: form.securityUnit || undefined, region: (form as any).region || undefined, title: (form as any).title || undefined }
+      const payload: any = { name: form.name, email: form.email, role: form.role, personalNumber: form.personalNumber || undefined, securityUnit: form.securityUnit || undefined, region: (form as any).region || undefined, regionChief: (form as any).regionChief || undefined, title: (form as any).title || undefined }
       if (form.password) payload.password = form.password
       if (editing) await updateUser(editing.id, payload)
       else await createUser({ ...payload, password: form.password })
@@ -326,6 +326,16 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
                 />
               )}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">رئيس المنطقة الحالي</label>
+            <input
+              value={(form as any).regionChief || ''}
+              onChange={(e) => setForm({ ...form, regionChief: e.target.value } as any)}
+              placeholder="مثال: العقيد فلان الفلاني"
+              className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+            />
           </div>
 
           <div>
@@ -504,6 +514,7 @@ function UserDetailsModal({ user, onClose, onEdit }: { user: any | null; onClose
     { label: 'الدور الوظيفي', value: <RoleBadge role={user.role} /> },
     { label: 'الوحدة الأمنية', value: user.securityUnit || '—' },
     { label: 'الإقليم', value: user.region || '—' },
+    { label: 'رئيس المنطقة الحالي', value: (user as any).regionChief || '—' },
     { label: 'العنوان', value: user.title || '—' },
     { label: 'تاريخ الإنشاء', value: new Date(user.createdAt).toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' }) },
     { label: 'آخر تحديث', value: new Date(user.updatedAt).toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' }) },
@@ -763,7 +774,7 @@ function UsersTab() {
 
 const AUDIT_FIELD_LABELS: Record<string, string> = {
   name: 'الاسم', email: 'البريد', role: 'الدور', securityUnit: 'الوحدة الأمنية',
-  region: 'الإقليم', title: 'العنوان', personalNumber: 'الرقم الشخصي', password: 'كلمة المرور',
+  region: 'الإقليم', regionChief: 'رئيس المنطقة', title: 'العنوان', personalNumber: 'الرقم الشخصي', password: 'كلمة المرور',
 }
 const AUDIT_ROLE_LABELS: Record<string, string> = {
   ADMIN: 'مسؤول', SECTION_CHIEF: 'رئيس قسم', USER: 'مستخدم',

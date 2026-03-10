@@ -8,6 +8,7 @@ export const createUserSchema = z.object({
   personalNumber: z.string().optional(),
   securityUnit: z.string().optional(),
   region: z.string().optional(),
+  regionChief: z.string().optional(),
   title: z.string().optional(),
 })
 
@@ -19,6 +20,7 @@ export const updateUserSchema = z.object({
   personalNumber: z.string().optional(),
   securityUnit: z.string().optional(),
   region: z.string().optional(),
+  regionChief: z.string().optional(),
   title: z.string().optional(),
 })
 

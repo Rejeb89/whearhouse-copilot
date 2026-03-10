@@ -4,6 +4,16 @@ import * as logQueryService from '../services/logQueryService'
 import { getInventorySummary } from '../services/itemService'
 import prisma from '../config/database'
 
+export const unitProjects = async (req: Request, res: Response) => {
+  try {
+    const unit = decodeURIComponent(req.params.unit)
+    const data = await monitoringService.getUnitProjects(unit)
+    res.json({ data })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
 export const listUnits = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user

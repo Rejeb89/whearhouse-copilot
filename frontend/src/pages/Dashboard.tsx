@@ -5,12 +5,13 @@ import client from '../services/client'
 import { AuthContext } from '../context/AuthContext'
 import DistributeItemModal from '../components/modals/DistributeItemModal'
 import LowStockChordChart from '../components/charts/LowStockChordChart'
-import { Truck, AlertCircle, User, Package, TrendingDown, TrendingUp, BarChart3, LogOut, CalendarDays, Wallet, DollarSign, PiggyBank, ArrowRightLeft } from 'lucide-react'
+import { Truck, AlertCircle, Package, TrendingDown, TrendingUp, BarChart3, LogOut, CalendarDays, Wallet, DollarSign, PiggyBank, ArrowRightLeft, HardHat } from 'lucide-react'
 import GlobalSearch from '../components/common/GlobalSearch'
 
 const fetchItems = async () => (await client.get('/items')).data.data
 const fetchDistributions = async () => (await client.get('/distributions/recent')).data.data
 const fetchBudgets = async () => (await client.get('/budgets')).data.data
+const fetchProjects = async () => (await client.get('/projects')).data.data
 
 type CalendarEvent = {
   id: string
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const { data: items = [], refetch: refetchItems } = useQuery(['items'], fetchItems, { refetchInterval: 5000 })
   const { data: distributions = [], refetch: refetchDistributions } = useQuery(['distributions'], fetchDistributions, { refetchInterval: 5000 })
   const { data: budgets = [] } = useQuery(['budgets'], fetchBudgets, { refetchInterval: 30000 })
+  const { data: projects = [] } = useQuery(['projects'], fetchProjects, { refetchInterval: 60000 })
   const [lowAlerts, setLowAlerts] = useState<any[]>([])
   const [showDistributeModal, setShowDistributeModal] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -192,19 +194,34 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Current User */}
-        <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-          <div className="flex flex-row items-center justify-between p-6 pb-2">
-            <p className="text-sm font-medium text-muted-foreground">المستخدم الحالي</p>
-            <User className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <div className="p-6 pt-0">
-            <p className="text-base font-bold text-foreground truncate">{user?.name || '—'}</p>
-            <p className="text-xs text-muted-foreground mt-1 truncate">{user?.email}</p>
-          </div>
-        </div>
+        {/* Projects Card */}
+        {(() => {
+          const ps = projects as any[]
+          const inWork  = ps.filter((p: any) => p.status === 'WORK').length
+          const done    = ps.filter((p: any) => p.status === 'COMPLETED').length
+          const avgProg = ps.length > 0 ? Math.round(ps.reduce((s: number, p: any) => s + (p.progress || 0), 0) / ps.length) : 0
+          return (
+            <button
+              onClick={() => navigate('/projects')}
+              className="rounded-xl border border-border bg-card text-card-foreground shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer text-right"
+            >
+              <div className="flex flex-row items-center justify-between p-6 pb-2">
+                <p className="text-sm font-medium text-muted-foreground">المشاريع الجارية</p>
+                <HardHat className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div className="p-6 pt-0">
+                <p className="text-3xl font-bold text-foreground">{ps.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {ps.length === 0 ? 'لا توجد مشاريع' : `${inWork} أشغال · ${done} مكتملة · إنجاز ${avgProg}%`}
+                </p>
+              </div>
+            </button>
+          )
+        })()}
 
       </div>
+
+
 
       {/* ── Charts + Table ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

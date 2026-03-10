@@ -16,6 +16,7 @@ model User {
   personalNumber String?
   securityUnit   String?
   region         String?
+  regionChief    String?
   title          String?
   createdAt DateTime @default(now())
   receptions Reception[]
@@ -128,6 +129,7 @@ model Entity {
   distributions   Distribution[]
   receptionsSent  Reception[]  // جهات مرسلة
   vehicles        Vehicle[]
+  projects        Project[]
 }
 
 model Employee {
@@ -256,10 +258,44 @@ model DeliveryReceipt {
   updatedAt      DateTime      @updatedAt
 }
 
+enum ProjectType {
+  CONSTRUCTION
+  DEVELOPMENT
+  PROTECTION
+}
+
+enum ProjectStatus {
+  STUDY
+  WORK
+  COMPLETED
+  SUSPENDED
+}
+
+model Project {
+  id                  Int           @id @default(autoincrement())
+  name                String
+  type                ProjectType
+  status              ProjectStatus @default(STUDY)
+  entityId            Int
+  entity              Entity        @relation(fields: [entityId], references: [id])
+  progress            Int           @default(0)        // 0-100 %
+  budget              Float
+  budgetYear          Int
+  extraBudget         Float?
+  extraBudgetYear     Int?
+  startDate           DateTime?
+  expectedEndDate     DateTime?
+  notes               String?
+  securityUnit        String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
 model Vehicle {
   id              Int           @id @default(autoincrement())
   adminNumber     String        @unique
-  type            String        // نوع الوسيلة: "50" | "غزوال عادي" | إلخ
+  vehicleType     String?       // نوع الوسيلة: نص حر (مثال: غزوال بيك آب، P4)
+  type            String        // صنف الوسيلة: "وسيلة نقل إدارية" | "مضخة مياه" | إلخ
   fuelType        String        // نوع الوقود: "بنزين رفيع" | "غزوال"
   fuelQuota       Float?        // المقرر بالتر
   status          VehicleStatus @default(OPERATIONAL) // حالة الوسيلة

@@ -43,10 +43,11 @@ export const create = async (req: Request, res: Response) => {
         return res.status(403).json({ error: 'رئيس القسم يمكنه إنشاء مستخدمين من نوع "مستخدم" فقط' })
       }
       // Fetch actor's full profile to get region and title (not stored in JWT)
-      const actorProfile = await prisma.user.findUnique({ where: { id: actor.id }, select: { securityUnit: true, region: true, title: true } })
+      const actorProfile = await prisma.user.findUnique({ where: { id: actor.id }, select: { securityUnit: true, region: true, regionChief: true, title: true } })
       data.role = 'USER'
       data.securityUnit = actorProfile?.securityUnit?.trim() || actor.securityUnit?.trim() || data.securityUnit
       data.region = actorProfile?.region ?? data.region
+      data.regionChief = actorProfile?.regionChief ?? data.regionChief
       data.title = actorProfile?.title ?? data.title
     }
 

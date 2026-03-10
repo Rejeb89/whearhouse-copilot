@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 export const vehicleSchema = z.object({
   adminNumber:   z.string().min(1),
+  vehicleType:   z.string().optional(),
   type:          z.string().min(1),
   fuelType:      z.string().min(1),
   fuelQuota:     z.number().positive().optional().nullable(),

@@ -24,7 +24,7 @@ export const loginUser = async (req: Request, res: Response) => {
         user: {
           id: user.id, email: user.email, role: user.role, name: user.name,
           personalNumber: user.personalNumber, securityUnit: user.securityUnit,
-          region: user.region, title: user.title,
+          region: user.region, regionChief: user.regionChief, title: user.title,
         },
         token,
       },
@@ -46,7 +46,7 @@ export const getMe = async (req: Request, res: Response) => {
       data: {
         id: user.id, email: user.email, role: user.role, name: user.name,
         personalNumber: user.personalNumber, securityUnit: user.securityUnit,
-        region: user.region, title: user.title,
+        region: user.region, regionChief: (user as any).regionChief, title: user.title,
       },
       token: freshToken,
     })

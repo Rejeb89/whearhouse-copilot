@@ -21,5 +21,6 @@ router.get('/units/:unit/logs/inventory', unitAccessGuard, monitoringController.
 router.get('/units/:unit/logs',       unitAccessGuard, monitoringController.unitLogs)
 router.get('/units/:unit/users',      unitAccessGuard, monitoringController.unitUsers)
 router.get('/units/:unit/receipts',   unitAccessGuard, monitoringController.unitReceipts)
+router.get('/units/:unit/projects',   unitAccessGuard, monitoringController.unitProjects)
 
 export default router

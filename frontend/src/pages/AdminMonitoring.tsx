@@ -15,7 +15,7 @@ import {
   Download, Printer, ChevronLeft, ExternalLink,
   ShoppingCart, Receipt, Paperclip, TrendingUp, CheckCircle2, AlertTriangle, Clock,
   DollarSign, Layers, ArrowDownToLine, ArrowUpFromLine, PackageSearch, Warehouse,
-  Calendar, ShieldCheck, ChevronDown, ChevronUp,
+  Calendar, ShieldCheck, ChevronDown, ChevronUp, HardHat, Hammer, BookOpen, BadgePercent,
 } from 'lucide-react'
 
 /* ─── API helpers ─── */
@@ -26,7 +26,7 @@ const fetchUnitData = (unit: string, tab: string) => async () => {
 }
 
 /* ─── Types ─── */
-interface UnitSummary { securityUnit: string; users: number; items: number; vehicles: number; receptions: number; distributions: number; entities: number; budgets: number }
+interface UnitSummary { securityUnit: string; users: number; items: number; vehicles: number; receptions: number; distributions: number; entities: number; budgets: number; projects: number }
 
 /* ─── Constants ─── */
 const TABS = [
@@ -36,6 +36,7 @@ const TABS = [
   { key: 'receptions',     label: 'الدخل اليومي',    icon: <Truck className="w-4 h-4" /> },
   { key: 'distributions',  label: 'الخرج اليومي',   icon: <ArrowRight className="w-4 h-4" /> },
   { key: 'entities',       label: 'الجهات',          icon: <Building2 className="w-4 h-4" /> },
+  { key: 'projects',       label: 'المشاريع',        icon: <HardHat className="w-4 h-4" /> },
   { key: 'budgets',        label: 'الاعتمادات',      icon: <Wallet className="w-4 h-4" /> },
   { key: 'receipts',       label: 'وصولات التسليم',  icon: <Receipt className="w-4 h-4" /> },
   { key: 'logs',           label: 'السجلات',         icon: <FileText className="w-4 h-4" /> },
@@ -278,7 +279,7 @@ function UnitsList({ user, search, setSearch, onSelect }: { user: any; search: s
                 {[
                   { icon: <Users className="w-3.5 h-3.5" />, v: unit.users, l: 'مستخدم', c: 'text-blue-600', bg: 'bg-blue-50' },
                   { icon: <Package className="w-3.5 h-3.5" />, v: unit.items, l: 'تجهيز', c: 'text-emerald-600', bg: 'bg-emerald-50' },
-                  { icon: <Car className="w-3.5 h-3.5" />, v: unit.vehicles, l: 'وسيلة', c: 'text-orange-600', bg: 'bg-orange-50' },
+                  { icon: <HardHat className="w-3.5 h-3.5" />, v: unit.projects ?? 0, l: 'مشروع', c: 'text-orange-600', bg: 'bg-orange-50' },
                   { icon: <Truck className="w-3.5 h-3.5" />, v: unit.receptions + unit.distributions, l: 'عملية', c: 'text-purple-600', bg: 'bg-purple-50' },
                 ].map(s => (
                   <button key={s.l} onClick={() => setDetailUnit(unit)} className={`${s.bg} flex flex-col items-center gap-0.5 py-3 hover:brightness-95 transition-all`}>
@@ -303,6 +304,7 @@ function UnitsList({ user, search, setSearch, onSelect }: { user: any; search: s
                 { l: 'الوسائل', v: detailUnit.vehicles }, { l: 'الجهات', v: detailUnit.entities },
                 { l: 'الدخل اليومي', v: detailUnit.receptions }, { l: 'الخرج اليومي', v: detailUnit.distributions },
                 { l: 'الاعتمادات', v: detailUnit.budgets },
+                { l: 'المشاريع', v: detailUnit.projects ?? 0 },
               ].map(s => <Field key={s.l} label={s.l} value={String(s.v)} />)}
             </div>
             <button onClick={() => { onSelect(detailUnit.securityUnit); setDetailUnit(null) }}
@@ -358,6 +360,7 @@ function UnitDetail({ unit, onBack }: { unit: string; onBack?: () => void }) {
         {activeTab === 'receptions'    && <ReceptionsTab unit={unit} />}
         {activeTab === 'distributions' && <DistributionsTab unit={unit} />}
         {activeTab === 'entities'      && <EntitiesTab unit={unit} />}
+        {activeTab === 'projects'      && <ProjectsTab unit={unit} />}
         {activeTab === 'budgets'       && <BudgetsTab unit={unit} />}
         {activeTab === 'receipts'      && <ReceiptsTab unit={unit} />}
         {activeTab === 'logs'          && <LogsTab unit={unit} />}
@@ -382,6 +385,7 @@ function OverviewTab({ unit, onNavigate }: { unit: string; onNavigate: (tab: str
     { icon: <Truck className="w-5 h-5" />,   label: 'الدخل اليومي', value: data.receptions, color: 'from-cyan-500 to-teal-600', tab: 'receptions' },
     { icon: <ArrowRight className="w-5 h-5" />, label: 'الخرج اليومي', value: data.distributions, color: 'from-orange-500 to-amber-600', tab: 'distributions' },
     { icon: <Building2 className="w-5 h-5" />, label: 'الجهات', value: data.entities, color: 'from-purple-500 to-violet-600', tab: 'entities' },
+    { icon: <HardHat className="w-5 h-5" />,    label: 'المشاريع', value: data.projects ?? 0, color: 'from-teal-500 to-cyan-600', tab: 'projects' },
     { icon: <Wallet className="w-5 h-5" />,    label: 'الاعتمادات', value: data.budgets, color: 'from-pink-500 to-rose-600', tab: 'budgets' },
     { icon: <Users className="w-5 h-5" />,     label: 'المستخدمون', value: data.users, color: 'from-amber-500 to-orange-600', tab: 'users' },
     { icon: <FileText className="w-5 h-5" />,  label: 'السجلات', value: data.logs, color: 'from-gray-500 to-slate-600', tab: 'logs' },
@@ -1368,6 +1372,122 @@ function EntitiesTab({ unit }: { unit: string }) {
           </table>
         </div>
       )}
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/*  Projects Tab                                                     */
+/* ═══════════════════════════════════════════════════════════════════ */
+const PROJ_TYPE_LABELS: Record<string, string> = { CONSTRUCTION: 'بناء', DEVELOPMENT: 'تهيئة', PROTECTION: 'حماية وتسييج' }
+const PROJ_STATUS_LABELS: Record<string, string> = { STUDY: 'طور الدراسات', WORK: 'طور الأشغال', COMPLETED: 'مكتمل', SUSPENDED: 'موقوف' }
+const PROJ_STATUS_BADGE: Record<string, string> = {
+  STUDY:     'bg-blue-100 text-blue-700 border border-blue-200',
+  WORK:      'bg-green-100 text-green-700 border border-green-200',
+  COMPLETED: 'bg-slate-100 text-slate-600 border border-slate-200',
+  SUSPENDED: 'bg-red-100 text-red-600 border border-red-200',
+}
+const PROJ_TYPE_BAR: Record<string, string> = { CONSTRUCTION: 'bg-orange-500', DEVELOPMENT: 'bg-violet-500', PROTECTION: 'bg-teal-500' }
+const projProg = (p: number) => p >= 100 ? 'bg-emerald-500' : p >= 60 ? 'bg-blue-500' : p >= 30 ? 'bg-amber-400' : 'bg-red-400'
+
+function ProjectsTab({ unit }: { unit: string }) {
+  const { data: projects = [], isLoading } = useQuery(
+    ['monitoring', unit, 'projects'],
+    async () => (await client.get(`/monitoring/units/${encodeURIComponent(unit)}/projects`)).data.data,
+    { refetchInterval: 30000 }
+  )
+
+  if (isLoading) return <LoadingBlock />
+  if (!projects.length) return (
+    <div className="p-5">
+      <EmptyBlock message="لا توجد مشاريع مسجلة لهذه الوحدة" />
+    </div>
+  )
+
+  const ps = projects as any[]
+  const inWork  = ps.filter(p => p.status === 'WORK').length
+  const inStudy = ps.filter(p => p.status === 'STUDY').length
+  const done    = ps.filter(p => p.status === 'COMPLETED').length
+  const avgProg = Math.round(ps.reduce((s, p) => s + (p.progress || 0), 0) / ps.length)
+
+  return (
+    <div className="p-5 space-y-5">
+      {/* stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'إجمالي المشاريع', v: ps.length,  color: 'from-teal-500 to-cyan-600',    icon: <HardHat className="w-4 h-4" /> },
+          { label: 'طور الأشغال',     v: inWork,     color: 'from-green-500 to-emerald-600', icon: <Hammer className="w-4 h-4" /> },
+          { label: 'طور الدراسات',    v: inStudy,    color: 'from-blue-500 to-indigo-600',   icon: <BookOpen className="w-4 h-4" /> },
+          { label: 'مكتملة',          v: done,       color: 'from-slate-400 to-slate-500',   icon: <CheckCircle2 className="w-4 h-4" /> },
+        ].map(s => (
+          <div key={s.label} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+            <div className={`p-2 bg-gradient-to-br ${s.color} rounded-lg text-white shrink-0`}>{s.icon}</div>
+            <div><p className="text-xl font-extrabold text-foreground">{s.v}</p><p className="text-[11px] text-muted-foreground">{s.label}</p></div>
+          </div>
+        ))}
+      </div>
+
+      {/* avg progress */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between mb-2 text-sm">
+          <span className="font-medium text-foreground">متوسط نسبة الإنجاز</span>
+          <span className="font-bold text-primary">{avgProg}%</span>
+        </div>
+        <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
+          <div className={`h-3 rounded-full transition-all ${projProg(avgProg)}`} style={{ width: `${avgProg}%` }} />
+        </div>
+      </div>
+
+      {/* projects grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {ps.map((p: any) => (
+          <div key={p.id} className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className={`h-1 w-full ${PROJ_TYPE_BAR[p.type] ?? 'bg-primary'}`} />
+            <div className="p-4 space-y-3">
+              <div>
+                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${PROJ_STATUS_BADGE[p.status]} mb-1`}>
+                  {p.status === 'WORK' && <Hammer className="w-3 h-3" />}
+                  {p.status === 'STUDY' && <BookOpen className="w-3 h-3" />}
+                  {p.status === 'COMPLETED' && <CheckCircle2 className="w-3 h-3" />}
+                  {p.status === 'SUSPENDED' && <AlertTriangle className="w-3 h-3" />}
+                  {PROJ_STATUS_LABELS[p.status]}
+                </span>
+                <p className="font-bold text-foreground text-sm">{p.name}</p>
+                <p className="text-xs text-muted-foreground">{PROJ_TYPE_LABELS[p.type]} — {p.entity?.name ?? '—'}</p>
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-muted-foreground">نسبة الإنجاز</span>
+                  <span className="font-bold text-foreground">{p.progress}%</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                  <div className={`h-2 rounded-full ${projProg(p.progress)}`} style={{ width: `${p.progress}%` }} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-lg bg-muted/50 px-3 py-2">
+                  <p className="text-muted-foreground">الاعتماد</p>
+                  <p className="font-bold text-foreground">{p.budget?.toLocaleString('ar-TN')} <span className="font-normal">د.ت</span></p>
+                  <p className="text-muted-foreground">{p.budgetYear}</p>
+                </div>
+                {p.extraBudget ? (
+                  <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
+                    <p className="text-amber-700">اعتماد إضافي</p>
+                    <p className="font-bold text-amber-800">{p.extraBudget?.toLocaleString('ar-TN')} <span className="font-normal">د.ت</span></p>
+                    {p.extraBudgetYear && <p className="text-amber-600">{p.extraBudgetYear}</p>}
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-muted/50 px-3 py-2">
+                    <p className="text-muted-foreground">المجموع</p>
+                    <p className="font-bold text-foreground">{p.budget?.toLocaleString('ar-TN')} <span className="font-normal">د.ت</span></p>
+                  </div>
+                )}
+              </div>
+              {p.notes && <p className="text-xs text-muted-foreground border-t border-dashed border-border pt-2 line-clamp-2">{p.notes}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
