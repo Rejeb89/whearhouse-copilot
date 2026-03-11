@@ -18,6 +18,7 @@ import Vehicles from './pages/Vehicles'
 import AdminMonitoring from './pages/AdminMonitoring'
 import MonitoringItemDetail from './pages/MonitoringItemDetail'
 import Projects from './pages/Projects'
+import Fuel from './pages/Fuel'
 import Layout from './components/common/Layout'
 
 const MONITORING_ONLY_ROLES = ['REGION_CHIEF', 'DISTRICT_MANAGER']
@@ -66,6 +67,7 @@ export default function App() {
             <Route path="/monitoring/units/:unit/items/:itemId" element={<PrivateRoute roles={["ADMIN", "REGION_CHIEF", "DISTRICT_MANAGER"]} children={<MonitoringItemDetail />} />} />
             <Route path="/monitoring" element={<PrivateRoute roles={["ADMIN", "REGION_CHIEF", "DISTRICT_MANAGER"]} children={<AdminMonitoring />} />} />
             <Route path="/projects" element={<PrivateRoute children={<Projects />} />} />
+            <Route path="/fuel" element={<PrivateRoute children={<Fuel />} />} />
           </Routes>
         </Layout>
       </BrowserRouter>

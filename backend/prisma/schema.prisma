@@ -307,4 +307,31 @@ model Vehicle {
   securityUnit    String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  fuelRecords     FuelRecord[]
+}
+
+model FuelPrice {
+  id            Int      @id @default(autoincrement())
+  fuelType      String   @unique
+  pricePerLiter Float
+  updatedAt     DateTime @updatedAt
+}
+
+model FuelRecord {
+  id                 Int      @id @default(autoincrement())
+  vehicle            Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  vehicleId          Int
+  month              Int
+  year               Int
+  monthlyQuotaLiters Float    @default(0)
+  deliveredAmount    Float?   // مسلم بالدينار (يُحسب ثم قابل للتعديل)
+  additionalAmount   Float?   // إضافي بالدينار
+  consumedAmount     Float?   // مستهلك بالدينار
+  startMileage       Float?   // عداد أول الشهر
+  endMileage         Float?   // عداد آخر الشهر
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([vehicleId, month, year])
 }

@@ -16,8 +16,8 @@ export default function Login() {
     setLoading(true)
     setError(null)
     try {
-      await login(email, password)
-      navigate('/')
+      const u = await login(email, password)
+      navigate(u?.role === 'ADMIN' ? '/monitoring' : '/')
     } catch (err: any) {
       setError(err?.response?.data?.error || 'بيانات الدخول غير صحيحة')
     } finally {

@@ -15,6 +15,7 @@ import receiptsRoutes from './receipts'
 import vehiclesRoutes from './vehicles'
 import monitoringRoutes from './monitoring'
 import projectsRoutes from './projects'
+import fuelRoutes from './fuel'
 
 const router = Router()
 
@@ -34,5 +35,6 @@ router.use('/receipts', receiptsRoutes)
 router.use('/vehicles', vehiclesRoutes)
 router.use('/monitoring', monitoringRoutes)
 router.use('/projects', projectsRoutes)
+router.use('/fuel', fuelRoutes)
 
 export default router

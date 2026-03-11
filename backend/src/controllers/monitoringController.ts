@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import * as monitoringService from '../services/monitoringService'
 import * as logQueryService from '../services/logQueryService'
 import { getInventorySummary } from '../services/itemService'
+import * as fuelService from '../services/fuelService'
 import prisma from '../config/database'
 
 export const unitProjects = async (req: Request, res: Response) => {
@@ -178,6 +179,31 @@ export const unitReceipts = async (req: Request, res: Response) => {
   try {
     const unit = decodeURIComponent(req.params.unit)
     const data = await monitoringService.getUnitReceipts(unit)
+    res.json({ data })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+export const unitFuel = async (req: Request, res: Response) => {
+  try {
+    const unit = decodeURIComponent(req.params.unit)
+    const month = Number(req.query.month) || new Date().getMonth() + 1
+    const year  = Number(req.query.year)  || new Date().getFullYear()
+    const vehicles = await fuelService.listVehiclesWithRecords(month, year, unit)
+    const prices   = await fuelService.listFuelPrices()
+    res.json({ data: { vehicles, prices } })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+export const unitFuelStats = async (req: Request, res: Response) => {
+  try {
+    const unit     = decodeURIComponent(req.params.unit)
+    const year     = Number(req.query.year) || new Date().getFullYear()
+    const fuelType = req.query.fuelType as string | undefined
+    const data = await fuelService.getYearlyStats(year, unit, fuelType)
     res.json({ data })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
