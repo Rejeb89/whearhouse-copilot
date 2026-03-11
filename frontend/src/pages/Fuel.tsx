@@ -385,6 +385,24 @@ export default function FuelPage() {
           <p className="text-sm text-muted-foreground mt-0.5">متابعة استهلاك الوقود الشهري للوسائل</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Date picker for ADMIN / REGION_CHIEF / DISTRICT_MANAGER */}
+          {(user?.role === 'ADMIN' || user?.role === 'REGION_CHIEF' || user?.role === 'DISTRICT_MANAGER') && (
+            <div className="flex items-center gap-1.5 border border-input bg-background rounded-lg px-3 py-1.5">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">التاريخ:</span>
+              <input
+                type="date"
+                value={`${selYear}-${String(selMonth).padStart(2, '0')}-01`}
+                onChange={e => {
+                  const d = new Date(e.target.value)
+                  if (!isNaN(d.getTime())) {
+                    setSelMonth(d.getMonth() + 1)
+                    setSelYear(d.getFullYear())
+                  }
+                }}
+                className="bg-transparent text-sm focus:outline-none"
+              />
+            </div>
+          )}
           {/* Month selector */}
           <div className="relative">
             <select

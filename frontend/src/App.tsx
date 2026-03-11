@@ -22,16 +22,17 @@ import Fuel from './pages/Fuel'
 import Layout from './components/common/Layout'
 
 const MONITORING_ONLY_ROLES = ['REGION_CHIEF', 'DISTRICT_MANAGER']
+const MONITORING_DEFAULT_ROLES = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER']
 
 const PrivateRoute: React.FC<{ roles?: string[]; children: JSX.Element }> = ({ roles, children }) => {
   const { user } = useContext(AuthContext)
   if (!user) return <Navigate to="/login" replace />
   if (roles && !roles.includes(user.role)) {
-    // Monitoring-only roles have a restricted set of pages — send them to their home
-    return <Navigate to={MONITORING_ONLY_ROLES.includes(user.role) ? '/monitoring' : '/'} replace />
+    // Monitoring-only/admin roles have a restricted set of pages — send them to their home
+    return <Navigate to={MONITORING_DEFAULT_ROLES.includes(user.role) ? '/monitoring' : '/'} replace />
   }
-  // Redirect monitoring-only roles away from pages they shouldn't access (e.g. Dashboard at "/")
-  if (!roles && MONITORING_ONLY_ROLES.includes(user.role)) {
+  // Redirect admin and monitoring-only roles away from root dashboard to monitoring
+  if (!roles && MONITORING_DEFAULT_ROLES.includes(user.role)) {
     return <Navigate to="/monitoring" replace />
   }
   return children
