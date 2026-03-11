@@ -16,6 +16,7 @@ import {
   ShoppingCart, Receipt, Paperclip, TrendingUp, CheckCircle2, AlertTriangle, Clock,
   DollarSign, Layers, ArrowDownToLine, ArrowUpFromLine, PackageSearch, Warehouse,
   Calendar, ShieldCheck, ChevronDown, ChevronUp, HardHat, Hammer, BookOpen, BadgePercent,
+  Fuel as FuelIcon,
 } from 'lucide-react'
 
 /* ─── API helpers ─── */
@@ -40,6 +41,7 @@ const TABS = [
   { key: 'budgets',        label: 'الاعتمادات',      icon: <Wallet className="w-4 h-4" /> },
   { key: 'receipts',       label: 'وصولات التسليم',  icon: <Receipt className="w-4 h-4" /> },
   { key: 'logs',           label: 'السجلات',         icon: <FileText className="w-4 h-4" /> },
+  { key: 'fuel',           label: 'المحروقات',       icon: <FuelIcon className="w-4 h-4" /> },
   { key: 'users',          label: 'المستخدمون',      icon: <Users className="w-4 h-4" /> },
 ]
 
@@ -364,6 +366,7 @@ function UnitDetail({ unit, onBack }: { unit: string; onBack?: () => void }) {
         {activeTab === 'budgets'       && <BudgetsTab unit={unit} />}
         {activeTab === 'receipts'      && <ReceiptsTab unit={unit} />}
         {activeTab === 'logs'          && <LogsTab unit={unit} />}
+        {activeTab === 'fuel'          && <FuelTab unit={unit} />}
         {activeTab === 'users'         && <UsersTab unit={unit} />}
       </div>
     </div>
@@ -2777,6 +2780,264 @@ function ReceiptsTab({ unit }: { unit: string }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/*  Fuel Tab (المحروقات)                                              */
+/* ═══════════════════════════════════════════════════════════════════ */
+const MONTHS_AR = ['جانفي','فيفري','مارس','أفريل','ماي','جوان','جويلية','أوت','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+const fmtF = (n?: number | null, dec = 2) => n == null ? '—' : parseFloat(n.toFixed(dec)).toString()
+
+const computeFuelRow = (rec: any, price: number, quota: number) => {
+  const delivered  = rec.deliveredAmount ?? (quota * price)
+  const additional = rec.additionalAmount ?? 0
+  const consumedRaw = rec.consumedAmount ?? null
+  const consumed    = consumedRaw ?? 0
+  const surplusVal  = consumedRaw != null ? (delivered + additional) - consumedRaw : null
+  const surplus     = surplusVal != null && surplusVal > 0 ? surplusVal : 0
+  const deficit     = (quota * price) - delivered
+  const distance    = (rec.endMileage != null && rec.startMileage != null)
+    ? rec.endMileage - rec.startMileage : null
+  const consRate    = (consumedRaw != null && consumedRaw > 0 && price > 0 && distance && distance > 0)
+    ? (consumedRaw / price * 100) / distance : null
+  return { delivered, additional, consumed, surplus,
+    surplusNull: consumedRaw === null,
+    deficit: deficit > 0 ? deficit : 0, distance, consRate }
+}
+
+function FuelTab({ unit }: { unit: string }) {
+  const now = new Date()
+  const [selMonth, setSelMonth] = useState(now.getMonth() + 1)
+  const [selYear,  setSelYear]  = useState(now.getFullYear())
+  const [search, setSearch] = useState('')
+  const [selFuelType, setSelFuelType] = useState<string>('all')
+  const [selected, setSelected] = useState<any>(null)
+
+  const { data: fuelData, isLoading } = useQuery(
+    ['monitoring', unit, 'fuel', selMonth, selYear],
+    async () => {
+      const encoded = encodeURIComponent(unit)
+      return (await client.get(`/monitoring/units/${encoded}/fuel?month=${selMonth}&year=${selYear}`)).data.data
+    }
+  )
+
+  const vehicles: any[] = fuelData?.vehicles ?? []
+  const prices: any[] = fuelData?.prices ?? []
+
+  const priceMap = useMemo(() => {
+    const m: Record<string, number> = {}
+    prices.forEach((p: any) => { m[p.fuelType] = p.pricePerLiter })
+    return m
+  }, [prices])
+
+  const getPriceForVehicle = (v: any) => priceMap[v.fuelType] ?? 0
+
+  const fuelTypeTabs = useMemo(() => {
+    const types = Array.from(new Set(vehicles.map((v: any) => v.fuelType).filter(Boolean))) as string[]
+    return types.sort()
+  }, [vehicles])
+
+  const filteredByType = useMemo(() => {
+    if (selFuelType === 'all') return vehicles
+    return vehicles.filter((v: any) => v.fuelType === selFuelType)
+  }, [vehicles, selFuelType])
+
+  const stats = useMemo(() => {
+    let totalQuotaLiters = 0, totalDelivered = 0, totalAdditional = 0, totalConsumed = 0, totalSurplus = 0, totalDeficit = 0
+    filteredByType.forEach((v: any) => {
+      const quota = v.fuelQuota ?? 0
+      const price = getPriceForVehicle(v)
+      const rec = (v.fuelRecords ?? [])[0]
+      const c = computeFuelRow(rec ?? {}, price, quota)
+      totalQuotaLiters += quota
+      totalDelivered   += c.delivered
+      totalAdditional  += c.additional
+      totalConsumed    += c.consumed
+      totalSurplus     += c.surplus
+      totalDeficit     += c.deficit
+    })
+    return { totalQuotaLiters, totalDelivered, totalAdditional, totalConsumed, totalSurplus, totalDeficit }
+  }, [filteredByType, priceMap])
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return filteredByType
+    return filteredByType.filter((v: any) =>
+      v.adminNumber?.toLowerCase().includes(q) ||
+      (v.vehicleType || '').toLowerCase().includes(q) ||
+      v.type?.toLowerCase().includes(q) ||
+      (v.entity?.name || '').toLowerCase().includes(q)
+    )
+  }, [filteredByType, search])
+
+  const FUEL_HEADERS = ['الرقم الإداري', 'نوع الوسيلة', 'المقرر (لتر)', 'المسلم (د.ت)', 'الإضافي (د.ت)', 'المستهلك (د.ت)', 'الفائض (د.ت)', 'النقص (د.ت)', 'عداد أول الشهر', 'عداد آخر الشهر', 'المسافة المقطوعة (كلم)', 'المعدل المئوي', 'ملاحظات']
+
+  if (isLoading) return <LoadingBlock />
+
+  return (
+    <div className="p-5 space-y-4">
+      {/* Month/Year selector + search */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <select value={selMonth} onChange={e => setSelMonth(+e.target.value)}
+          className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+          {MONTHS_AR.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+        </select>
+        <input type="number" value={selYear} onChange={e => setSelYear(+e.target.value)} min={2020} max={2099}
+          className="w-20 rounded-lg border border-input bg-background px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-ring" />
+        <SearchInput value={search} onChange={setSearch} placeholder="بحث..." />
+        <ExportBar unit={unit} tabLabel="المحروقات" count={filtered.length}
+          onExcel={() => {
+            const hdrs = FUEL_HEADERS.map((label, i) => ({ key: `c${i}`, label }))
+            const rows = filtered.map((v: any) => {
+              const quota = v.fuelQuota ?? 0
+              const price = getPriceForVehicle(v)
+              const rec = (v.fuelRecords ?? [])[0] ?? {}
+              const c = computeFuelRow(rec, price, quota)
+              return {
+                c0: v.adminNumber, c1: v.vehicleType || v.type, c2: quota,
+                c3: fmtF(c.delivered), c4: fmtF(c.additional), c5: fmtF(c.consumed),
+                c6: fmtF(c.surplus), c7: fmtF(c.deficit), c8: fmtF(rec.startMileage),
+                c9: fmtF(rec.endMileage), c10: fmtF(c.distance), c11: c.consRate != null ? fmtF(c.consRate) + '%' : '—',
+                c12: rec.notes || '—',
+              }
+            })
+            exportExcel(rows, hdrs, 'المحروقات', `محروقات_${unit}.xlsx`)
+          }}
+          onPDF={() => {
+            const rows = filtered.map((v: any) => {
+              const quota = v.fuelQuota ?? 0
+              const price = getPriceForVehicle(v)
+              const rec = (v.fuelRecords ?? [])[0] ?? {}
+              const c = computeFuelRow(rec, price, quota)
+              return [v.adminNumber, v.vehicleType || v.type, String(quota),
+                fmtF(c.delivered), fmtF(c.additional), fmtF(c.consumed),
+                fmtF(c.surplus), fmtF(c.deficit), fmtF(rec.startMileage),
+                fmtF(rec.endMileage), fmtF(c.distance), c.consRate != null ? fmtF(c.consRate) + '%' : '—',
+                rec.notes || '—']
+            })
+            exportPDF(unit, `المحروقات — ${MONTHS_AR[selMonth-1]} ${selYear}`, FUEL_HEADERS, rows, `محروقات_${unit}.pdf`,
+              `<div style="display:flex;gap:16px;flex-wrap:wrap;">
+                <div style="padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:12px;">إجمالي المقرر: <strong>${fmtF(stats.totalQuotaLiters)} لتر</strong></div>
+                <div style="padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:12px;">المسلم: <strong>${fmtF(stats.totalDelivered)} د.ت</strong></div>
+                <div style="padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:12px;">المستهلك: <strong>${fmtF(stats.totalConsumed)} د.ت</strong></div>
+                <div style="padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:12px;">النقص: <strong>${fmtF(stats.totalDeficit)} د.ت</strong></div>
+              </div>`)
+          }}
+        />
+      </div>
+
+      {/* Fuel type tabs */}
+      {fuelTypeTabs.length > 1 && (
+        <div className="flex gap-1 flex-wrap">
+          <button onClick={() => setSelFuelType('all')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selFuelType === 'all' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:bg-muted/50'}`}>الكل</button>
+          {fuelTypeTabs.map(ft => (
+            <button key={ft} onClick={() => setSelFuelType(ft)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selFuelType === ft ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:bg-muted/50'}`}>{ft}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {[
+          { label: 'المقرر (لتر)', value: fmtF(stats.totalQuotaLiters), icon: <FuelIcon className="w-4 h-4" /> },
+          { label: 'المسلم (د.ت)',  value: fmtF(stats.totalDelivered),  icon: <DollarSign className="w-4 h-4" /> },
+          { label: 'الإضافي (د.ت)', value: fmtF(stats.totalAdditional), icon: <TrendingUp className="w-4 h-4" /> },
+          { label: 'المستهلك (د.ت)', value: fmtF(stats.totalConsumed),  icon: <TrendingDown className="w-4 h-4" /> },
+          { label: 'الفائض (د.ت)',   value: fmtF(stats.totalSurplus),   icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" /> },
+          { label: 'النقص (د.ت)',    value: fmtF(stats.totalDeficit),   icon: <AlertTriangle className="w-4 h-4 text-destructive" /> },
+        ].map(c => (
+          <div key={c.label} className="rounded-xl border border-border bg-muted/30 p-3 text-center">
+            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">{c.icon}<span className="text-[11px]">{c.label}</span></div>
+            <p className="text-lg font-bold text-foreground">{c.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Table */}
+      {filtered.length === 0 ? <EmptyBlock message="لا توجد بيانات محروقات" /> : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="bg-muted/50 border-b border-border">
+              <th className="text-right px-3 py-3 text-xs font-bold text-muted-foreground">الرقم الإداري</th>
+              <th className="text-right px-3 py-3 text-xs font-bold text-muted-foreground">نوع الوسيلة</th>
+              <th className="text-right px-3 py-3 text-xs font-bold text-muted-foreground">المقرر (لتر)</th>
+              <th className="text-right px-3 py-3 text-xs font-bold text-muted-foreground">المسلم (د.ت)</th>
+              <th className="text-right px-3 py-3 text-xs font-bold text-muted-foreground">الإضافي</th>
+              <th className="text-right px-3 py-3 text-xs font-bold text-muted-foreground">المستهلك</th>
+              <th className="text-right px-3 py-3 text-xs font-bold text-muted-foreground">الفائض</th>
+              <th className="text-right px-3 py-3 text-xs font-bold text-muted-foreground">النقص</th>
+              <th className="text-right px-3 py-3 text-xs font-bold text-muted-foreground">المسافة (كلم)</th>
+              <th className="text-right px-3 py-3 text-xs font-bold text-muted-foreground">المعدل المئوي</th>
+            </tr></thead>
+            <tbody className="divide-y divide-border">
+              {filtered.map((v: any) => {
+                const quota = v.fuelQuota ?? 0
+                const price = getPriceForVehicle(v)
+                const rec = (v.fuelRecords ?? [])[0] ?? {}
+                const c = computeFuelRow(rec, price, quota)
+                return (
+                  <tr key={v.id} onClick={() => setSelected(v)} className="hover:bg-primary/5 cursor-pointer transition-colors">
+                    <td className="px-3 py-3 font-mono font-medium text-foreground">{v.adminNumber}</td>
+                    <td className="px-3 py-3 text-foreground">{v.vehicleType || v.type}</td>
+                    <td className="px-3 py-3 text-muted-foreground font-mono">{quota}</td>
+                    <td className="px-3 py-3 text-muted-foreground font-mono">{fmtF(c.delivered)}</td>
+                    <td className="px-3 py-3 text-muted-foreground font-mono">{fmtF(c.additional)}</td>
+                    <td className="px-3 py-3 text-muted-foreground font-mono">{fmtF(c.consumed)}</td>
+                    <td className="px-3 py-3 text-muted-foreground font-mono">{fmtF(c.surplus)}</td>
+                    <td className="px-3 py-3 font-mono">{c.deficit > 0 ? <span className="text-destructive font-medium">{fmtF(c.deficit)}</span> : '0'}</td>
+                    <td className="px-3 py-3 text-muted-foreground font-mono">{fmtF(c.distance)}</td>
+                    <td className="px-3 py-3 text-muted-foreground font-mono">{c.consRate != null ? fmtF(c.consRate) + '%' : '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="bg-muted/50 font-bold text-xs border-t-2 border-border">
+                <td colSpan={2} className="px-3 py-2 text-right">الإجمالي</td>
+                <td className="px-3 py-2 font-mono">{fmtF(stats.totalQuotaLiters)}</td>
+                <td className="px-3 py-2 font-mono">{fmtF(stats.totalDelivered)}</td>
+                <td className="px-3 py-2 font-mono">{fmtF(stats.totalAdditional)}</td>
+                <td className="px-3 py-2 font-mono">{fmtF(stats.totalConsumed)}</td>
+                <td className="px-3 py-2 font-mono">{fmtF(stats.totalSurplus)}</td>
+                <td className="px-3 py-2 font-mono">{fmtF(stats.totalDeficit)}</td>
+                <td colSpan={2}></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
+      {/* Detail modal */}
+      <DetailModal open={!!selected} onClose={() => setSelected(null)} title={`محروقات: ${selected?.adminNumber ?? ''}`}>
+        {selected && (() => {
+          const quota = selected.fuelQuota ?? 0
+          const price = getPriceForVehicle(selected)
+          const rec = (selected.fuelRecords ?? [])[0] ?? {}
+          const c = computeFuelRow(rec, price, quota)
+          return (
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="الرقم الإداري" value={selected.adminNumber} mono />
+              <Field label="نوع الوسيلة" value={selected.vehicleType || selected.type} />
+              <Field label="نوع الوقود" value={selected.fuelType} />
+              <Field label="المقرر (لتر)" value={`${quota}`} />
+              <Field label="المسلم (د.ت)" value={fmtF(c.delivered)} />
+              <Field label="الإضافي (د.ت)" value={fmtF(c.additional)} />
+              <Field label="المستهلك (د.ت)" value={fmtF(c.consumed)} />
+              <Field label="الفائض (د.ت)" value={fmtF(c.surplus)} />
+              <Field label="النقص (د.ت)" value={c.deficit > 0 ? fmtF(c.deficit) : '0'} />
+              <Field label="عداد أول الشهر" value={fmtF(rec.startMileage)} />
+              <Field label="عداد آخر الشهر" value={fmtF(rec.endMileage)} />
+              <Field label="المسافة المقطوعة" value={c.distance != null ? `${fmtF(c.distance)} كلم` : '—'} />
+              <Field label="المعدل المئوي" value={c.consRate != null ? fmtF(c.consRate) + '%' : '—'} />
+              <Field label="ملاحظات" value={rec.notes || '—'} />
+            </div>
+          )
+        })()}
+      </DetailModal>
     </div>
   )
 }

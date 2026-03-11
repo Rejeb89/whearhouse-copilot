@@ -99,53 +99,47 @@ async function exportProjectsPDF(
     'الاعتماد الأصلي', 'السنة', 'الاعتماد الإضافي', 'السنة', 'الحالة الحالية', 'نسبة التقدم', 'الملاحظات']
 
   const el = document.createElement('div')
-  el.style.cssText = "direction:rtl;font-family:'Cairo','Tahoma',sans-serif;background:#fff;padding:32px 36px;width:1400px;color:#0f172a;position:absolute;left:-9999px;top:0;z-index:-1;"
+  el.style.cssText = "direction:rtl;font-family:'Cairo','Tahoma',sans-serif;background:#fff;padding:32px 36px;width:1400px;color:#000;position:absolute;left:-9999px;top:0;z-index:-1;"
 
   el.innerHTML = `
-    <!-- Header row -->
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
-      <!-- Top-right: header block (الإدارة العامة) -->
       <div style="text-align:center;line-height:2.2;">
-        <div style="font-weight:800;font-size:15px;color:#1e3a5f;">الإدارة العامة للحرس الوطني</div>
-        <div style="font-size:12px;color:#334155;text-align:center;">${region}</div>
-        <div style="font-size:12px;color:#334155;text-align:center;">${unit}</div>
-        <div style="font-size:12px;color:#334155;text-align:right;">عدد</div>
-      </div>
-      <!-- Top-left: title + في : + date -->
-      <div style="text-align:right;font-size:12px;color:#334155;line-height:1.9;min-width:220px;">
-        <span style="font-weight:700;color:#1e3a5f;">${title}</span> في : ${today}
+        <div style="font-weight:800;font-size:20px;color:#000;">الإدارة العامة للحرس الوطني</div>
+        <div style="font-size:16px;color:#000;">${region}</div>
+        <div style="font-size:16px;color:#000;">${unit}</div>
+        <div style="font-size:16px;color:#000;text-align:right;">عدد</div>
       </div>
     </div>
 
-    <!-- Center title -->
     <div style="text-align:center;margin:10px 0 30px;">
-      <span style="font-size:16px;font-weight:800;color:#1e3a5f;border-bottom:3px solid #1e40af;padding-bottom:4px;">
+      <span style="font-size:22px;font-weight:800;color:#000;border-bottom:2px solid #000;padding-bottom:4px;">
         كشف في المشاريع الجارية (${unit})
       </span>
     </div>
 
-    <!-- Table -->
-    <table style="width:100%;border-collapse:collapse;font-size:10.5px;border:2px solid #94a3b8;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;border:2px solid #000;">
       <thead>
-        <tr style="background:#1e40af;color:#fff;">
-          ${headers.map(h => `<th style="padding:7px 5px;text-align:right;border-left:2px solid #3b82f6;white-space:nowrap;">${h}</th>`).join('')}
+        <tr style="border-bottom:2px solid #000;">
+          ${headers.map(h => `<th style="padding:8px 5px;text-align:center;vertical-align:middle;border-left:1.5px solid #000;white-space:nowrap;font-weight:700;">${h}</th>`).join('')}
         </tr>
       </thead>
       <tbody>
         ${rows.length === 0
-          ? `<tr><td colspan="${headers.length}" style="text-align:center;padding:16px;color:#94a3b8;">لا توجد مشاريع نشطة</td></tr>`
-          : rows.map((row, i) => `
-          <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'};border-bottom:1.5px solid #cbd5e1;">
-            ${row.map(c => `<td style="padding:6px 5px;border-left:1.5px solid #cbd5e1;vertical-align:top;">${c}</td>`).join('')}
+          ? `<tr><td colspan="${headers.length}" style="text-align:center;padding:20px;color:#000;">لا توجد مشاريع نشطة</td></tr>`
+          : rows.map((row) => `
+          <tr style="border-bottom:1px solid #000;">
+            ${row.map(c => `<td style="padding:7px 5px;border-left:1px solid #000;text-align:center;vertical-align:middle;">${c}</td>`).join('')}
           </tr>`).join('')}
       </tbody>
     </table>
 
-    <!-- Footer -->
     <div style="margin-top:40px;display:flex;justify-content:flex-end;">
       <div style="text-align:center;">
-        <div style="font-weight:700;font-size:12px;color:#1e3a5f;">رئيس المنطقة</div>
-        ${regionChief ? `<div style="font-size:12px;color:#334155;margin-top:6px;">${regionChief}</div>` : ''}
+        <div style="font-size:16px;color:#000;line-height:1.9;margin-bottom:8px;">
+          <span style="font-weight:700;color:#000;">${title}</span> في : ${today}
+        </div>
+        <div style="font-weight:700;font-size:16px;color:#000;">رئيس المنطقة</div>
+        ${regionChief ? `<div style="font-size:16px;color:#000;margin-top:6px;">${regionChief}</div>` : ''}
       </div>
     </div>`
 

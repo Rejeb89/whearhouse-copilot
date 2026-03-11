@@ -5,13 +5,40 @@ import client from '../services/client'
 import { AuthContext } from '../context/AuthContext'
 import DistributeItemModal from '../components/modals/DistributeItemModal'
 import LowStockChordChart from '../components/charts/LowStockChordChart'
-import { Truck, AlertCircle, Package, TrendingDown, TrendingUp, BarChart3, LogOut, CalendarDays, Wallet, DollarSign, PiggyBank, ArrowRightLeft, HardHat } from 'lucide-react'
+import { Truck, AlertCircle, Package, TrendingDown, TrendingUp, BarChart3, LogOut, CalendarDays, Wallet, DollarSign, PiggyBank, ArrowRightLeft, HardHat, Fuel as FuelIcon } from 'lucide-react'
 import GlobalSearch from '../components/common/GlobalSearch'
 
 const fetchItems = async () => (await client.get('/items')).data.data
 const fetchDistributions = async () => (await client.get('/distributions/recent')).data.data
 const fetchBudgets = async () => (await client.get('/budgets')).data.data
 const fetchProjects = async () => (await client.get('/projects')).data.data
+const fetchFuelSummary = async () => {
+  const now = new Date()
+  const month = now.getMonth() + 1
+  const year = now.getFullYear()
+  const [vehiclesRes, pricesRes] = await Promise.all([
+    client.get(`/fuel/records?month=${month}&year=${year}`),
+    client.get('/fuel/prices'),
+  ])
+  const vehicles: any[] = vehiclesRes.data.data ?? []
+  const prices: any[] = pricesRes.data.data ?? []
+  const priceMap: Record<string, number> = {}
+  prices.forEach((p: any) => { priceMap[p.fuelType] = p.pricePerLiter })
+  let totalQuota = 0, totalDelivered = 0, totalConsumed = 0, totalDeficit = 0
+  vehicles.forEach((v: any) => {
+    const quota = v.fuelQuota ?? 0
+    const price = priceMap[v.fuelType] ?? 0
+    const rec = (v.fuelRecords ?? [])[0] ?? {}
+    const delivered = rec.deliveredAmount ?? (quota * price)
+    const consumedRaw = rec.consumedAmount ?? null
+    const deficit = (quota * price) - delivered
+    totalQuota += quota
+    totalDelivered += delivered
+    totalConsumed += consumedRaw ?? 0
+    totalDeficit += deficit > 0 ? deficit : 0
+  })
+  return { totalQuota, totalDelivered, totalConsumed, totalDeficit, vehicleCount: vehicles.length }
+}
 
 type CalendarEvent = {
   id: string
@@ -33,6 +60,7 @@ export default function Dashboard() {
   const { data: distributions = [], refetch: refetchDistributions } = useQuery(['distributions'], fetchDistributions, { refetchInterval: 5000 })
   const { data: budgets = [] } = useQuery(['budgets'], fetchBudgets, { refetchInterval: 30000 })
   const { data: projects = [] } = useQuery(['projects'], fetchProjects, { refetchInterval: 60000 })
+  const { data: fuelSummary } = useQuery(['fuel-dashboard'], fetchFuelSummary, { refetchInterval: 60000 })
   const [lowAlerts, setLowAlerts] = useState<any[]>([])
   const [showDistributeModal, setShowDistributeModal] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -126,29 +154,14 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">لوحة التحكم</h1>
           <p className="text-sm text-muted-foreground mt-0.5">مرحباً، {user?.name || user?.email}</p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => navigate('/receptions')}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
-          >
-            <TrendingUp className="w-4 h-4" />
-            دخل
-          </button>
-          <button
-            onClick={() => navigate('/distributions')}
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <TrendingDown className="w-4 h-4" />
-            خرج
-          </button>
-        </div>
+
       </div>
 
       {/* ── Global Search ── */}
       <GlobalSearch placeholder="بحث شامل في قاعدة البيانات... (تجهيزات، عمليات، جهات، موظفين)" />
 
       {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
 
         {/* Total Items */}
         <button
@@ -218,6 +231,25 @@ export default function Dashboard() {
             </button>
           )
         })()}
+
+        {/* Fuel Card */}
+        <button
+          onClick={() => navigate('/fuel')}
+          className="rounded-xl border border-border bg-card text-card-foreground shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer text-right"
+        >
+          <div className="flex flex-row items-center justify-between p-6 pb-2">
+            <p className="text-sm font-medium text-muted-foreground">المحروقات</p>
+            <FuelIcon className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div className="p-6 pt-0">
+            <p className="text-3xl font-bold text-foreground">{fuelSummary?.vehicleCount ?? '—'}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {fuelSummary
+                ? `مسلم ${fuelSummary.totalDelivered.toLocaleString('ar-DZ')} د.ت · مستهلك ${fuelSummary.totalConsumed.toLocaleString('ar-DZ')} د.ت`
+                : 'جارٍ التحميل...'}
+            </p>
+          </div>
+        </button>
 
       </div>
 

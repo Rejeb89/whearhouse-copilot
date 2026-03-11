@@ -87,7 +87,7 @@ const AUDIT_ACTION_META: Record<string, {
   },
 }
 
-const EMPTY_FORM = { name: '', email: '', password: '', role: 'USER' as string, personalNumber: '', securityUnit: '', region: '', regionChief: '', title: '' }
+const EMPTY_FORM = { name: '', email: '', password: '', role: 'ADMIN' as string, personalNumber: '', securityUnit: '', region: '', regionChief: '', title: '' }
 
 // ─── ComboBox ─────────────────────────────────────────────────────────────────
 
@@ -218,7 +218,7 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
       setForm(
         editing
           ? { name: editing.name ?? '', email: editing.email, password: '', role: editing.role, personalNumber: editing.personalNumber ?? '', securityUnit: editing.securityUnit ?? '', region: editing.region ?? '', regionChief: (editing as any).regionChief ?? '', title: (editing as any).title ?? '' }
-          : { ...EMPTY_FORM, role: 'USER', securityUnit: isSectionChief ? (currentUser?.securityUnit ?? '') : '', region: isSectionChief ? (currentUser?.region ?? '') : '', regionChief: isSectionChief ? ((currentUser as any)?.regionChief ?? '') : '', title: isSectionChief ? (currentUser?.title ?? '') : '' },
+          : { ...EMPTY_FORM, role: 'ADMIN', securityUnit: isSectionChief ? (currentUser?.securityUnit ?? '') : '', region: isSectionChief ? (currentUser?.region ?? '') : '', regionChief: isSectionChief ? ((currentUser as any)?.regionChief ?? '') : '', title: isSectionChief ? (currentUser?.title ?? '') : '' },
       )
       setError('')
       setShowPw(false)
@@ -275,11 +275,42 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
           {error && <Alert type="error" message={error} onDismiss={() => setError('')} />}
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">الاسم الكامل</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">الدور الوظيفي</label>
+            {isSectionChief ? (
+              <div className="w-full rounded-lg border border-input bg-muted/60 px-3.5 py-2.5 text-sm text-foreground flex items-center gap-2">
+                <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span>مستخدم</span>
+              </div>
+            ) : (
+              <>
+                <select
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                >
+                  <option value="USER">مستخدم</option>
+                  <option value="SECTION_CHIEF">رئيس قسم</option>
+                  <option value="REGION_CHIEF">رئيس منطقة (مراقب وحدة)</option>
+                  <option value="DISTRICT_MANAGER">مدير اقليم (مراقب إقليم)</option>
+                  <option value="ADMIN">مسؤول</option>
+                </select>
+                {(form.role === 'REGION_CHIEF' || form.role === 'DISTRICT_MANAGER') && (
+                  <p className="text-xs text-amber-600 mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                    {form.role === 'REGION_CHIEF'
+                      ? '⚠️ رئيس منطقة: تأكد من تحديد الوحدة الأمنية — يرى وحدته فقط في لوحة المراقبة.'
+                      : '⚠️ مدير اقليم: تأكد من تحديد حقل الإقليم — يرى جميع وحدات نفس الإقليم.'}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">الرتبة و الاسم و اللقب</label>
             <input
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="مثال: أحمد علي"
+              placeholder=""
               className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
             />
           </div>
@@ -289,7 +320,7 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
             <input
               value={form.personalNumber}
               onChange={(e) => setForm({ ...form, personalNumber: e.target.value })}
-              placeholder="XXXXXXX"
+              placeholder=""
               className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent font-mono"
             />
           </div>
@@ -306,12 +337,12 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
                   value={(form as any).region || ''}
                   onChange={(v) => setForm({ ...form, region: v } as any)}
                   options={meta?.regions ?? []}
-                  placeholder="اسم الإقليم"
+                  placeholder=""
                 />
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">الوحدة الأمنية الحالية</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">المنطقة الحالية</label>
               {isSectionChief ? (
                 <div className="w-full rounded-lg border border-input bg-muted/60 px-3.5 py-2.5 text-sm text-foreground flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
@@ -322,21 +353,23 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
                   value={form.securityUnit}
                   onChange={(v) => setForm({ ...form, securityUnit: v })}
                   options={meta?.securityUnits ?? []}
-                  placeholder="اسم الوحدة"
+                  placeholder=""
                 />
               )}
             </div>
           </div>
 
+          {(form.role === 'SECTION_CHIEF' || form.role === 'USER') && (
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">رئيس المنطقة الحالي</label>
             <input
               value={(form as any).regionChief || ''}
               onChange={(e) => setForm({ ...form, regionChief: e.target.value } as any)}
-              placeholder="مثال: العقيد فلان الفلاني"
+              placeholder=""
               className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
             />
           </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">العنوان</label>
@@ -349,7 +382,7 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
                 value={(form as any).title || ''}
                 onChange={(v) => setForm({ ...form, title: v } as any)}
                 options={meta?.titles ?? []}
-                placeholder="مثال: أمين المستودع بوحدة كذا"
+                placeholder="مثال المعتمدية او الولاية"
               />
             )}
           </div>
@@ -387,37 +420,6 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">الدور الوظيفي</label>
-            {isSectionChief ? (
-              <div className="w-full rounded-lg border border-input bg-muted/60 px-3.5 py-2.5 text-sm text-foreground flex items-center gap-2">
-                <Users className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span>مستخدم</span>
-              </div>
-            ) : (
-              <>
-                <select
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                >
-                  <option value="USER">مستخدم</option>
-                  <option value="SECTION_CHIEF">رئيس قسم</option>
-                  <option value="REGION_CHIEF">رئيس منطقة (مراقب وحدة)</option>
-                  <option value="DISTRICT_MANAGER">مدير اقليم (مراقب إقليم)</option>
-                  <option value="ADMIN">مسؤول</option>
-                </select>
-                {(form.role === 'REGION_CHIEF' || form.role === 'DISTRICT_MANAGER') && (
-                  <p className="text-xs text-amber-600 mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
-                    {form.role === 'REGION_CHIEF'
-                      ? '⚠️ رئيس منطقة: تأكد من تحديد الوحدة الأمنية — يرى وحدته فقط في لوحة المراقبة.'
-                      : '⚠️ مدير اقليم: تأكد من تحديد حقل الإقليم — يرى جميع وحدات نفس الإقليم.'}
-                  </p>
-                )}
-              </>
-            )}
           </div>
 
           <div className="flex gap-3 pt-2">
