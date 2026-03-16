@@ -252,7 +252,7 @@ function UnitsList({ user, search, setSearch, onSelect }: { user: any; search: s
         <button onClick={() => {
           const headers = [{ key: 'securityUnit', label: 'الوحدة' }, { key: 'users', label: 'المستخدمون' }, { key: 'items', label: 'التجهيزات' }, { key: 'vehicles', label: 'الوسائل' }, { key: 'receptions', label: 'الدخل اليومي' }, { key: 'distributions', label: 'الخرج اليومي' }, { key: 'entities', label: 'الجهات' }, { key: 'budgets', label: 'الاعتمادات' }]
           exportExcel(units, headers, 'الوحدات', 'تقرير_الوحدات_الأمنية.xlsx')
-        }} className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors" title="تصدير ملخص الوحدات">
+        }} className="hidden inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors" title="تصدير ملخص الوحدات">
           <Download className="w-4 h-4" /> ملخص Excel
         </button>
       </div>
@@ -660,22 +660,20 @@ function VehiclesTab({ unit }: { unit: string }) {
   const filtered = useMemo(() => {
     if (!search.trim()) return vehicles
     const q = search.toLowerCase()
-    return vehicles.filter((v: any) => v.adminNumber?.toLowerCase().includes(q) || v.type?.toLowerCase().includes(q))
+    return vehicles.filter((v: any) => v.adminNumber?.toLowerCase().includes(q) || v.type?.toLowerCase().includes(q) || v.entity?.name?.toLowerCase().includes(q))
   }, [vehicles, search])
 
   const statusLabel = (s: string) => s === 'BROKEN' ? 'معطبة' : 'صالحة'
   const hdrs = [
-    { key: 'adminNumber', label: 'الرقم الإداري' },
+    { key: 'adminNumber', label: 'رقم الوسيلة' },
     { key: 'type',        label: 'النوع' },
-    { key: 'fuelType',   label: 'الوقود' },
-    { key: '_status',    label: 'الحالة' },
-    { key: '_quota',     label: 'المقرر (لتر)' },
-    { key: '_entity',    label: 'الجهة' },
+    { key: '_entity',     label: 'الوحدة التابعة' },
+    { key: '_status',     label: 'الحالة' },
+    { key: 'notes',       label: 'الملاحظات' },
   ]
   const mapped = filtered.map((v: any) => ({
     ...v,
     _status: statusLabel(v.status ?? 'OPERATIONAL'),
-    _quota:  v.fuelQuota != null ? String(v.fuelQuota) : '—',
     _entity: v.entity?.name || '—',
   }))
 
@@ -693,28 +691,24 @@ function VehiclesTab({ unit }: { unit: string }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-muted/50 border-b border-border">
-              <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">الرقم الإداري</th>
+              <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">رقم الوسيلة</th>
               <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">النوع</th>
-              <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">الوقود</th>
+              <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">الوحدة التابعة</th>
               <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">الحالة</th>
-              <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">المقرر (لتر)</th>
-              <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">الجهة</th>
-              <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">ملاحظات</th>
+              <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">الملاحظات</th>
             </tr></thead>
             <tbody className="divide-y divide-border">
               {filtered.map((v: any) => (
                 <tr key={v.id} onClick={() => setSelected(v)} className="hover:bg-primary/5 cursor-pointer transition-colors">
                   <td className="px-4 py-3 font-mono font-medium text-foreground">{v.adminNumber}</td>
                   <td className="px-4 py-3 text-foreground">{v.type}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{v.fuelType}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{v.entity?.name || '—'}</td>
                   <td className="px-4 py-3">
                     {v.status === 'BROKEN'
                       ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-xs font-medium">معطبة</span>
                       : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs font-medium">صالحة</span>}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground font-mono">{v.fuelQuota != null ? `${v.fuelQuota} لتر` : '—'}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{v.entity?.name || '—'}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-[150px]">{v.notes || '—'}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-[200px]">{v.notes || '—'}</td>
                 </tr>
               ))}
             </tbody>

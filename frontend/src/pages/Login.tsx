@@ -1,6 +1,7 @@
 ﻿import React, { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
+import { Package, Truck, BarChart3, Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
   const { login } = useContext(AuthContext)
@@ -54,20 +55,22 @@ export default function Login() {
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
           />
           <h1 className="text-4xl font-extrabold text-white text-center leading-snug">
-            أهلاً بك<br />
-            <span className="text-blue-200">في نظام ادارة اقسام التجهيز</span>
+            <span className="text-blue-200">الإدارة العامة للحرس الوطني</span>
           </h1>
           <p className="text-blue-100 text-base text-center max-w-sm leading-relaxed">
-            منصة متكاملة لإدارة المستودعات وتتبع المخزون وإدارة عملية التسليم بدقة وكفاءة عالية.
+            منصة إدارة الموارد و الوسائل المادية مع ضمان رقابة شاملة وتقارير دقيقة.
           </p>
-          <div className="grid grid-cols-3 gap-4 w-full mt-2">
+          <div className="grid grid-cols-4 gap-3 w-full mt-2">
             {[
-              { label: 'إدارة المخزون', icon: '📦' },
-              { label: 'عملية التسليم',    icon: '🚚' },
-              { label: 'تقارير فورية', icon: '📊' },
+              { label: 'ادارة الموارد', Icon: Package },
+              { label: 'ادارة الوسائل', Icon: Truck },
+              { label: 'تقارير فورية', Icon: BarChart3 },
+              { label: 'مراقبة و تدقيق', Icon: Eye },
             ].map((f) => (
-              <div key={f.label} className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-4 text-center">
-                <div className="text-3xl mb-2">{f.icon}</div>
+              <div key={f.label} className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-3 text-center">
+                <div className="mb-2 flex justify-center">
+                  <f.Icon className="w-7 h-7 text-blue-200" strokeWidth={1.5} />
+                </div>
                 <p className="text-white text-xs font-medium">{f.label}</p>
               </div>
             ))}
@@ -92,7 +95,7 @@ export default function Login() {
             />
             <div>
               <p className="text-foreground font-bold">الإدارة العامة للحرس الوطني</p>
-              <p className="text-muted-foreground text-sm">نظام ادارة اقسام الجهيز</p>
+              <p className="text-muted-foreground text-sm">منصة ادارة الموارد و الوسائل المادية</p>
             </div>
           </div>
 
@@ -176,14 +179,9 @@ export default function Login() {
                     tabIndex={-1}
                   >
                     {showPassword ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                      </svg>
+                      <EyeOff className="w-5 h-5" strokeWidth={1.5} />
                     ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
+                      <Eye className="w-5 h-5" strokeWidth={1.5} />
                     )}
                   </button>
                 </div>

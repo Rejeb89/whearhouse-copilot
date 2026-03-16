@@ -6,7 +6,7 @@ type EntityCategory = string
 
 const CATEGORIES: { value: string; label: string; type: 'SUPPLIER' | 'BENEFICIARY' }[] = [
   { value: 'الادارات المركزية', label: 'إدارة مركزية',    type: 'SUPPLIER'     },
-  { value: 'الوحدات المتنفعة',  label: 'وحدة متنفعة',      type: 'BENEFICIARY'  },
+  { value: 'الوحدات الأمنية',  label: 'وحدة أمنية',      type: 'BENEFICIARY'  },
   { value: 'مزود',               label: 'مزود',               type: 'SUPPLIER'     },
   { value: 'أخرى',               label: 'أخرى',               type: 'SUPPLIER'     },
 ]
@@ -78,7 +78,7 @@ export default function EntityModal({ isOpen, onClose, onSuccess, entity }: Enti
       setError('يجب إدخال رقم الهاتف')
       return
     }
-    if (category === 'الوحدات المتنفعة') {
+    if (category === 'الوحدات الأمنية') {
       if (!unitHead.trim()) {
         setError('يجب إدخال اسم رئيس الوحدة')
         return
@@ -98,8 +98,8 @@ export default function EntityModal({ isOpen, onClose, onSuccess, entity }: Enti
           type: entityType,
           category,
           phone,
-          unitHead: category === 'الوحدات المتنفعة' ? unitHead : null,
-          unitHeadPhone: category === 'الوحدات المتنفعة' ? unitHeadPhone : null,
+          unitHead: category === 'الوحدات الأمنية' ? unitHead : null,
+          unitHeadPhone: category === 'الوحدات الأمنية' ? unitHeadPhone : null,
         })
       } else {
         await client.post('/entities', {
@@ -107,8 +107,8 @@ export default function EntityModal({ isOpen, onClose, onSuccess, entity }: Enti
           type: entityType,
           category,
           phone,
-          unitHead: category === 'الوحدات المتنفعة' ? unitHead : null,
-          unitHeadPhone: category === 'الوحدات المتنفعة' ? unitHeadPhone : null,
+          unitHead: category === 'الوحدات الأمنية' ? unitHead : null,
+          unitHeadPhone: category === 'الوحدات الأمنية' ? unitHeadPhone : null,
         })
       }
       onSuccess()
@@ -171,7 +171,7 @@ export default function EntityModal({ isOpen, onClose, onSuccess, entity }: Enti
                 />
               </div>
 
-              {category === 'الوحدات المتنفعة' && (
+              {category === 'الوحدات الأمنية' && (
                 <>
                   <div>
                     <label className="block text-sm font-medium mb-1 text-foreground">رئيس الوحدة</label>

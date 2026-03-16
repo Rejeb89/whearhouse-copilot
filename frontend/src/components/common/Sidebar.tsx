@@ -1,5 +1,5 @@
 import React, { useContext } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../context/AuthContext'
 import { LayoutDashboard, Package, Building2, CalendarDays, FileText, Settings, Wallet, ClipboardCheck, Car, X, Shield, HardHat, Fuel } from 'lucide-react'
 import GlobalSearch from './GlobalSearch'
@@ -12,6 +12,15 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user } = useContext(AuthContext)
   const location = useLocation()
+  const navigate = useNavigate()
+
+  const handleLogoClick = () => {
+    const targetPath = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER'].includes(user?.role || '')
+      ? '/monitoring'
+      : '/'
+    navigate(targetPath)
+    onClose()
+  }
 
   return (
     <>
@@ -41,12 +50,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Logo */}
-        <div className="flex flex-row items-center gap-3 h-14 px-4 shrink-0">
+        <button
+          onClick={handleLogoClick}
+          className="w-full flex flex-row items-center gap-2 h-auto px-4 py-2 shrink-0 transition-colors rounded-lg"
+          aria-label="الصفحة الرئيسية"
+        >
           <img src="/logo.png" alt="شعار الحرس الوطني" className="h-9 w-9 object-contain shrink-0" />
-          {user?.securityUnit && (
-            <p className="text-xs font-semibold text-foreground leading-tight">{user.securityUnit}</p>
-          )}
-        </div>
+          <p className="text-xs font-semibold text-foreground leading-tight text-right break-words">
+            {user?.role === 'ADMIN' && user?.securityUnit
+              ? `الادارة العامة للحرس الوطني - ${user.securityUnit}`
+              : user?.role === 'ADMIN'
+              ? 'الادارة العامة للحرس الوطني'
+              : user?.securityUnit
+              ? user.securityUnit
+              : ''}
+          </p>
+        </button>
 
         {/* Global Search */}
         <div className="px-3 pb-2">

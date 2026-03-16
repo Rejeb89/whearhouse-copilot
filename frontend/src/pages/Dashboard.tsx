@@ -166,7 +166,7 @@ export default function Dashboard() {
         {/* Total Items */}
         <button
           onClick={() => navigate('/items')}
-          className="rounded-xl border border-border bg-card text-card-foreground shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
+          className="rounded-xl border border-border bg-card text-card-foreground shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer text-right"
         >
           <div className="flex flex-row items-center justify-between p-6 pb-2">
             <p className="text-sm font-medium text-muted-foreground">إجمالي الأصناف</p>
@@ -181,7 +181,7 @@ export default function Dashboard() {
         {/* Low Stock */}
         <button
           onClick={() => navigate('/items', { state: { activeTab: 'lowStock' } })}
-          className="rounded-xl border border-border bg-card text-card-foreground shadow-sm hover:shadow-md hover:border-destructive/50 transition-all cursor-pointer"
+          className="rounded-xl border border-border bg-card text-card-foreground shadow-sm hover:shadow-md hover:border-destructive/50 transition-all cursor-pointer text-right"
         >
           <div className="flex flex-row items-center justify-between p-6 pb-2">
             <p className="text-sm font-medium text-muted-foreground">الأصناف المنخفضة</p>
@@ -194,7 +194,10 @@ export default function Dashboard() {
         </button>
 
         {/* Upcoming Events */}
-        <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+        <button
+          onClick={() => navigate('/calendar')}
+          className="rounded-xl border border-border bg-card text-card-foreground shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer text-right"
+        >
           <div className="flex flex-row items-center justify-between p-6 pb-2">
             <p className="text-sm font-medium text-muted-foreground">الأحداث القادمة</p>
             <CalendarDays className="w-4 h-4 text-muted-foreground" />
@@ -205,7 +208,7 @@ export default function Dashboard() {
               {upcomingEvents[0] ? `${upcomingEvents[0].date} · ${upcomingEvents[0].time}` : 'لا أحداث مُجدولة في هذا الشهر'}
             </p>
           </div>
-        </div>
+        </button>
 
         {/* Projects Card */}
         {(() => {
@@ -256,11 +259,11 @@ export default function Dashboard() {
 
 
       {/* ── Charts + Table ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 auto-rows-max">
 
         {/* Low Stock Chart */}
         <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-          <div className="flex items-center justify-between p-6 pb-2 border-b border-border">
+          <div className="flex items-center justify-between p-5 pb-2 border-b border-border">
             <div>
               <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
@@ -269,11 +272,11 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground mt-0.5">الأصناف التي تجاوزت حد التنبيه</p>
             </div>
           </div>
-          <div className="p-6">
+          <div className="p-5">
             {lowAlerts.length > 0 ? (
-              <LowStockChordChart items={lowAlerts} width={460} height={380} />
+              <LowStockChordChart items={lowAlerts} width={380} height={280} />
             ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <AlertCircle className="w-10 h-10 mb-3 opacity-30" />
                 <p className="text-sm">جميع الأصناف بمستويات آمنة</p>
               </div>
@@ -283,7 +286,7 @@ export default function Dashboard() {
 
         {/* Recent Distributions */}
         <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-          <div className="flex items-center justify-between p-6 pb-2 border-b border-border">
+          <div className="flex items-center justify-between p-5 pb-2 border-b border-border">
             <div>
               <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <TrendingDown className="w-4 h-4" />
@@ -294,30 +297,30 @@ export default function Dashboard() {
           </div>
           <div className="p-0">
             {distributions.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-right">
+              <div className="overflow-x-auto max-h-[320px]">
+                <table className="w-full text-xs text-right">
                   <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      <th className="px-4 py-3 text-xs font-medium text-muted-foreground">اسم التجهيز</th>
-                      <th className="px-4 py-3 text-xs font-medium text-muted-foreground">الوحدة</th>
-                      <th className="px-4 py-3 text-xs font-medium text-muted-foreground text-center">موزَّع</th>
-                      <th className="px-4 py-3 text-xs font-medium text-muted-foreground text-center">متبقي</th>
-                      <th className="px-4 py-3 text-xs font-medium text-muted-foreground">التاريخ</th>
+                    <tr className="border-b border-border bg-muted/50 sticky top-0">
+                      <th className="px-3 py-2.5 text-xs font-medium text-muted-foreground">اسم التجهيز</th>
+                      <th className="px-3 py-2.5 text-xs font-medium text-muted-foreground">الوحدة</th>
+                      <th className="px-3 py-2.5 text-xs font-medium text-muted-foreground text-center">موزَّع</th>
+                      <th className="px-3 py-2.5 text-xs font-medium text-muted-foreground text-center">متبقي</th>
+                      <th className="px-3 py-2.5 text-xs font-medium text-muted-foreground">التاريخ</th>
                     </tr>
                   </thead>
                   <tbody>
                     {distributions.flatMap((d: any) =>
                       d.items.map((di: any, idx: number) => (
                         <tr key={`${d.id}-${idx}`} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
-                          <td className="px-4 py-3 font-medium text-foreground">{di.item.name}</td>
-                          <td className="px-4 py-3 text-muted-foreground text-xs">{d.beneficiary?.name || '—'}</td>
-                          <td className="px-4 py-3 text-center">
-                            <span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                          <td className="px-3 py-2 font-medium text-foreground text-xs">{di.item.name}</td>
+                          <td className="px-3 py-2 text-muted-foreground text-xs">{d.beneficiary?.name || '—'}</td>
+                          <td className="px-3 py-2 text-center">
+                            <span className="inline-flex items-center rounded-md bg-secondary px-1.5 py-0.5 text-xs font-medium text-secondary-foreground">
                               {di.quantity}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
+                          <td className="px-3 py-2 text-center">
+                            <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ${
                               di.item.quantity === 0
                                 ? 'bg-destructive/10 text-destructive'
                                 : di.item.quantity < (di.item.lowStockThreshold || 5)
@@ -327,7 +330,7 @@ export default function Dashboard() {
                               {di.item.quantity}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(d.createdAt).toLocaleString('ar-TN', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                          <td className="px-3 py-2 text-muted-foreground text-xs">{new Date(d.createdAt).toLocaleString('ar-TN', { dateStyle: 'short', timeStyle: 'short' })}</td>
                         </tr>
                       ))
                     )}
@@ -335,7 +338,7 @@ export default function Dashboard() {
                 </table>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Truck className="w-10 h-10 mb-3 opacity-30" />
                 <p className="text-sm">لا توجد عمليات تسليم حديثة</p>
               </div>

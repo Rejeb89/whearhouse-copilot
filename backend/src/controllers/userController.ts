@@ -5,16 +5,21 @@ import { humanizePrismaError } from '../utils/prismaError'
 import prisma from '../config/database'
 
 const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER']
+const SECTION_CHIEF_EXCLUDED_ROLES = ['REGION_CHIEF', 'DISTRICT_MANAGER']
 const getSU = (req: Request) => {
   const u = (req as any).user
   return UNRESTRICTED_ROLES.includes(u?.role) ? undefined : (u?.securityUnit ?? undefined)
+}
+const getExcludedRoles = (req: Request) => {
+  const u = (req as any).user
+  return u?.role === 'SECTION_CHIEF' ? SECTION_CHIEF_EXCLUDED_ROLES : []
 }
 
 export const list = async (req: Request, res: Response) => {
   try {
     const search = (req.query.search as string) || undefined
     const role = (req.query.role as string) || undefined
-    const users = await userService.listUsers(search, role, getSU(req))
+    const users = await userService.listUsers(search, role, getSU(req), getExcludedRoles(req))
     res.json({ data: users })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
@@ -60,7 +65,7 @@ export const create = async (req: Request, res: Response) => {
 
 export const getById = async (req: Request, res: Response) => {
   try {
-    const user = await userService.getUser(Number(req.params.id), getSU(req))
+    const user = await userService.getUser(Number(req.params.id), getSU(req), getExcludedRoles(req))
     if (!user) return res.status(404).json({ error: 'المستخدم غير موجود' })
     res.json({ data: user })
   } catch (err: any) {
