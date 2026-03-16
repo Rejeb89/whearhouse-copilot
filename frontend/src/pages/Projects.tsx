@@ -76,10 +76,12 @@ async function exportProjectsPDF(
 ) {
   const activeProjects = projects.filter(p => p.status === 'STUDY' || p.status === 'WORK')
   const today = new Date().toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' })
-  const unit        = user?.securityUnit || '—'
-  const region      = user?.region       || '—'
-  const title       = user?.title        || ''
-  const regionChief = user?.regionChief  || ''
+  const unit             = user?.securityUnit || '—'
+  const region           = user?.region       || '—'
+  const title            = user?.title        || ''
+  const regionChief      = user?.regionChief  || ''
+  const _r = (user?.securityUnit || '').trim()
+  const regionChiefLabel = _r.startsWith('فوج') ? 'امر فوج' : _r.startsWith('اقليم') || _r.startsWith('إقليم') ? 'مدير الاقليم' : _r.startsWith('منطقة') || _r.startsWith('المنطقة') ? 'رئيس المنطقة' : 'رئيس المنطقة'
 
   const rows = activeProjects.map((p, i) => [
     String(i + 1),
@@ -106,7 +108,7 @@ async function exportProjectsPDF(
       <div style="text-align:center;line-height:2.2;">
         <div style="font-weight:800;font-size:20px;color:#000;">الإدارة العامة للحرس الوطني</div>
         <div style="font-size:16px;color:#000;">${region}</div>
-        <div style="font-size:16px;color:#000;">${unit}</div>
+        ${region !== unit ? `<div style="font-size:16px;color:#000;">${unit}</div>` : ''}
         <div style="font-size:16px;color:#000;text-align:right;">عدد</div>
       </div>
     </div>
@@ -138,7 +140,7 @@ async function exportProjectsPDF(
         <div style="font-size:16px;color:#000;line-height:1.9;margin-bottom:8px;">
           <span style="font-weight:700;color:#000;">${title}</span> في : ${today}
         </div>
-        <div style="font-weight:700;font-size:16px;color:#000;">رئيس المنطقة</div>
+        <div style="font-weight:700;font-size:16px;color:#000;">${regionChiefLabel}</div>
         ${regionChief ? `<div style="font-size:16px;color:#000;margin-top:6px;">${regionChief}</div>` : ''}
       </div>
     </div>`

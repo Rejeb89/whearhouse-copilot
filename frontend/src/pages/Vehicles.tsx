@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useContext } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../services/client'
-import { Plus, Search, Pencil, Trash2, X, Car, Fuel, Building2, ChevronDown, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { AuthContext } from '../context/AuthContext'
+import { Plus, Search, Pencil, Trash2, X, Car, Fuel, Building2, ChevronDown, AlertTriangle, CheckCircle2, FileDown } from 'lucide-react'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const VEHICLE_TYPES = ['وسيلة نقل إدارية', 'مضخة مياه', 'مولد كهربائي', 'أخرى']
@@ -22,24 +23,26 @@ const EMPTY_FORM = {
 
 interface Entity { id: number; name: string; category?: string }
 interface Vehicle {
-  id:            number
-  adminNumber:   string
-  vehicleType?:  string | null
-  type:          string
-  fuelType:      string
-  fuelQuota?:    number | null
-  status:        'OPERATIONAL' | 'BROKEN'
-  breakdownRef?: string | null
-  breakdownDate?:string | null
-  entityId:      number
-  entity:        Entity
-  notes?:        string
-  createdAt:     string
+  id:             number
+  adminNumber:    string
+  vehicleType?:   string | null
+  type:           string
+  fuelType:       string
+  fuelQuota?:     number | null
+  status:         'OPERATIONAL' | 'BROKEN'
+  breakdownRef?:  string | null
+  breakdownDate?: string | null
+  entityId:       number
+  entity:         Entity
+  securityUnit?:  string | null
+  notes?:         string
+  createdAt:      string
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Vehicles() {
   const qc = useQueryClient()
+  const { user } = useContext(AuthContext)
   const [search, setSearch]     = useState('')
   const [filterEntity, setFilterEntity] = useState('')
   const [filterFuel,   setFilterFuel]   = useState('')
@@ -162,6 +165,115 @@ export default function Vehicles() {
 
   const typeFilterOptions = VEHICLE_TYPES
 
+  // ── PDF Export ────────────────────────────────────────────────────────────
+  const exportPDF = async () => {
+    const unit   = user?.securityUnit || '—'
+    const region = user?.region       || '—'
+    const title  = user?.title        || ''
+    const regionChief = (user as any)?.regionChief || ''
+    const _r = (user?.securityUnit || '').trim()
+    const regionChiefLabel = _r.startsWith('فوج') ? 'امر فوج' : _r.startsWith('اقليم') || _r.startsWith('إقليم') ? 'مدير الاقليم' : _r.startsWith('منطقة') ? 'رئيس المنطقة' : 'رئيس المنطقة'
+    const today = new Date().toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' })
+
+    const headers = ['الرقم', 'رقم الوسيلة', 'نوع الوسيلة', 'الوحدة التابعة', 'الحالة', 'الملاحظات']
+    const rows = filtered.map((v, i) => [
+      String(i + 1),
+      v.adminNumber,
+      v.type,
+      v.entity?.name || v.securityUnit || '—',
+      v.status === 'BROKEN' ? 'معطبة' : 'صالحة',
+      v.notes || '—',
+    ])
+
+    const totalOp = filtered.filter(v => v.status !== 'BROKEN').length
+    const totalBr = filtered.filter(v => v.status === 'BROKEN').length
+
+    const el = document.createElement('div')
+    el.style.cssText = 'direction:rtl;font-family:"Cairo","Tahoma",sans-serif;background:#fff;padding:32px 36px;width:1200px;color:#0f172a;position:absolute;left:-9999px;top:0;z-index:-1;'
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+        <div style="text-align:center;line-height:2.2;">
+          <div style="font-weight:800;font-size:20px;color:#000;">الإدارة العامة للحرس الوطني</div>
+          <div style="font-size:16px;color:#000;">${region}</div>
+          ${region !== unit ? `<div style="font-size:16px;color:#000;">${unit}</div>` : ''}
+          <div style="font-size:16px;color:#000;text-align:right;">عدد</div>
+        </div>
+        <div style="min-width:260px;">
+          <table style="border-collapse:collapse;font-size:15px;border:1.5px solid #000;width:100%;">
+            <thead>
+              <tr style="border-bottom:1.5px solid #000;">
+                <th style="padding:6px 14px;text-align:center;border-left:1.5px solid #000;font-weight:700;">الحالة</th>
+                <th style="padding:6px 14px;text-align:center;font-weight:700;">العدد</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #000;">
+                <td style="padding:5px 14px;text-align:center;border-left:1px solid #000;font-weight:600;">صالحة</td>
+                <td style="padding:5px 14px;text-align:center;">${totalOp}</td>
+              </tr>
+              <tr>
+                <td style="padding:5px 14px;text-align:center;border-left:1px solid #000;font-weight:600;">معطبة</td>
+                <td style="padding:5px 14px;text-align:center;">${totalBr}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div style="text-align:center;margin:10px 0 30px;">
+        <span style="font-size:22px;font-weight:800;color:#000;border-bottom:2px solid #000;padding-bottom:4px;">
+          قائمة الوسائل (${unit})
+        </span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;border:2px solid #000;">
+        <thead>
+          <tr style="border-bottom:2px solid #000;">
+            ${headers.map(h => `<th style="padding:8px 5px;text-align:center;vertical-align:middle;border-left:1.5px solid #000;white-space:nowrap;font-weight:700;">${h}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.length === 0
+            ? `<tr><td colspan="${headers.length}" style="text-align:center;padding:20px;color:#000;">لا توجد بيانات</td></tr>`
+            : rows.map(row => `
+            <tr style="border-bottom:1px solid #000;">
+              ${row.map(c => `<td style="padding:7px 5px;border-left:1px solid #000;text-align:center;vertical-align:middle;">${c}</td>`).join('')}
+            </tr>`).join('')}
+        </tbody>
+        <tfoot>
+          <tr style="border-top:2px solid #000;font-weight:700;font-size:14px;">
+            <td colspan="${headers.length - 1}" style="padding:8px;text-align:right;border-left:1px solid #000;">الإجمالي</td>
+            <td style="padding:8px;text-align:center;">${filtered.length}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div style="margin-top:40px;display:flex;justify-content:flex-end;">
+        <div style="text-align:center;">
+          <div style="font-size:16px;color:#000;line-height:1.9;margin-bottom:8px;">
+            <span style="font-weight:700;color:#000;">${title}</span> في : ${today}
+          </div>
+          <div style="font-weight:700;font-size:16px;color:#000;">${regionChiefLabel}</div>
+          ${regionChief ? `<div style="font-size:16px;color:#000;margin-top:6px;">${regionChief}</div>` : ''}
+        </div>
+      </div>`
+
+    document.body.appendChild(el)
+    try {
+      const { jsPDF }   = await import('jspdf')
+      const html2canvas = await import('html2canvas')
+      const canvas = await html2canvas.default(el, { scale: 2, backgroundColor: '#fff', useCORS: true, logging: false })
+      const imgData = canvas.toDataURL('image/png')
+      const pw = 297; const iw = pw - 14; const ih = (canvas.height * iw) / canvas.width
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+      const pageH = 200
+      let y = 0; let page = 0
+      while (y < ih) {
+        if (page > 0) doc.addPage()
+        doc.addImage(imgData, 'PNG', 7, 7 - y, iw, ih)
+        y += pageH; page++
+      }
+      doc.save(`وسائل-${unit}.pdf`)
+    } finally { el.remove() }
+  }
+
   return (
     <div dir="rtl" className="space-y-6">
       {/* Header */}
@@ -173,13 +285,22 @@ export default function Vehicles() {
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">وسائل النقل الإدارية المرتبطة بالوحدات</p>
         </div>
-        <button
-          onClick={openAdd}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          إضافة وسيلة
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={exportPDF}
+            className="inline-flex items-center gap-2 rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
+          >
+            <FileDown className="w-4 h-4" />
+            تصدير PDF
+          </button>
+          <button
+            onClick={openAdd}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            إضافة وسيلة
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

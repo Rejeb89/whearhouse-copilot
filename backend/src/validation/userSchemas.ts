@@ -7,7 +7,7 @@ export const createUserSchema = z.object({
   role: z.enum(['ADMIN', 'SECTION_CHIEF', 'USER', 'REGION_CHIEF', 'DISTRICT_MANAGER']).optional(),
   personalNumber: z.string().optional(),
   securityUnit: z.string().optional(),
-  region: z.string().optional(),
+  region: z.string().min(1, 'الإقليم الحالي مطلوب'),
   regionChief: z.string().optional(),
   title: z.string().optional(),
 })

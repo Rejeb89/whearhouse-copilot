@@ -125,7 +125,7 @@ export const ReceiptPrintTemplate = React.forwardRef<HTMLDivElement, { receipt: 
               {currentUser?.region && (
                 <div style={{ fontSize: '12px', fontWeight: 600, color: '#1e3a5f' }}>{currentUser.region}</div>
               )}
-              {currentUser?.securityUnit && (
+              {currentUser?.securityUnit && currentUser.region !== currentUser.securityUnit && (
                 <div style={{ fontSize: '11px', color: '#4b5563' }}>{currentUser.securityUnit}</div>
               )}
             </div>

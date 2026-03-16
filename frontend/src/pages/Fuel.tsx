@@ -241,10 +241,12 @@ export default function FuelPage() {
   // ── PDF Export ────────────────────────────────────────────────────────────
   const exportPDF = async () => {
     const monthLabel = `${MONTHS_AR[selMonth - 1]} ${selYear}`
-    const unit        = user?.securityUnit || '—'
-    const region      = user?.region       || '—'
-    const title       = user?.title        || ''
-    const regionChief = (user as any)?.regionChief || ''
+    const unit             = user?.securityUnit || '—'
+    const region           = user?.region       || '—'
+    const title            = user?.title        || ''
+    const regionChief      = (user as any)?.regionChief || ''
+    const _r = (user?.securityUnit || '').trim()
+    const regionChiefLabel = _r.startsWith('فوج') ? 'امر فوج' : _r.startsWith('اقليم') || _r.startsWith('إقليم') ? 'مدير الاقليم' : _r.startsWith('منطقة') || _r.startsWith('المنطقة') ? 'رئيس المنطقة' : 'رئيس المنطقة'
 
     const headers = ['الوحدة الأمنية','نوع الوسيلة','الرقم الإداري','المقرر (لتر)','المسلم (د.ت)','الإضافي (د.ت)','المستهلك (د.ت)','الفائض (د.ت)','النقص (د.ت)','عداد أول الشهر','عداد آخر الشهر','المسافة المقطوعة (كلم)','المعدل المئوي','ملاحظات']
 
@@ -290,7 +292,7 @@ export default function FuelPage() {
         <div style="text-align:center;line-height:2.2;">
           <div style="font-weight:800;font-size:20px;color:#000;">الإدارة العامة للحرس الوطني</div>
           <div style="font-size:16px;color:#000;">${region}</div>
-          <div style="font-size:16px;color:#000;">${unit}</div>
+          ${region !== unit ? `<div style="font-size:16px;color:#000;">${unit}</div>` : ''}
           <div style="font-size:16px;color:#000;text-align:right;">عدد</div>
         </div>
         <div style="min-width:320px;">
@@ -348,7 +350,7 @@ export default function FuelPage() {
           <div style="font-size:16px;color:#000;line-height:1.9;margin-bottom:8px;">
             <span style="font-weight:700;color:#000;">${title}</span> في : ${today}
           </div>
-          <div style="font-weight:700;font-size:16px;color:#000;">رئيس المنطقة</div>
+          <div style="font-weight:700;font-size:16px;color:#000;">${regionChiefLabel}</div>
           ${regionChief ? `<div style="font-size:16px;color:#000;margin-top:6px;">${regionChief}</div>` : ''}
         </div>
       </div>`

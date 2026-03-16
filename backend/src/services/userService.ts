@@ -16,7 +16,7 @@ const SAFE_SELECT = {
   createdAt: true,
 }
 
-export const listUsers = (search?: string, role?: string, securityUnit?: string | null) => {
+export const listUsers = (search?: string, role?: string, securityUnit?: string | null, excludeRoles?: string[]) => {
   const where: any = {}
   if (securityUnit) where.securityUnit = securityUnit
   if (search) {
@@ -25,13 +25,20 @@ export const listUsers = (search?: string, role?: string, securityUnit?: string 
       { name: { contains: search, mode: 'insensitive' } },
     ]
   }
-  if (role) where.role = role
+  if (role) {
+    where.role = excludeRoles && excludeRoles.length > 0
+      ? { equals: role, notIn: excludeRoles }
+      : role
+  } else if (excludeRoles && excludeRoles.length > 0) {
+    where.role = { notIn: excludeRoles }
+  }
   return prisma.user.findMany({ where, select: SAFE_SELECT, orderBy: { createdAt: 'desc' } })
 }
 
-export const getUser = (id: number, securityUnit?: string | null) => {
+export const getUser = (id: number, securityUnit?: string | null, excludeRoles?: string[]) => {
   const where: any = { id }
   if (securityUnit) where.securityUnit = securityUnit
+  if (excludeRoles && excludeRoles.length > 0) where.role = { notIn: excludeRoles }
   return prisma.user.findFirst({ where, select: SAFE_SELECT })
 }
 

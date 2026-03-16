@@ -58,7 +58,7 @@ export default function App() {
             <Route path="/distributions" element={<PrivateRoute children={<Distributions />} />} />
             <Route path="/entities" element={<PrivateRoute children={<Entities />} />} />
             <Route path="/entities/:id" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF", "USER", "REGION_CHIEF", "DISTRICT_MANAGER"]} children={<EntityDetails />} />} />
-            <Route path="/calendar" element={<PrivateRoute children={<Calendar />} />} />
+            <Route path="/calendar" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF", "USER", "REGION_CHIEF", "DISTRICT_MANAGER"]} children={<Calendar />} />} />
             {/* <Route path="/users" element={<PrivateRoute roles={["ADMIN"]} children={<Users />} />} /> */}
             <Route path="/logs" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF"]} children={<Logs />} />} />
             <Route path="/settings" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF"]} children={<Settings />} />} />

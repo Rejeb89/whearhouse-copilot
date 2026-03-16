@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import EntityModal from '../components/modals/EntityModal'
 
-type FilterKey = 'الكل' | 'الادارات المركزية' | 'الوحدات المتنفعة' | 'جهات مختلفة'
+type FilterKey = 'الكل' | 'الادارات المركزية' | 'الوحدات الأمنية' | 'جهات مختلفة'
 
 interface Entity {
   id: number
@@ -24,13 +24,13 @@ interface Entity {
 const categoryMeta: Record<FilterKey, { icon: React.ReactNode; color: string; bg: string; border: string }> = {
   'الكل':               { icon: <Filter className="w-4 h-4" />,   color: 'text-foreground',  bg: 'bg-muted',          border: 'border-border' },
   'الادارات المركزية':  { icon: <Landmark className="w-4 h-4" />, color: 'text-blue-600',    bg: 'bg-blue-50 dark:bg-blue-950/40',   border: 'border-blue-200 dark:border-blue-800' },
-  'الوحدات المتنفعة':   { icon: <Users className="w-4 h-4" />,    color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800' },
+  'الوحدات الأمنية':   { icon: <Users className="w-4 h-4" />,    color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800' },
   'جهات مختلفة':        { icon: <Globe className="w-4 h-4" />,    color: 'text-violet-600',  bg: 'bg-violet-50 dark:bg-violet-950/40',  border: 'border-violet-200 dark:border-violet-800' },
 }
 
 const cardAccent: Record<string, string> = {
   'الادارات المركزية': 'border-r-4 border-r-blue-500',
-  'الوحدات المتنفعة':  'border-r-4 border-r-emerald-500',
+  'الوحدات الأمنية':  'border-r-4 border-r-emerald-500',
   'جهات مختلفة':       'border-r-4 border-r-violet-500',
 }
 
@@ -50,8 +50,8 @@ export default function Entities() {
     const cat = e.category || ''
     if (cat === 'الادارات المركزية' || cat === 'إدارة مركزية' || (cat === '' && e.type === 'SUPPLIER'))
       return 'الادارات المركزية'
-    if (cat === 'الوحدات المتنفعة' || (cat === '' && e.type === 'BENEFICIARY'))
-      return 'الوحدات المتنفعة'
+    if (cat === 'الوحدات الأمنية' || (cat === '' && e.type === 'BENEFICIARY'))
+      return 'الوحدات الأمنية'
     return 'جهات مختلفة'
   }
 
@@ -70,7 +70,7 @@ export default function Entities() {
   const handleAddEntity = () => { setEditingEntity(null); setShowModal(true) }
   const handleSuccess = () => { refetch(); setShowModal(false) }
 
-  const FILTERS: FilterKey[] = ['الكل', 'الادارات المركزية', 'الوحدات المتنفعة', 'جهات مختلفة']
+  const FILTERS: FilterKey[] = ['الكل', 'الادارات المركزية', 'الوحدات الأمنية', 'جهات مختلفة']
 
   return (
     <div dir="rtl" className="space-y-6">
@@ -80,7 +80,7 @@ export default function Entities() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">الجهات</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            إدارة الجهات المورّدة والوحدات المنتفعة — {entities.length} جهة مسجّلة
+            إدارة الجهات المورّدة والوحدات الأمنية — {entities.length} جهة مسجّلة
           </p>
         </div>
         <button
