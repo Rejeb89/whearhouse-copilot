@@ -101,6 +101,30 @@ export const remove = async (req: Request, res: Response) => {
   }
 }
 
+export const block = async (req: Request, res: Response) => {
+  try {
+    const actor = (req as any).user
+    const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress
+    const target = await prisma.user.findUnique({ where: { id: Number(req.params.id) } })
+    if (target?.role === 'ADMIN') return res.status(403).json({ error: 'لا يمكن إيقاف حساب المسؤول' })
+    const user = await userService.blockUser(Number(req.params.id), actor?.email, actor?.id, ip)
+    res.json({ data: user })
+  } catch (err: any) {
+    res.status(400).json({ error: humanizePrismaError(err) })
+  }
+}
+
+export const unblock = async (req: Request, res: Response) => {
+  try {
+    const actor = (req as any).user
+    const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress
+    const user = await userService.unblockUser(Number(req.params.id), actor?.email, actor?.id, ip)
+    res.json({ data: user })
+  } catch (err: any) {
+    res.status(400).json({ error: humanizePrismaError(err) })
+  }
+}
+
 export const getMeta = async (_req: Request, res: Response) => {
   try {
     const [regions, securityUnits, titles] = await Promise.all([

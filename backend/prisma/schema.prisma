@@ -18,6 +18,7 @@ model User {
   region         String?
   regionChief    String?
   title          String?
+  blocked         Boolean  @default(false)
   createdAt DateTime @default(now())
   receptions Reception[]
   distributions Distribution[]

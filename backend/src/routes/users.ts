@@ -16,5 +16,7 @@ router.post('/',     roleGuard(writeRoles), userController.create)
 router.get('/:id',   roleGuard(readRoles),  userController.getById)
 router.put('/:id',   roleGuard(writeRoles), userController.update)
 router.delete('/:id',roleGuard(deleteRoles), userController.remove)
+router.patch('/:id/block',   roleGuard(deleteRoles), userController.block)
+router.patch('/:id/unblock', roleGuard(deleteRoles), userController.unblock)
 
 export default router

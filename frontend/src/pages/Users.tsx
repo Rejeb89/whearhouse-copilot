@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../services/client'
-import { Users, Shield, UserCheck, Plus, Loader2, X, Trash2, Eye, EyeOff, User, Lock } from 'lucide-react'
+import { Users, Shield, UserCheck, Plus, Loader2, X, Trash2, Eye, EyeOff, User, Lock, Ban, CheckCircle2 } from 'lucide-react'
 
 interface AppUser {
   id: number
@@ -12,6 +12,7 @@ interface AppUser {
   securityUnit?: string
   region?: string
   title?: string
+  blocked?: boolean
   createdAt: string
 }
 
@@ -36,6 +37,15 @@ export default function UsersList() {
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
+
+  const blockMutation = useMutation(
+    ({ id, blocked }: { id: number; blocked: boolean }) =>
+      client.patch(`/users/${id}/${blocked ? 'unblock' : 'block'}`).then(r => r.data.data),
+    {
+      onSuccess: () => qc.invalidateQueries(['users']),
+      onError: (err: any) => setError(err?.response?.data?.error || 'تعذر تغيير حالة الحساب'),
+    }
+  )
 
   const createMutation = useMutation(
     (data: typeof EMPTY_FORM) => client.post('/users', data).then(r => r.data.data),
@@ -106,6 +116,7 @@ export default function UsersList() {
                 <th className="px-4 py-3">العنوان</th>
                 <th className="px-4 py-3">الوحدة الأمنية</th>
                 <th className="px-4 py-3">الصلاحية</th>
+                <th className="px-4 py-3">الحالة</th>
                 <th className="px-4 py-3">تاريخ الإنشاء</th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -114,11 +125,11 @@ export default function UsersList() {
               {users.map(u => {
                 const rl = roleLabel[u.role] || roleLabel.USER
                 return (
-                  <tr key={u.id} className="border-b border-border hover:bg-muted/50 transition">
+                  <tr key={u.id} className={`border-b border-border transition ${u.blocked ? 'bg-red-50/40 hover:bg-red-50/70' : 'hover:bg-muted/50'}`}>
                     <td className="px-4 py-3 font-semibold text-foreground">
                       <span className="flex items-center gap-2">
                         {u.role === 'ADMIN' ? <Shield className="w-3.5 h-3.5 text-destructive" /> : <UserCheck className="w-3.5 h-3.5 text-primary" />}
-                        {u.name || '—'}
+                        <span className={u.blocked ? 'line-through text-muted-foreground' : ''}>{u.name || '—'}</span>
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground" dir="ltr">{u.email}</td>
@@ -128,27 +139,49 @@ export default function UsersList() {
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${rl.color}`}>{rl.label}</span>
                     </td>
+                    <td className="px-4 py-3">
+                      {u.blocked
+                        ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700"><Ban className="w-3 h-3" />موقوف</span>
+                        : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700"><CheckCircle2 className="w-3 h-3" />نشط</span>
+                      }
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(u.createdAt).toLocaleDateString('ar-TN')}</td>
                     <td className="px-4 py-3">
-                      {deleteConfirm === u.id ? (
-                        <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1">
+                        {u.role !== 'ADMIN' && (
                           <button
-                            onClick={() => deleteMutation.mutate(u.id)}
-                            disabled={deleteMutation.isLoading}
-                            className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                            onClick={() => blockMutation.mutate({ id: u.id, blocked: !!u.blocked })}
+                            disabled={blockMutation.isLoading}
+                            title={u.blocked ? 'رفع التوقيف' : 'توقيف الحساب'}
+                            className={`p-1.5 rounded-lg transition ${
+                              u.blocked
+                                ? 'hover:bg-green-50 text-green-500 hover:text-green-700'
+                                : 'hover:bg-orange-50 text-orange-400 hover:text-orange-600'
+                            }`}
                           >
-                            {deleteMutation.isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'تأكيد'}
+                            {u.blocked ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
                           </button>
-                          <button onClick={() => setDeleteConfirm(null)} className="text-xs text-muted-foreground hover:text-foreground">إلغاء</button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setDeleteConfirm(u.id)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                        )}
+                        {deleteConfirm === u.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => deleteMutation.mutate(u.id)}
+                              disabled={deleteMutation.isLoading}
+                              className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                            >
+                              {deleteMutation.isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'تأكيد'}
+                            </button>
+                            <button onClick={() => setDeleteConfirm(null)} className="text-xs text-muted-foreground hover:text-foreground">إلغاء</button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setDeleteConfirm(u.id)}
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
