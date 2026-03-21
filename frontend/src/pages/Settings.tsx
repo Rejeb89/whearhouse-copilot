@@ -1418,13 +1418,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {!isAdmin && (
-        <div className="flex items-center gap-2 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
-          <AlertTriangle className="w-5 h-5 shrink-0" />
-          لديك صلاحية القراءة فقط. تواصل مع المسؤول لإجراء تعديلات.
-        </div>
-      )}
-
       {/* Tabs */}
       <div className="border-b border-border">
         <nav className="flex gap-1" aria-label="Tabs">

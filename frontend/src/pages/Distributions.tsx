@@ -220,7 +220,7 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
 
   const filteredBeneficiaries = useMemo(() => {
     const term = beneficiarySearch.trim().toLowerCase()
-    const onlyBeneficiary = beneficiaries.filter(b => b.category === 'الوحدات المتنفعة')
+    const onlyBeneficiary = beneficiaries.filter(b => b.category === 'الوحدات الأمنية' || b.category === 'الوحدات المتنفعة')
     if (!term) return onlyBeneficiary
     return onlyBeneficiary.filter(b => b.name.toLowerCase().includes(term) || (b.phone || '').toLowerCase().includes(term))
   }, [beneficiarySearch, beneficiaries])
@@ -335,7 +335,7 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
       const res = await client.post('/entities', {
         name,
         type: 'BENEFICIARY',
-        category: 'الوحدات المتنفعة',
+        category: 'الوحدات الأمنية',
         phone: beneficiaryPhone.trim() || 'غير متوفر'
       })
       setSelectedBeneficiary(res.data.data)
@@ -636,25 +636,15 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
             />
           </div>
 
-          <div className="flex justify-end gap-3">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center gap-2 text-sm font-medium transition"
-              disabled={submitting}
-            >
-              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              تسجيل خرج جديد
-            </button>
-          </div>
           {error && <div className="text-sm text-destructive bg-destructive/10 p-2 rounded-lg border border-destructive/20">{error}</div>}
           {success && <div className="text-sm text-green-700 bg-green-50 border border-green-200 p-2 rounded-lg">{success}</div>}
         </section>
 
         {/* ===== Right column: Beneficiary + Employee ===== */}
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
 
           {/* Beneficiary section */}
-          <section className="rounded-xl border border-border bg-card p-5 space-y-3">
+          <section className="rounded-xl border border-border bg-card p-5 space-y-3 flex flex-col flex-1">
             <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
               <Search className="w-4 h-4" />
               الجهة المنتفعة
@@ -721,11 +711,9 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
                 <div className="text-xs text-muted-foreground">{selectedBeneficiary.phone || 'بدون هاتف'}</div>
               </div>
             )}
-          </section>
 
-          {/* Employee section — shown only after beneficiary is selected */}
-          {selectedBeneficiary && (
-            <section className="rounded-xl border border-border bg-card p-5 space-y-3">
+            {/* Employee / Collector section — always visible */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                 <UserCheck className="w-4 h-4" />
                 المكلف بالسحب
@@ -807,8 +795,19 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
                   <div className="text-xs text-muted-foreground">الرقم الشخصي: {selectedEmployee.number}</div>
                 </div>
               )}
-            </section>
-          )}
+            </div>
+
+            <div className="flex-1" />
+
+            <button
+              type="submit"
+              className="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center justify-center gap-2 text-sm font-medium transition mt-2"
+              disabled={submitting}
+            >
+              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              تسجيل خرج جديد
+            </button>
+          </section>
         </div>
       </form>
 

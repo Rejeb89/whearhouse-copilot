@@ -302,7 +302,6 @@ export default function Receptions() {
         'تاريخ المرجع': r.referenceDate ? new Date(r.referenceDate).toLocaleDateString('ar-DZ') : '—',
         'الجهة المرسلة': r.supplier?.name || '—',
         'القائم بالسحب': r.collector ? `${r.collector.rank} ${r.collector.name} ${r.collector.surname}` : '—',
-        'تاريخ التسلم': new Date(r.createdAt).toLocaleDateString('ar-DZ'),
         'الملاحظات': r.notes || '—',
       }))
     )
@@ -700,16 +699,6 @@ export default function Receptions() {
               placeholder="أي تفاصيل إضافية حول الاستلام"
             />
           </div>
-          <div className="flex justify-end gap-3">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center gap-2 text-sm font-medium transition"
-              disabled={submitting}
-            >
-              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              تسجيل استلام جديد
-            </button>
-          </div>
           {error && <div className="text-sm text-destructive bg-destructive/10 p-2 rounded-lg">{error}</div>}
           {success && <div className="text-sm text-green-700 bg-green-50 border border-green-200 p-2 rounded-lg">{success}</div>}
         </section>
@@ -794,6 +783,15 @@ export default function Receptions() {
               <div className="text-muted-foreground">{selectedSupplier.phone || 'بدون هاتف'}</div>
             </div>
           )}
+
+          <button
+            type="submit"
+            className="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center justify-center gap-2 text-sm font-medium transition"
+            disabled={submitting}
+          >
+            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            تسجيل استلام جديد
+          </button>
         </section>
       </form>
 
@@ -875,7 +873,6 @@ export default function Receptions() {
                   <th className="px-3 py-2 font-medium">رقم المرجع</th>
                   <th className="px-3 py-2 font-medium">تاريخ المرجع</th>
                   <th className="px-3 py-2 font-medium">القائم بالسحب</th>
-                  <th className="px-3 py-2 font-medium">تاريخ التسلم</th>
                   <th className="px-3 py-2 font-medium"></th>
                 </tr>
               </thead>
@@ -901,7 +898,6 @@ export default function Receptions() {
                     <td className="px-3 py-2">
                       {r.collector ? `${r.collector.rank} ${r.collector.name} ${r.collector.surname}` : '—'}
                     </td>
-                    <td className="px-3 py-2">{new Date(r.createdAt).toLocaleDateString('ar-DZ')}</td>
                     <td className="px-3 py-2">
                       <button
                         onClick={e => { e.stopPropagation(); setDetailReception(r) }}
@@ -949,10 +945,6 @@ export default function Receptions() {
               <div className="bg-muted/30 rounded-lg p-3">
                 <div className="text-muted-foreground text-xs mb-1">تاريخ المرجع</div>
                 <div className="font-medium">{detailReception.referenceDate ? new Date(detailReception.referenceDate).toLocaleDateString('ar-DZ') : '—'}</div>
-              </div>
-              <div className="bg-muted/30 rounded-lg p-3">
-                <div className="text-muted-foreground text-xs mb-1">تاريخ التسلم</div>
-                <div className="font-medium">{new Date(detailReception.createdAt).toLocaleDateString('ar-DZ')}</div>
               </div>
               <div className="bg-muted/30 rounded-lg p-3">
                 <div className="text-muted-foreground text-xs mb-1">الجهة المرسلة</div>

@@ -31,7 +31,20 @@ export const loginUser = async (req: Request, res: Response) => {
     })
   } catch (err: any) {
     console.error('[LOGIN FAILED] email:', req.body?.email, '| reason:', err.message)
-    res.status(401).json({ error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' })
+    
+    // معالجة الأخطاء المختلفة وإرسال رسائل مناسبة
+    let statusCode = 401
+    let errorMessage = err.message
+    
+    // التحقق من رسالة الخطأ المحددة للحساب الموقوف
+    if (err.message.includes('موقوف')) {
+      statusCode = 403
+      errorMessage = 'الحساب موقوف، تواصل مع المسؤول'
+    } else if (err.message.includes('Invalid credentials')) {
+      errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
+    }
+    
+    res.status(statusCode).json({ error: errorMessage })
   }
 }
 

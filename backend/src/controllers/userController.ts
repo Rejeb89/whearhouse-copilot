@@ -38,18 +38,17 @@ export const create = async (req: Request, res: Response) => {
     // SECTION_CHIEF can only create USER-role accounts inside their own unit
     // Only ADMIN can create REGION_CHIEF or DISTRICT_MANAGER accounts
     let data = { ...parsed.data }
-    if (data.role === 'REGION_CHIEF' || data.role === 'DISTRICT_MANAGER') {
-      if (actor?.role !== 'ADMIN') {
-        return res.status(403).json({ error: 'فقط المسؤول يمكنه إنشاء حسابات رئيس منطقة أو مدير اقليم' })
-      }
+    
+    // Only ADMIN can create REGION_CHIEF or DISTRICT_MANAGER accounts
+    if ((data.role === 'REGION_CHIEF' || data.role === 'DISTRICT_MANAGER') && actor?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'فقط المسؤول يمكنه إنشاء حسابات رئيس منطقة أو مدير اقليم' })
     }
+    
     if (actor?.role === 'SECTION_CHIEF') {
-      if (data.role && data.role !== 'USER') {
-        return res.status(403).json({ error: 'رئيس القسم يمكنه إنشاء مستخدمين من نوع "مستخدم" فقط' })
-      }
+      // Force SECTION_CHIEF users to always create USER-role accounts
+      data.role = 'USER'
       // Fetch actor's full profile to get region and title (not stored in JWT)
       const actorProfile = await prisma.user.findUnique({ where: { id: actor.id }, select: { securityUnit: true, region: true, regionChief: true, title: true } })
-      data.role = 'USER'
       data.securityUnit = actorProfile?.securityUnit?.trim() || actor.securityUnit?.trim() || data.securityUnit
       data.region = actorProfile?.region ?? data.region
       data.regionChief = actorProfile?.regionChief ?? data.regionChief

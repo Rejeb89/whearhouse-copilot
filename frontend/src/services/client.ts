@@ -14,10 +14,16 @@ client.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error?.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      // Force redirect to login when unauthorized to stop polling loops
-      if (typeof window !== 'undefined') window.location.href = '/login'
+      // فقط حذف البيانات إذا كان هناك رسالة خطأ مؤكدة
+      const errorMsg = error?.response?.data?.error || ''
+      const isAuthError = errorMsg && !errorMsg.includes('انتهت')
+      
+      if (isAuthError) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        // Force redirect to login when unauthorized to stop polling loops
+        if (typeof window !== 'undefined') window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }

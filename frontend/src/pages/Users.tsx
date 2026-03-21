@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../services/client'
 import { Users, Shield, UserCheck, Plus, Loader2, X, Trash2, Eye, EyeOff, User, Lock, Ban, CheckCircle2 } from 'lucide-react'
+import { AuthContext } from '../context/AuthContext'
 
 interface AppUser {
   id: number
@@ -30,6 +31,7 @@ const fetchUsers = async () => (await client.get('/users')).data.data
 
 export default function UsersList() {
   const qc = useQueryClient()
+  const { user: currentUser } = useContext(AuthContext)
   const { data: users = [], isLoading } = useQuery<AppUser[]>(['users'], fetchUsers)
 
   const [showForm, setShowForm] = useState(false)
@@ -148,7 +150,7 @@ export default function UsersList() {
                     <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(u.createdAt).toLocaleDateString('ar-TN')}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        {u.role !== 'ADMIN' && (
+                        {currentUser?.role === 'ADMIN' && (
                           <button
                             onClick={() => blockMutation.mutate({ id: u.id, blocked: !!u.blocked })}
                             disabled={blockMutation.isLoading}

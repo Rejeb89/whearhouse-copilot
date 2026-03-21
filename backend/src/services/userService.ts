@@ -95,12 +95,14 @@ export const updateUser = async (
 export const blockUser = async (id: number, actorEmail?: string, actorId?: number, ip?: string) => {
   const user = await prisma.user.update({ where: { id }, data: { blocked: true } as any, select: SAFE_SELECT })
   await createAuditLog({ action: 'BLOCK_USER', entity: 'User', entityId: id, actorEmail: actorEmail ?? null, actorId: actorId ?? null, details: JSON.stringify({ blockedEmail: (user as any).email }), ip: ip ?? null })
+  await createLog('BLOCK_USER', 'User', id, actorId ?? null)
   return user
 }
 
 export const unblockUser = async (id: number, actorEmail?: string, actorId?: number, ip?: string) => {
   const user = await prisma.user.update({ where: { id }, data: { blocked: false } as any, select: SAFE_SELECT })
   await createAuditLog({ action: 'UNBLOCK_USER', entity: 'User', entityId: id, actorEmail: actorEmail ?? null, actorId: actorId ?? null, details: JSON.stringify({ unblockedEmail: (user as any).email }), ip: ip ?? null })
+  await createLog('UNBLOCK_USER', 'User', id, actorId ?? null)
   return user
 }
 

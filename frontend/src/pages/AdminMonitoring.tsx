@@ -1829,6 +1829,7 @@ function BudgetsTab({ unit }: { unit: string }) {
 const LOG_ACTION_LABELS: Record<string, string> = {
   CREATE: 'إضافة', UPDATE: 'تعديل', DELETE: 'حذف',
   LOGIN: 'تسجيل دخول', LOGOUT: 'تسجيل خروج',
+  BLOCK_USER: 'حجب مستخدم', UNBLOCK_USER: 'فك حجب مستخدم',
 }
 const LOG_TABLE_LABELS: Record<string, string> = {
   User: 'مستخدمون', Item: 'أصناف', Reception: 'دخل', Distribution: 'خرج',
