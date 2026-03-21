@@ -138,7 +138,7 @@ export default function Items() {
   const categoryStats = useMemo(() => {
     const map: Record<string, { count: number; qty: number; lowStock: number }> = {}
     items.forEach((it: any) => {
-      const cat = it.category || 'بدون صنف'
+      const cat = (it.category || 'بدون صنف').trim()
       const s = map[cat] ?? { count: 0, qty: 0, lowStock: 0 }
       s.count += 1
       s.qty += Number(it.quantity ?? 0)
@@ -165,7 +165,7 @@ export default function Items() {
     if (!searchLower) return null
     const map: Record<string, any[]> = {}
     filteredItems.forEach((it: any) => {
-      const cat = it.category || 'بدون صنف'
+      const cat = (it.category || 'بدون صنف').trim()
       if (!map[cat]) map[cat] = []
       map[cat].push(it)
     })
@@ -175,7 +175,7 @@ export default function Items() {
   const categoryList = useMemo(() => Object.keys(categoryStats), [categoryStats])
 
   const categoryItems = useMemo(() =>
-    items.filter((it: any) => (it.category || 'بدون صنف') === selectedCategory),
+    items.filter((it: any) => (it.category || 'بدون صنف').trim() === selectedCategory),
     [items, selectedCategory])
 
   const { data: history = { receptions: [], distributions: [] }, isLoading: historyLoading } = useQuery(

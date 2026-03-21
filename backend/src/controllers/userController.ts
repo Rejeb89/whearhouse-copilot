@@ -38,18 +38,17 @@ export const create = async (req: Request, res: Response) => {
     // SECTION_CHIEF can only create USER-role accounts inside their own unit
     // Only ADMIN can create REGION_CHIEF or DISTRICT_MANAGER accounts
     let data = { ...parsed.data }
-    if (data.role === 'REGION_CHIEF' || data.role === 'DISTRICT_MANAGER') {
-      if (actor?.role !== 'ADMIN') {
-        return res.status(403).json({ error: 'فقط المسؤول يمكنه إنشاء حسابات رئيس منطقة أو مدير اقليم' })
-      }
+    
+    // Only ADMIN can create REGION_CHIEF or DISTRICT_MANAGER accounts
+    if ((data.role === 'REGION_CHIEF' || data.role === 'DISTRICT_MANAGER') && actor?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'فقط المسؤول يمكنه إنشاء حسابات رئيس منطقة أو مدير اقليم' })
     }
+    
     if (actor?.role === 'SECTION_CHIEF') {
-      if (data.role && data.role !== 'USER') {
-        return res.status(403).json({ error: 'رئيس القسم يمكنه إنشاء مستخدمين من نوع "مستخدم" فقط' })
-      }
+      // Force SECTION_CHIEF users to always create USER-role accounts
+      data.role = 'USER'
       // Fetch actor's full profile to get region and title (not stored in JWT)
       const actorProfile = await prisma.user.findUnique({ where: { id: actor.id }, select: { securityUnit: true, region: true, regionChief: true, title: true } })
-      data.role = 'USER'
       data.securityUnit = actorProfile?.securityUnit?.trim() || actor.securityUnit?.trim() || data.securityUnit
       data.region = actorProfile?.region ?? data.region
       data.regionChief = actorProfile?.regionChief ?? data.regionChief
@@ -96,6 +95,30 @@ export const remove = async (req: Request, res: Response) => {
     const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress
     await userService.deleteUser(Number(req.params.id), actor?.email, actor?.id, ip)
     res.json({ data: true })
+  } catch (err: any) {
+    res.status(400).json({ error: humanizePrismaError(err) })
+  }
+}
+
+export const block = async (req: Request, res: Response) => {
+  try {
+    const actor = (req as any).user
+    const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress
+    const target = await prisma.user.findUnique({ where: { id: Number(req.params.id) } })
+    if (target?.role === 'ADMIN') return res.status(403).json({ error: 'لا يمكن إيقاف حساب المسؤول' })
+    const user = await userService.blockUser(Number(req.params.id), actor?.email, actor?.id, ip)
+    res.json({ data: user })
+  } catch (err: any) {
+    res.status(400).json({ error: humanizePrismaError(err) })
+  }
+}
+
+export const unblock = async (req: Request, res: Response) => {
+  try {
+    const actor = (req as any).user
+    const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress
+    const user = await userService.unblockUser(Number(req.params.id), actor?.email, actor?.id, ip)
+    res.json({ data: user })
   } catch (err: any) {
     res.status(400).json({ error: humanizePrismaError(err) })
   }

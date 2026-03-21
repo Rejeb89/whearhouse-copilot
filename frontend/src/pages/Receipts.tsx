@@ -263,11 +263,6 @@ export default function Receipts() {
                 </div>
                 <div>
                   <h2 className="font-bold text-foreground">{selectedReceipt?.serialNumber || '...'}</h2>
-                  {selectedReceipt && (
-                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${statusLabel[selectedReceipt.status].bg} ${statusLabel[selectedReceipt.status].color}`}>
-                      {statusLabel[selectedReceipt.status].icon} {statusLabel[selectedReceipt.status].label}
-                    </span>
-                  )}
                 </div>
               </div>
               <div className="flex items-center flex-wrap gap-2">
@@ -392,19 +387,6 @@ export default function Receipts() {
                       </div>
                     )
                   })()}
-
-                  {/* Approval info */}
-                  {selectedReceipt.approvedBy && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-green-800">
-                          صادق عليه: {selectedReceipt.approvedBy.name || selectedReceipt.approvedBy.email}
-                        </p>
-                        <p className="text-xs text-green-600">{selectedReceipt.approvedAt ? new Date(selectedReceipt.approvedAt).toLocaleString('ar-TN') : ''}</p>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Notes */}
                   {selectedReceipt.distribution.notes && (

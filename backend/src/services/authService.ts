@@ -15,6 +15,7 @@ export const login = async (email: string, password: string) => {
   if (!user) throw new Error('Invalid credentials')
   const ok = await comparePassword(password, user.password)
   if (!ok) throw new Error('Invalid credentials')
+  if (user.blocked) throw new Error('الحساب موقوف، تواصل مع المسؤول')
   const token = signToken({ id: user.id, role: user.role, email: user.email, securityUnit: user.securityUnit, region: user.region })
   await createLog('LOGIN', 'User', user.id, user.id)
   return { user, token }

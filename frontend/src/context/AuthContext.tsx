@@ -42,6 +42,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     else localStorage.removeItem('user')
   }, [user])
 
+  // المعالج تمنع تسجيل خروج عند الضغط على زر العودة للوراء
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // استرجاع الـ token من localStorage في حالة vحذفها
+      const storedToken = localStorage.getItem('token')
+      const storedUser = localStorage.getItem('user')
+      
+      if (storedToken && !token) {
+        setToken(storedToken)
+      }
+      if (storedUser && !user) {
+        try {
+          setUser(JSON.parse(storedUser))
+        } catch (e) {
+          // ignore parse errors
+        }
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [token, user])
+
   const login = async (email: string, password: string) => {
     const res = await client.post('/auth/login', { email, password })
     const { token, user } = res.data.data

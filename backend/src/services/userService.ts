@@ -13,6 +13,7 @@ const SAFE_SELECT = {
   region: true,
   regionChief: true,
   title: true,
+  blocked: true,
   createdAt: true,
 }
 
@@ -91,6 +92,20 @@ export const updateUser = async (
   return user
 }
 
+export const blockUser = async (id: number, actorEmail?: string, actorId?: number, ip?: string) => {
+  const user = await prisma.user.update({ where: { id }, data: { blocked: true } as any, select: SAFE_SELECT })
+  await createAuditLog({ action: 'BLOCK_USER', entity: 'User', entityId: id, actorEmail: actorEmail ?? null, actorId: actorId ?? null, details: JSON.stringify({ blockedEmail: (user as any).email }), ip: ip ?? null })
+  await createLog('BLOCK_USER', 'User', id, actorId ?? null)
+  return user
+}
+
+export const unblockUser = async (id: number, actorEmail?: string, actorId?: number, ip?: string) => {
+  const user = await prisma.user.update({ where: { id }, data: { blocked: false } as any, select: SAFE_SELECT })
+  await createAuditLog({ action: 'UNBLOCK_USER', entity: 'User', entityId: id, actorEmail: actorEmail ?? null, actorId: actorId ?? null, details: JSON.stringify({ unblockedEmail: (user as any).email }), ip: ip ?? null })
+  await createLog('UNBLOCK_USER', 'User', id, actorId ?? null)
+  return user
+}
+
 export const deleteUser = async (
   id: number,
   actorEmail?: string,
@@ -101,6 +116,28 @@ export const deleteUser = async (
   if (targetUser?.role === 'ADMIN') {
     throw new Error('لا يمكن حذف حساب المسؤول، يمكن التعديل عليه فقط')
   }
+
+  // Check for records that require userId (non-nullable FK)
+  const [receptionCount, distributionCount, createdReceiptsCount] = await Promise.all([
+    prisma.reception.count({ where: { userId: id } }),
+    prisma.distribution.count({ where: { userId: id } }),
+    prisma.deliveryReceipt.count({ where: { createdById: id } }),
+  ])
+
+  if (receptionCount > 0 || distributionCount > 0 || createdReceiptsCount > 0) {
+    const parts: string[] = []
+    if (receptionCount > 0)       parts.push(`${receptionCount} عملية دخل`)
+    if (distributionCount > 0)    parts.push(`${distributionCount} عملية خرج`)
+    if (createdReceiptsCount > 0) parts.push(`${createdReceiptsCount} وصل تسليم`)
+    throw new Error(`لا يمكن حذف هذا المستخدم لأنه مرتبط بـ: ${parts.join('، ')}`)
+  }
+
+  // Nullify optional FK references before deleting
+  await Promise.all([
+    prisma.log.updateMany({ where: { userId: id }, data: { userId: null } }),
+    prisma.deliveryReceipt.updateMany({ where: { approvedById: id }, data: { approvedById: null } }),
+  ])
+
   await prisma.user.delete({ where: { id } })
   await createLog('DELETE', 'User', id, actorId ?? null)
   await createAuditLog({

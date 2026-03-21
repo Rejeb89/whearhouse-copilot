@@ -9,6 +9,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isBlocked, setIsBlocked] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
@@ -16,11 +17,18 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setIsBlocked(false)
     try {
       const u = await login(email, password)
       navigate(u?.role === 'ADMIN' ? '/monitoring' : '/')
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'بيانات الدخول غير صحيحة')
+      const errorMessage = err?.response?.data?.error || 'بيانات الدخول غير صحيحة'
+      setError(errorMessage)
+      
+      // التحقق من ما إذا كان الحساب موقوفاً
+      if (errorMessage.includes('موقوف')) {
+        setIsBlocked(true)
+      }
     } finally {
       setLoading(false)
     }
@@ -189,11 +197,26 @@ export default function Login() {
 
               {/* Error */}
               {error && (
-                <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {error}
+                <div className={`flex items-center gap-2.5 border px-4 py-3 rounded-xl text-sm ${
+                  isBlocked
+                    ? 'bg-orange-50 border-orange-300 text-orange-800'
+                    : 'bg-red-50 border-red-200 text-red-700'
+                }`}>
+                  {isBlocked ? (
+                    <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 2.526a6 6 0 008.367 12.364zm1.414-1.414A8 8 0 111.414 2.586a8 8 0 0113.487 13.487z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  <div className="flex-1">
+                    <p className="font-semibold">{error}</p>
+                    {isBlocked && (
+                      <p className="text-xs mt-1 opacity-90">يرجى التواصل مع إدارة النظام لتفعيل حسابك</p>
+                    )}
+                  </div>
                 </div>
               )}
 

@@ -29,6 +29,8 @@ import {
   UserCog,
   Filter,
   Clock,
+  Ban,
+  CheckCircle2,
 } from 'lucide-react'
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
@@ -46,6 +48,8 @@ const fetchDbStats = async () => (await client.get('/data/stats')).data.data
 const createUser = (data: any) => client.post('/users', data)
 const updateUser = (id: number, data: any) => client.put(`/users/${id}`, data)
 const deleteUser = (id: number) => client.delete(`/users/${id}`)
+const blockUser   = (id: number) => client.patch(`/users/${id}/block`)
+const unblockUser = (id: number) => client.patch(`/users/${id}/unblock`)
 const fetchUserMeta = async () => (await client.get('/users/meta')).data.data
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -618,6 +622,14 @@ function UsersTab() {
     showToast('success', 'تم حذف المستخدم بنجاح')
   }
 
+  const blockMutation = useMutation(
+    (u: any) => (u.blocked ? unblockUser(u.id) : blockUser(u.id)),
+    {
+      onSuccess: () => { queryClient.invalidateQueries(['users']) },
+      onError: (err: any) => showToast('error', err?.response?.data?.error || 'تعذر تغيير حالة الحساب'),
+    }
+  )
+
   return (
     <div className="space-y-5">
       {/* Toolbar */}
@@ -676,6 +688,7 @@ function UsersTab() {
                 <th className="text-right px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الرقم الشخصي</th>
                 <th className="text-right px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">اسم الوحدة الجهوية</th>
                 <th className="text-right px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الدور</th>
+                <th className="text-right px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الحالة</th>
                 <th className="text-right px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">تاريخ الإنشاء</th>
                 <th className="text-center px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الإجراءات</th>
               </tr>
@@ -683,27 +696,27 @@ function UsersTab() {
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-5 py-12 text-center text-muted-foreground">
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
                     جارٍ التحميل...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-5 py-12 text-center text-muted-foreground">
                     <Users className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     لا يوجد مستخدمون مطابقون
                   </td>
                 </tr>
               ) : (
                 users.map((u: any) => (
-                  <tr key={u.id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setViewingUser(u)}>
+                  <tr key={u.id} className={`transition-colors cursor-pointer ${u.blocked ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-muted/50'}`} onClick={() => setViewingUser(u)}>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${u.blocked ? 'bg-gradient-to-br from-red-400 to-red-600' : 'bg-gradient-to-br from-blue-500 to-indigo-600'}`}>
                           {(u.name ?? u.email).charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-medium text-foreground">{u.name || '—'}</span>
+                        <span className={`font-medium ${u.blocked ? 'line-through text-muted-foreground' : 'text-foreground'}`}>{u.name || '—'}</span>
                       </div>
                     </td>
                     <td className="px-5 py-4 text-muted-foreground" dir="ltr">{u.email}</td>
@@ -715,6 +728,12 @@ function UsersTab() {
                     <td className="px-5 py-4 text-foreground text-sm">{u.securityUnit || <span className="text-muted-foreground text-xs">—</span>}</td>
                     <td className="px-5 py-4">
                       <RoleBadge role={u.role} />
+                    </td>
+                    <td className="px-5 py-4">
+                      {u.blocked
+                        ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200"><Ban className="w-3 h-3" />موقوف</span>
+                        : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200"><CheckCircle2 className="w-3 h-3" />نشط</span>
+                      }
                     </td>
                     <td className="px-5 py-4 text-muted-foreground text-xs">
                       {new Date(u.createdAt).toLocaleDateString('en-GB', {
@@ -731,13 +750,27 @@ function UsersTab() {
                           <Pencil className="w-4 h-4" />
                         </button>
                         {u.role !== 'ADMIN' && (
-                          <button
-                            onClick={() => setDeletingUser(u)}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                            title="حذف"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => blockMutation.mutate(u)}
+                              disabled={blockMutation.isLoading}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                u.blocked
+                                  ? 'text-green-500 hover:text-green-700 hover:bg-green-50'
+                                  : 'text-orange-400 hover:text-orange-600 hover:bg-orange-50'
+                              }`}
+                              title={u.blocked ? 'رفع التوقيف' : 'توقيف الحساب'}
+                            >
+                              {u.blocked ? <CheckCircle2 className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => setDeletingUser(u)}
+                              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              title="حذف"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -1384,13 +1417,6 @@ export default function SettingsPage() {
           <p className="text-sm text-muted-foreground mt-0.5">إدارة المستخدمين والصلاحيات وسجل الأحداث والنسخ الاحتياطي</p>
         </div>
       </div>
-
-      {!isAdmin && (
-        <div className="flex items-center gap-2 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
-          <AlertTriangle className="w-5 h-5 shrink-0" />
-          لديك صلاحية القراءة فقط. تواصل مع المسؤول لإجراء تعديلات.
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="border-b border-border">
