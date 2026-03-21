@@ -2,7 +2,7 @@ import { Request, Response } from 'express'
 import * as distributionService from '../services/distributionService'
 import { humanizePrismaError } from '../utils/prismaError'
 
-const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER']
+const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER']
 const getSU = (req: Request) => {
   const u = (req as any).user
   return UNRESTRICTED_ROLES.includes(u?.role) ? undefined : (u?.securityUnit ?? undefined)
@@ -50,8 +50,12 @@ export const list = async (req: Request, res: Response) => {
 }
 
 export const recent = async (req: Request, res: Response) => {
-  const data = await distributionService.recentDistributions(10, getSU(req))
-  res.json({ data })
+  try {
+    const data = await distributionService.recentDistributions(10, getSU(req))
+    res.json({ data })
+  } catch (err: any) {
+    res.status(500).json({ error: 'فشل في جلب التوزيعات الأخيرة' })
+  }
 }
 
 export const byItem = async (req: Request, res: Response) => {

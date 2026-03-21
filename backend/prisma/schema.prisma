@@ -140,7 +140,7 @@ model Employee {
   rank          String
   name          String
   surname       String
-  number        String
+  number        String         @unique
   phone         String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -153,6 +153,7 @@ enum Role {
   SECTION_CHIEF
   USER
   REGION_CHIEF
+  BATTALION_COMMANDER
   DISTRICT_MANAGER
 }
 

@@ -432,7 +432,7 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
                 placeholder="ابحث باسم التجهيز أو الصنف..."
                 className="w-full border border-input bg-background p-2 pl-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
-              <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
               {itemSearch && (
                 <button
                   type="button"
@@ -567,11 +567,6 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
               {loadingRef && (
                 <span className="flex items-center gap-1 text-xs text-blue-500">
                   <RefreshCw className="w-3 h-3 animate-spin" /> جارٍ الجلب...
-                </span>
-              )}
-              {refAutoFilled && !loadingRef && (
-                  <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                  <Info className="w-3 h-3" /> مجلوبة من الدخل اليومي
                 </span>
               )}
             </div>

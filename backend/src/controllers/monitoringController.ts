@@ -20,7 +20,7 @@ export const listUnits = async (req: Request, res: Response) => {
     const user = (req as any).user
     let data = await monitoringService.listSecurityUnits()
 
-    if (user.role === 'REGION_CHIEF') {
+    if (user.role === 'REGION_CHIEF' || user.role === 'BATTALION_COMMANDER') {
       // Only their own unit
       data = data.filter((u: any) => u.securityUnit === user.securityUnit)
     } else if (user.role === 'DISTRICT_MANAGER') {

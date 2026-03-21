@@ -2,7 +2,7 @@ import { Request, Response } from 'express'
 import * as receptionService from '../services/receptionService'
 import { humanizePrismaError } from '../utils/prismaError'
 
-const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER']
+const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER']
 const getSU = (req: Request) => {
   const u = (req as any).user
   return UNRESTRICTED_ROLES.includes(u?.role) ? undefined : (u?.securityUnit ?? undefined)
@@ -48,8 +48,12 @@ export const list = async (req: Request, res: Response) => {
 }
 
 export const referenceTypes = async (req: Request, res: Response) => {
-  const types = await receptionService.getReferenceTypes(getSU(req))
-  res.json({ data: types })
+  try {
+    const types = await receptionService.getReferenceTypes(getSU(req))
+    res.json({ data: types })
+  } catch (err: any) {
+    res.status(500).json({ error: 'فشل في جلب أنواع المراجع' })
+  }
 }
 
 export const byItem = async (req: Request, res: Response) => {
@@ -64,8 +68,12 @@ export const byItem = async (req: Request, res: Response) => {
 }
 
 export const recent = async (req: Request, res: Response) => {
-  const data = await receptionService.recentReceptions(10, getSU(req))
-  res.json({ data })
+  try {
+    const data = await receptionService.recentReceptions(10, getSU(req))
+    res.json({ data })
+  } catch (err: any) {
+    res.status(500).json({ error: 'فشل في جلب الاستلامات الأخيرة' })
+  }
 }
 
 export const bySupplier = async (req: Request, res: Response) => {

@@ -4,7 +4,7 @@ import { roleGuard } from '../middleware/roleGuard'
 import * as auditController from '../controllers/auditController'
 
 const router = Router()
-router.use(authGuard, roleGuard(['ADMIN', 'SECTION_CHIEF', 'REGION_CHIEF', 'DISTRICT_MANAGER']))
+router.use(authGuard, roleGuard(['ADMIN', 'SECTION_CHIEF', 'REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER']))
 
 router.get('/', auditController.list)
 

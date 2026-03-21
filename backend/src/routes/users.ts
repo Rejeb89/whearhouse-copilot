@@ -4,7 +4,7 @@ import { roleGuard } from '../middleware/roleGuard'
 import * as userController from '../controllers/userController'
 
 const router = Router()
-const readRoles   = ['ADMIN', 'SECTION_CHIEF', 'REGION_CHIEF', 'DISTRICT_MANAGER']
+const readRoles   = ['ADMIN', 'SECTION_CHIEF', 'REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER']
 const writeRoles  = ['ADMIN', 'SECTION_CHIEF']
 const deleteRoles = ['ADMIN']
 

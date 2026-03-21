@@ -75,6 +75,7 @@ const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
                 user.role === 'ADMIN' ? 'مدير النظام'
                 : user.role === 'SECTION_CHIEF' ? 'رئيس القسم'
                 : user.role === 'REGION_CHIEF' ? 'رئيس منطقة'
+                : user.role === 'BATTALION_COMMANDER' ? 'آمر فوج'
                 : user.role === 'DISTRICT_MANAGER' ? 'مدير اقليم'
                 : 'مستخدم'
               }</p>

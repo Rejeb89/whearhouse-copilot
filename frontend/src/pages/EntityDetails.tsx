@@ -108,7 +108,7 @@ const projProgressColor = (p: number) => {
   return 'bg-red-400';
 };
 
-const MONITORING_ONLY_ROLES = ['REGION_CHIEF', 'DISTRICT_MANAGER'];
+const MONITORING_ONLY_ROLES = ['REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER'];
 
 export default function EntityDetails() {
   const { id } = useParams<{ id: string }>();
@@ -890,7 +890,7 @@ export default function EntityDetails() {
                       <option value="">جميع التجهيزات</option>
                       {allItemNames.map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
-                    <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                   </div>
                 </div>
                 <div>
@@ -900,7 +900,7 @@ export default function EntityDetails() {
                       <option value="">جميع الأصناف</option>
                       {allDistribCategories.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                   </div>
                 </div>
                 {(dateFrom || dateTo || itemFilter || categoryFilter) && (
@@ -1096,7 +1096,7 @@ export default function EntityDetails() {
                       <option value="">جميع الأنواع</option>
                       {allRecepRefTypes.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
-                    <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                   </div>
                 </div>
                 <div>
@@ -1106,7 +1106,7 @@ export default function EntityDetails() {
                       <option value="">جميع الأصناف</option>
                       {allRecepCategories.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                   </div>
                 </div>
                 <div>
@@ -1116,7 +1116,7 @@ export default function EntityDetails() {
                       <option value="">جميع التجهيزات</option>
                       {allRecepItemNames.map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
-                    <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                   </div>
                 </div>
                 {(recepDateFrom || recepDateTo || recepItemFilter || recepRefTypeFilter || recepCategoryFilter) && (

@@ -15,7 +15,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate()
 
   const handleLogoClick = () => {
-    const targetPath = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER'].includes(user?.role || '')
+    const targetPath = ['ADMIN', 'REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER'].includes(user?.role || '')
       ? '/monitoring'
       : '/'
     navigate(targetPath)

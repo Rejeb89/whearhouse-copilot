@@ -19,9 +19,9 @@ export const securityUnitContext = (req: Request, res: Response, next: NextFunct
   try {
     const token = auth.split(' ')[1]
     const decoded = verifyToken(token) as any
-    // ADMIN, REGION_CHIEF, DISTRICT_MANAGER → null (no global filter)
+    // ADMIN, REGION_CHIEF, BATTALION_COMMANDER, DISTRICT_MANAGER → null (no global filter)
     // Monitoring roles have their own per-request access guards.
-    const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER']
+    const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER']
     const su: string | null = UNRESTRICTED_ROLES.includes(decoded.role) ? null : (decoded.securityUnit?.trim() || null)
     securityStorage.run(su, next)
   } catch {

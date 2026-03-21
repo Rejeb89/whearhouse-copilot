@@ -2,7 +2,7 @@ import { Request, Response } from 'express'
 import { employeeService } from '../services/employeeService'
 import prisma from '../config/database'
 
-const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER']
+const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER']
 const getSU = (req: Request) => {
   const u = (req as any).user
   return UNRESTRICTED_ROLES.includes(u?.role) ? undefined : (u?.securityUnit ?? undefined)

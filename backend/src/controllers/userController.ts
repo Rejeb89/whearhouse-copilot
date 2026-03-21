@@ -4,8 +4,8 @@ import { createUserSchema, updateUserSchema } from '../validation'
 import { humanizePrismaError } from '../utils/prismaError'
 import prisma from '../config/database'
 
-const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER']
-const SECTION_CHIEF_EXCLUDED_ROLES = ['REGION_CHIEF', 'DISTRICT_MANAGER']
+const UNRESTRICTED_ROLES = ['ADMIN', 'REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER']
+const SECTION_CHIEF_EXCLUDED_ROLES = ['REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER']
 const getSU = (req: Request) => {
   const u = (req as any).user
   return UNRESTRICTED_ROLES.includes(u?.role) ? undefined : (u?.securityUnit ?? undefined)
@@ -36,12 +36,12 @@ export const create = async (req: Request, res: Response) => {
     const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress
 
     // SECTION_CHIEF can only create USER-role accounts inside their own unit
-    // Only ADMIN can create REGION_CHIEF or DISTRICT_MANAGER accounts
+    // Only ADMIN can create REGION_CHIEF, BATTALION_COMMANDER or DISTRICT_MANAGER accounts
     let data = { ...parsed.data }
     
-    // Only ADMIN can create REGION_CHIEF or DISTRICT_MANAGER accounts
-    if ((data.role === 'REGION_CHIEF' || data.role === 'DISTRICT_MANAGER') && actor?.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'فقط المسؤول يمكنه إنشاء حسابات رئيس منطقة أو مدير اقليم' })
+    // Only ADMIN can create REGION_CHIEF, BATTALION_COMMANDER or DISTRICT_MANAGER accounts
+    if ((data.role === 'REGION_CHIEF' || data.role === 'BATTALION_COMMANDER' || data.role === 'DISTRICT_MANAGER') && actor?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'فقط المسؤول يمكنه إنشاء حسابات رئيس منطقة أو آمر فوج أو مدير اقليم' })
     }
     
     if (actor?.role === 'SECTION_CHIEF') {

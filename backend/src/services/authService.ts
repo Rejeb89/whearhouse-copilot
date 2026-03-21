@@ -5,7 +5,9 @@ import { createLog } from './logService'
 
 export const register = async (data: { email: string; password: string; name?: string; role?: string }) => {
   const pw = await hashPassword(data.password)
-  const user = await prisma.user.create({ data: { email: data.email, password: pw, name: data.name, role: (data.role as any) || 'USER' } })
+  const allowedRoles = ['USER', 'ADMIN', 'REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER', 'SECURITY_UNIT_CHIEF']
+  const role = (data.role && allowedRoles.includes(data.role)) ? data.role : 'USER'
+  const user = await prisma.user.create({ data: { email: data.email, password: pw, name: data.name, role: role as any } })
   await createLog('CREATE', 'User', user.id, user.id)
   return user
 }
