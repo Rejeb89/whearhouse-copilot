@@ -572,34 +572,6 @@ export default function Calendar() {
                   className="w-full rounded border border-input bg-background px-3 py-2 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">ربط بتجهيز</label>
-                  <select
-                    value={form.linkedItemId}
-                    onChange={(e) => setForm({ ...form, linkedItemId: e.target.value })}
-                    className="w-full rounded border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="">بدون ربط</option>
-                    {items.map((item: any) => (
-                      <option key={item.id} value={item.id}>{item.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">ربط بوسيلة نقل</label>
-                  <select
-                    value={form.linkedTransport}
-                    onChange={(e) => setForm({ ...form, linkedTransport: e.target.value })}
-                    className="w-full rounded border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="">بدون ربط</option>
-                    {transportOptions.map((transport) => (
-                      <option key={transport} value={transport}>{transport}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
             </div>
             <footer className="flex items-center justify-between px-6 py-4 border-t bg-muted/50">
               <button onClick={() => setModalOpen(false)} className="text-sm text-muted-foreground hover:text-foreground">

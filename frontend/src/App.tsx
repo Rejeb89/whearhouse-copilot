@@ -8,7 +8,6 @@ import Receptions from './pages/Receptions'
 import Distributions from './pages/Distributions'
 import Entities from './pages/Entities'
 import EntityDetails from './pages/EntityDetails'
-// import Users from './pages/Users'
 import Calendar from './pages/Calendar'
 import Logs from './pages/Logs'
 import Settings from './pages/Settings'
@@ -21,8 +20,8 @@ import Projects from './pages/Projects'
 import Fuel from './pages/Fuel'
 import Layout from './components/common/Layout'
 
-const MONITORING_ONLY_ROLES = ['REGION_CHIEF', 'DISTRICT_MANAGER']
-const MONITORING_DEFAULT_ROLES = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER']
+const MONITORING_ONLY_ROLES = ['REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER']
+const MONITORING_DEFAULT_ROLES = ['ADMIN', 'REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER']
 
 const PrivateRoute: React.FC<{ roles?: string[]; children: JSX.Element }> = ({ roles, children }) => {
   const { user } = useContext(AuthContext)
@@ -57,16 +56,16 @@ export default function App() {
             <Route path="/items" element={<PrivateRoute children={<Items />} />} />
             <Route path="/distributions" element={<PrivateRoute children={<Distributions />} />} />
             <Route path="/entities" element={<PrivateRoute children={<Entities />} />} />
-            <Route path="/entities/:id" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF", "USER", "REGION_CHIEF", "DISTRICT_MANAGER"]} children={<EntityDetails />} />} />
-            <Route path="/calendar" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF", "USER", "REGION_CHIEF", "DISTRICT_MANAGER"]} children={<Calendar />} />} />
+            <Route path="/entities/:id" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF", "USER", "REGION_CHIEF", "BATTALION_COMMANDER", "DISTRICT_MANAGER"]} children={<EntityDetails />} />} />
+            <Route path="/calendar" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF", "USER", "REGION_CHIEF", "BATTALION_COMMANDER", "DISTRICT_MANAGER"]} children={<Calendar />} />} />
             {/* <Route path="/users" element={<PrivateRoute roles={["ADMIN"]} children={<Users />} />} /> */}
             <Route path="/logs" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF"]} children={<Logs />} />} />
             <Route path="/settings" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF"]} children={<Settings />} />} />
             <Route path="/budgets" element={<PrivateRoute roles={["ADMIN", "SECTION_CHIEF"]} children={<Budgets />} />} />
             <Route path="/receipts" element={<PrivateRoute children={<Receipts />} />} />
             <Route path="/vehicles" element={<PrivateRoute children={<Vehicles />} />} />
-            <Route path="/monitoring/units/:unit/items/:itemId" element={<PrivateRoute roles={["ADMIN", "REGION_CHIEF", "DISTRICT_MANAGER"]} children={<MonitoringItemDetail />} />} />
-            <Route path="/monitoring" element={<PrivateRoute roles={["ADMIN", "REGION_CHIEF", "DISTRICT_MANAGER"]} children={<AdminMonitoring />} />} />
+            <Route path="/monitoring/units/:unit/items/:itemId" element={<PrivateRoute roles={["ADMIN", "REGION_CHIEF", "BATTALION_COMMANDER", "DISTRICT_MANAGER"]} children={<MonitoringItemDetail />} />} />
+            <Route path="/monitoring" element={<PrivateRoute roles={["ADMIN", "REGION_CHIEF", "BATTALION_COMMANDER", "DISTRICT_MANAGER"]} children={<AdminMonitoring />} />} />
             <Route path="/projects" element={<PrivateRoute children={<Projects />} />} />
             <Route path="/fuel" element={<PrivateRoute children={<Fuel />} />} />
           </Routes>

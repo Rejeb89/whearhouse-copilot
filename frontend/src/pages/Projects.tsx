@@ -37,6 +37,7 @@ const TYPE_LABELS: Record<string, string> = {
   CONSTRUCTION: 'بناء',
   DEVELOPMENT:  'تهيئة',
   PROTECTION:   'حماية وتسييج',
+  OTHER:        'أخرى',
 }
 const STATUS_LABELS: Record<string, string> = {
   STUDY:     'طور الدراسات',
@@ -642,7 +643,7 @@ export default function Projects() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">تاريخ الانتهاء المتوقع</label>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">تاريخ الانتهاء</label>
                   <input
                     type="date"
                     value={form.expectedEndDate}

@@ -344,7 +344,7 @@ export default function Vehicles() {
               <option value="">كل الوحدات</option>
               {uniqueEntitiesInData.map(e => <option key={e.id} value={String(e.id)}>{e.name}</option>)}
             </select>
-            <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
           </div>
 
           <div className="relative">
@@ -356,7 +356,7 @@ export default function Vehicles() {
               <option value="">كل أنواع الوقود</option>
               {FUEL_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
             </select>
-            <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
           </div>
 
           {(search || filterEntity || filterFuel) && (

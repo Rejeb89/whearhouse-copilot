@@ -25,7 +25,6 @@ export default function Receipts() {
   const canApprove = user?.role === 'ADMIN' || user?.role === 'SECTION_CHIEF'
 
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [printVisible, setPrintVisible] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
@@ -68,7 +67,6 @@ export default function Receipts() {
 
   const filtered = receipts.filter(r => {
     const s = search.toLowerCase()
-    if (statusFilter !== 'ALL' && r.status !== statusFilter) return false
     if (!s) return true
     const d = r.distribution
     return (
@@ -147,19 +145,6 @@ export default function Receipts() {
             onChange={e => setSearch(e.target.value)}
             className="w-full pr-9 pl-3 py-2 text-sm border border-input bg-background rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
           />
-        </div>
-        <div className="flex flex-wrap gap-2">
-        {(['ALL', 'DRAFT', 'APPROVED', 'CANCELLED'] as const).map(s => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
-              statusFilter === s ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-muted-foreground border-border hover:bg-muted/50'
-            }`}
-          >
-            {s === 'ALL' ? 'الكل' : statusLabel[s].label}
-          </button>
-        ))}
         </div>
       </div>
 

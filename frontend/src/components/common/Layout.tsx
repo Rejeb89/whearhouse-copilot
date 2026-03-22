@@ -7,7 +7,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useContext(AuthContext)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const hideSidebar = user?.role === 'REGION_CHIEF' || user?.role === 'DISTRICT_MANAGER'
+  const hideSidebar = user?.role === 'REGION_CHIEF' || user?.role === 'BATTALION_COMMANDER' || user?.role === 'DISTRICT_MANAGER'
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">

@@ -49,8 +49,9 @@ const ROLE_META: Record<string, { label: string; color: string }> = {
   ADMIN:            { label: 'مدير النظام',    color: 'bg-red-100 text-red-700' },
   SECTION_CHIEF:    { label: 'رئيس قسم',      color: 'bg-blue-100 text-blue-700' },
   USER:             { label: 'مستخدم',         color: 'bg-gray-100 text-gray-700' },
-  REGION_CHIEF:     { label: 'رئيس منطقة',   color: 'bg-purple-100 text-purple-700' },
-  DISTRICT_MANAGER: { label: 'مدير اقليم',    color: 'bg-orange-100 text-orange-700' },
+  REGION_CHIEF:        { label: 'رئيس منطقة',  color: 'bg-purple-100 text-purple-700' },
+  BATTALION_COMMANDER: { label: 'آمر فوج',      color: 'bg-teal-100 text-teal-700' },
+  DISTRICT_MANAGER:    { label: 'مدير اقليم',   color: 'bg-orange-100 text-orange-700' },
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
@@ -178,8 +179,8 @@ export default function AdminMonitoring() {
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
-  // REGION_CHIEF goes directly to their own unit — no list needed
-  if (user?.role === 'REGION_CHIEF') {
+  // REGION_CHIEF / BATTALION_COMMANDER go directly to their own unit — no list needed
+  if (user?.role === 'REGION_CHIEF' || user?.role === 'BATTALION_COMMANDER') {
     return <UnitDetail unit={user.securityUnit ?? ''} onBack={undefined} />
   }
 

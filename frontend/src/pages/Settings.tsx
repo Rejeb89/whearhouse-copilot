@@ -58,8 +58,9 @@ const ROLE_META: Record<string, { label: string; color: string }> = {
   ADMIN:            { label: 'مسؤول',         color: 'bg-red-100 text-red-700 border border-red-200' },
   SECTION_CHIEF:    { label: 'رئيس قسم',     color: 'bg-blue-100 text-blue-700 border border-blue-200' },
   USER:             { label: 'مستخدم',        color: 'bg-muted text-muted-foreground border border-border' },
-  REGION_CHIEF:     { label: 'رئيس منطقة',   color: 'bg-purple-100 text-purple-700 border border-purple-200' },
-  DISTRICT_MANAGER: { label: 'مدير اقليم',    color: 'bg-orange-100 text-orange-700 border border-orange-200' },
+  REGION_CHIEF:        { label: 'رئيس منطقة',  color: 'bg-purple-100 text-purple-700 border border-purple-200' },
+  BATTALION_COMMANDER: { label: 'آمر فوج',      color: 'bg-teal-100 text-teal-700 border border-teal-200' },
+  DISTRICT_MANAGER:    { label: 'مدير اقليم',   color: 'bg-orange-100 text-orange-700 border border-orange-200' },
 }
 
 const AUDIT_ACTION_META: Record<string, {
@@ -296,6 +297,7 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
                   <option value="USER">مستخدم</option>
                   <option value="SECTION_CHIEF">رئيس قسم</option>
                   <option value="REGION_CHIEF">رئيس منطقة</option>
+                  <option value="BATTALION_COMMANDER">آمر فوج</option>
                   <option value="DISTRICT_MANAGER">مدير اقليم</option>
                   <option value="ADMIN">مسؤول</option>
                 </select>
@@ -370,11 +372,11 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
           )}
 
           {/* Warning messages and conditional fields */}
-          {(form.role === 'REGION_CHIEF' || form.role === 'DISTRICT_MANAGER') && (
+          {(form.role === 'REGION_CHIEF' || form.role === 'BATTALION_COMMANDER' || form.role === 'DISTRICT_MANAGER') && (
             <div className="col-span-3">
               <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
-                {form.role === 'REGION_CHIEF'
-                  ? '⚠️ رئيس منطقة: تأكد من تحديد الوحدة الأمنية — يرى وحدته فقط في لوحة المراقبة.'
+                {(form.role === 'REGION_CHIEF' || form.role === 'BATTALION_COMMANDER')
+                  ? '⚠️ ' + (form.role === 'BATTALION_COMMANDER' ? 'آمر فوج' : 'رئيس منطقة') + ': تأكد من تحديد الوحدة الأمنية — يرى وحدته فقط في لوحة المراقبة.'
                   : '⚠️ مدير اقليم: تأكد من تحديد حقل الإقليم — يرى جميع وحدات نفس الإقليم.'}
               </p>
             </div>
@@ -653,6 +655,7 @@ function UsersTab() {
             <option value="ADMIN">مسؤول</option>
             <option value="SECTION_CHIEF">رئيس قسم</option>
             <option value="REGION_CHIEF">رئيس منطقة</option>
+            <option value="BATTALION_COMMANDER">آمر فوج</option>
             <option value="DISTRICT_MANAGER">مدير اقليم</option>
             <option value="USER">مستخدم</option>
           </select>
@@ -818,7 +821,7 @@ const AUDIT_FIELD_LABELS: Record<string, string> = {
 }
 const AUDIT_ROLE_LABELS: Record<string, string> = {
   ADMIN: 'مسؤول', SECTION_CHIEF: 'رئيس قسم', USER: 'مستخدم',
-  REGION_CHIEF: 'رئيس منطقة', DISTRICT_MANAGER: 'مدير اقليم',
+  REGION_CHIEF: 'رئيس منطقة', BATTALION_COMMANDER: 'آمر فوج', DISTRICT_MANAGER: 'مدير اقليم',
 }
 
 function relativeTime(dateStr: string) {

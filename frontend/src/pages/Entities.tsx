@@ -61,9 +61,12 @@ export default function Entities() {
   const filtered = useMemo(() => {
     let list = entities as Entity[]
     if (activeFilter !== 'الكل') list = list.filter(e => getCategory(e) === activeFilter)
-    if (search.trim()) list = list.filter(e =>
-      e.name.includes(search) || (e.unitHead || '').includes(search) || (e.phone || '').includes(search)
-    )
+    if (search.trim()) {
+      const s = search.toLowerCase()
+      list = list.filter(e =>
+        e.name.toLowerCase().includes(s) || (e.unitHead || '').toLowerCase().includes(s) || (e.phone || '').toLowerCase().includes(s)
+      )
+    }
     return list
   }, [entities, activeFilter, search])
 

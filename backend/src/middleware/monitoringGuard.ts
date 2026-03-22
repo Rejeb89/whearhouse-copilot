@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import prisma from '../config/database'
 
 /* Roles allowed to access the monitoring dashboard */
-export const MONITORING_ROLES = ['ADMIN', 'REGION_CHIEF', 'DISTRICT_MANAGER']
+export const MONITORING_ROLES = ['ADMIN', 'REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER']
 
 /* Guard: only monitoring roles may proceed */
 export const monitoringRoleGuard = (req: Request, res: Response, next: NextFunction) => {
@@ -24,7 +24,7 @@ export const unitAccessGuard = async (req: Request, res: Response, next: NextFun
 
   if (user.role === 'ADMIN') return next()
 
-  if (user.role === 'REGION_CHIEF') {
+  if (user.role === 'REGION_CHIEF' || user.role === 'BATTALION_COMMANDER') {
     if (user.securityUnit === unit) return next()
     return res.status(403).json({ error: 'غير مصرح لك بالوصول إلى هذه الوحدة' })
   }

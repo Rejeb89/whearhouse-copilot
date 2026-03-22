@@ -388,7 +388,7 @@ export default function FuelPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Date picker for ADMIN / REGION_CHIEF / DISTRICT_MANAGER */}
-          {(user?.role === 'ADMIN' || user?.role === 'REGION_CHIEF' || user?.role === 'DISTRICT_MANAGER') && (
+          {(user?.role === 'ADMIN' || user?.role === 'REGION_CHIEF' || user?.role === 'BATTALION_COMMANDER' || user?.role === 'DISTRICT_MANAGER') && (
             <div className="flex items-center gap-1.5 border border-input bg-background rounded-lg px-3 py-1.5">
               <span className="text-xs text-muted-foreground whitespace-nowrap">التاريخ:</span>
               <input
@@ -414,7 +414,7 @@ export default function FuelPage() {
             >
               {MONTHS_AR.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
             </select>
-            <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
           </div>
           {/* Year selector */}
           <div className="relative">
@@ -425,7 +425,7 @@ export default function FuelPage() {
             >
               {[2023,2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
             </select>
-            <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
           </div>
           {/* Prices toggle */}
           <button

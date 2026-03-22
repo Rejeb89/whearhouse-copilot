@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 #  Security Warehouse Management System
 ### Warehouse Management System
@@ -147,8 +147,6 @@ docker compose exec backend node seed.js
 | Role | Email | Password |
 |------|-------|----------|
 | ADMIN | admin@example.com | admin123 |
-| SECTION_CHIEF | chief@example.com | admin123 |
-| DISTRICT_MANAGER | admin789@example.com | admin123 |
 
 ---
 

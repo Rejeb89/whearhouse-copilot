@@ -348,7 +348,7 @@ export default function Receptions() {
                   className="w-full border border-input bg-background p-2 pl-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   required
                 />
-                <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                 {(itemSearch || form.itemName) && (
                   <button
                     type="button"
@@ -424,7 +424,7 @@ export default function Receptions() {
                     className="w-full border border-input bg-background p-2 pl-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     required
                   />
-                  <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                   {form.category && (
                     <button
                       type="button"
@@ -545,7 +545,7 @@ export default function Receptions() {
                   placeholder="ابحث أو أضف نوع مرجع جديد"
                   className="w-full border border-input bg-background p-2 pl-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 />
-                <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                 {form.referenceType && (
                   <button
                     type="button"
