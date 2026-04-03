@@ -345,10 +345,10 @@ export default function Receptions() {
                   onFocus={() => setItemDropdownOpen(true)}
                   onBlur={() => setTimeout(() => setItemDropdownOpen(false), 180)}
                   placeholder="ابحث أو أضف تجهيزاً جديداً"
-                  className="w-full border border-input bg-background p-2 pl-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full border border-input bg-background p-2 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   required
                 />
-                <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                 {(itemSearch || form.itemName) && (
                   <button
                     type="button"
@@ -359,7 +359,7 @@ export default function Receptions() {
                       setSelectedItemId(null)
                       itemInputRef.current?.focus()
                     }}
-                    className="absolute left-7 top-2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -421,10 +421,10 @@ export default function Receptions() {
                     onFocus={() => setCategoryOpen(true)}
                     onBlur={() => setTimeout(() => setCategoryOpen(false), 180)}
                     placeholder="ابحث أو أضف صنف جديد"
-                    className="w-full border border-input bg-background p-2 pl-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full border border-input bg-background p-2 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     required
                   />
-                  <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                   {form.category && (
                     <button
                       type="button"
@@ -433,7 +433,7 @@ export default function Receptions() {
                         setForm(prev => ({ ...prev, category: '' }))
                         categoryInputRef.current?.focus()
                       }}
-                      className="absolute left-7 top-2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -543,9 +543,9 @@ export default function Receptions() {
                   onFocus={() => setRefTypeOpen(true)}
                   onBlur={() => setTimeout(() => setRefTypeOpen(false), 180)}
                   placeholder="ابحث أو أضف نوع مرجع جديد"
-                  className="w-full border border-input bg-background p-2 pl-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full border border-input bg-background p-2 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 />
-                <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                 {form.referenceType && (
                   <button
                     type="button"
@@ -555,7 +555,7 @@ export default function Receptions() {
                       setRefTypeKnown(false)
                       refTypeInputRef.current?.focus()
                     }}
-                    className="absolute left-7 top-2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>

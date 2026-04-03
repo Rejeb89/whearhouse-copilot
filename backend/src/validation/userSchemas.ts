@@ -7,10 +7,13 @@ export const createUserSchema = z.object({
   role: z.enum(['ADMIN', 'SECTION_CHIEF', 'USER', 'REGION_CHIEF', 'BATTALION_COMMANDER', 'DISTRICT_MANAGER']).optional(),
   personalNumber: z.string().optional(),
   securityUnit: z.string().optional(),
-  region: z.string().min(1, 'الإقليم الحالي مطلوب'),
+  region: z.string().optional(),
   regionChief: z.string().optional(),
   title: z.string().optional(),
-})
+}).refine(
+  (data) => data.role === 'ADMIN' || data.region, 
+  { message: 'الإقليم مطلوب للمستخدمين غير الإداريين', path: ['region'] }
+)
 
 export const updateUserSchema = z.object({
   email: z.string().email('بريد إلكتروني غير صالح').optional(),

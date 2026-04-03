@@ -1,7 +1,7 @@
 <div align="center">
 
-#  Security Warehouse Management System
-### Warehouse Management System
+# 🏢 نظام إدارة المخزن الأمني
+### Security Warehouse Management System
 
 <p>
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=white" />
@@ -10,117 +10,106 @@
   <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
   <img src="https://img.shields.io/badge/Prisma-5-2D3748?style=for-the-badge&logo=prisma&logoColor=white" />
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
+  <img src="https://img.shields.io/badge/RTL-Arabic-FFC400?style=for-the-badge" />
 </p>
 
 <p>
-  A full-stack warehouse and logistics management system for security units,<br/>
-  featuring a multi-level central monitoring dashboard and an advanced role-based access system.
+  نظام متكامل لإدارة المخزن والتجهيزات للوحدات الأمنية<br/>
+  يتضمن لوحة تحكم مركزية متقدمة ونظام تحكم وصول يعتمد على الأدوار<br/>
+  <strong>دعم كامل للغة العربية وواجهة RTL احترافية</strong>
 </p>
 
 </div>
 
 ---
 
-##  Table of Contents
+## 📋 جدول المحتويات
 
-- [Overview](#-overview)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Roles & Permissions](#-roles--permissions)
-- [Prerequisites](#-prerequisites)
-- [Quick Start  Docker](#-quick-start--docker)
-- [Manual Setup](#-manual-setup-development)
-- [Environment Variables](#-environment-variables)
-- [Project Structure](#-project-structure)
-- [API Overview](#-api-overview)
-- [Database](#-database)
-- [Contributing](#-contributing)
-- [License](#-license)
-
----
-
-##  Overview
-
-A full-stack RTL web application built with React + Express that enables security units to manage:
-- Equipment inventory (daily inbound and outbound)
-- Administrative vehicles, beneficiary entities, and suppliers
-- Financial budgets and invoices
-- Delivery receipts with print support
-- Operation logs and audit trails
-
-A central monitoring dashboard gives administrators and district managers real-time visibility across all units.
+- [نظرة عامة](#-نظرة-عامة)
+- [المميزات](#-المميزات)
+- [المكدس التقني](#-المكدس-التقني)
+- [الأدوار والصلاحيات](#-الأدوار-والصلاحيات)
+- [المتطلبات الأساسية](#-المتطلبات-الأساسية)
+- [البدء السريع مع Docker](#-البدء-السريع--docker)
+- [الإعداد اليدوي للتطوير](#-الإعداد-اليدوي-للتطوير)
+- [متغيرات البيئة](#-متغيرات-البيئة)
+- [هيكل المشروع](#-هيكل-المشروع)
+- [نظرة عامة على API](#-نظرة-عامة-على-api)
+- [قاعدة البيانات](#-قاعدة-البيانات)
+- [المساهمة](#-المساهمة)
+- [الترخيص](#-الترخيص)
 
 ---
 
-##  Features
+## 🎯 نظرة عامة
 
-| Feature | Description |
-|---------|-------------|
-|  **Equipment Management** | Daily inbound/outbound with inventory tracking and low-stock alerts |
-|  **Administrative Vehicles** | Register and track vehicles per entity |
-|  **Entities** | Manage suppliers and beneficiary entities with employee rosters |
-|  **Financial Budgets** | Track budgets, expenses, and supply requests |
-|  **Delivery Receipts** | Create and print digital delivery receipts with QR code |
-|  **Monitoring Dashboard** | Comprehensive view of all units with live statistics |
-|  **Reports** | Export Excel and PDF reports for every module |
-|  **Role System** | 5 roles with full permission separation |
-|  **Audit Logs** | Complete tracking of every operation with a visual interface |
-|  **Full RTL Support** | Complete Arabic UI with Cairo font |
+تطبيق ويب متكامل يعتمد على React + Express مع دعم كامل لللغة العربية (RTL)، يتيح للوحدات الأمنية إدارة:
 
----
-
-##  Tech Stack
-
-### Frontend
-- **React 18** + **TypeScript** + **Vite**
-- **Tailwind CSS** + custom design with CSS Variables
-- **TanStack Query v4**  state management and caching
-- **Recharts** + **Visx**  interactive charts
-- **react-router-dom v6**  client-side routing
-- **jsPDF** + **html2canvas** + **xlsx**  report exports
-
-### Backend
-- **Node.js** + **Express** + **TypeScript**
-- **Prisma ORM v5**  database management
-- **PostgreSQL 15**  primary database
-- **JWT**  authentication and authorization
-- **Zod**  input validation
-- **bcryptjs**  password hashing
-
-### Infrastructure
-- **Docker** + **Docker Compose**  containerization
-- **Row-Level Security** via AsyncLocalStorage + Prisma Extension
+- 📦 **المخزون والتجهيزات** - دخول يومي وخرج يومي مع تنبيهات الأصناف الناقصة
+- 🚗 **المركبات الإدارية** - تسجيل وتتبع مركبات الوحدات الأمنية
+- 🏢 **الجهات والموردين** - إدارة الجهات المرسلة (موردين) والجهات المستقبلة (مستفيدة) مع كشوفات الموظفين
+- 💰 **الميزانيات والمصروفات** - متابعة الميزانيات والمصروفات وطلبات الإمدادات
+- 📋 **وصالات التسليم** - إنشاء وطباعة وصالات رقمية مع رموز QR
+- 📊 **لوحة المراقبة المركزية** - رؤية شاملة لجميع الوحدات مع إحصائيات حية
+- 📈 **التقارير وتصدير البيانات** - دعم Excel و PDF لجميع الوحدات
+- 🔐 **نظام الأدوار المتقدم** - 5 أدوار مع فصل كامل للصلاحيات
+- 📝 **سجلات التدقيق** - تتبع دقيق لجميع العمليات مع واجهة بصرية متقدمة
+- 🌍 **دعم RTL كامل** - واجهة عربية بنسبة 100% مع خط Cairo المحترف
 
 ---
 
-##  Roles & Permissions
+## ⚙️ المكدس التقني
 
-| Role | Access | Description |
-|------|--------|-------------|
-| `ADMIN` | Monitoring dashboard + Settings | System administrator, no unit-specific data |
-| `SECTION_CHIEF` | Full access | Unit chief with full permissions on their unit |
-| `USER` | Limited | Regular user, read and create only |
-| `REGION_CHIEF` | Monitor own unit | Redirected directly to their unit's dashboard |
-| `DISTRICT_MANAGER` | Monitor all district units | Views all units within their district |
+### الواجهة الأمامية (Frontend)
+- **React 18** + **TypeScript** + **Vite** - بناء سريع وتطوير فعّال
+- **Tailwind CSS** - تصميم القالب مع CSS Variables مخصصة
+- **TanStack Query v4** - إدارة الحالة والـ caching
+- **Recharts** + **Visx** - رسوم بيانية تفاعلية متقدمة
+- **react-router-dom v6** - التوجيه من جانب العميل
+- **jsPDF** + **html2canvas** + **xlsx** - تصدير التقارير
 
-> `REGION_CHIEF` and `DISTRICT_MANAGER` have **read-only** access  no edit or delete buttons are shown.
+### الخادم الخلفي (Backend)
+- **Node.js** + **Express** + **TypeScript** - API قوي وموثوق
+- **Prisma ORM v5** - إدارة قاعدة البيانات بـ Type Safety
+- **PostgreSQL 15** - قاعدة بيانات علائقية قوية
+- **JWT** - المصادقة والترخيص الآمنة
+- **Zod** - التحقق من صحة المدخلات
+- **bcryptjs** - تشفير كلمات المرور
+
+### البنية التحتية (Infrastructure)
+- **Docker** + **Docker Compose** - حاويات موحدة وسهلة النشر
+- **Row-Level Security** - تأمين البيانات عبر AsyncLocalStorage + Prisma Extension
 
 ---
 
-##  Prerequisites
+## 👥 الأدوار والصلاحيات
 
-| Tool | Minimum Version |
-|------|----------------|
+| الدور | الوصول | الوصف |
+|------|--------|-------|
+| **ADMIN** ⚙️ | لوحة المراقبة + الإعدادات | مسؤول النظام - نطاق وصول عام |
+| **SECTION_CHIEF** 👨‍💼 | وصول كامل | رئيس القسم - صلاحيات كاملة لوحدته الأمنية |
+| **USER** 👤 | محدود | مستخدم عادي - قراءة وإنشاء فقط |
+| **REGION_CHIEF** 🎖️ | عرض خاص بالوحدة | رئيس المنطقة - توجيه مباشر لوحدته (قراءة فقط) |
+| **DISTRICT_MANAGER** 📊 | عرض جميع وحدات المقاطعة | مدير المقاطعة - عرض جميع وحدات المقاطعة (قراءة فقط) |
+
+> **ملاحظة:** `REGION_CHIEF` و `DISTRICT_MANAGER` لديهم وصول **قراءة فقط** - لا توجد أزرار تعديل أو حذف
+
+---
+
+## 📋 المتطلبات الأساسية
+
+| الأداة | الإصدار الأدنى |
+|--------|----------------|
 | [Docker Desktop](https://www.docker.com/products/docker-desktop/) | 24+ |
 | [Docker Compose](https://docs.docker.com/compose/) | v2+ |
-| Node.js *(dev only)* | 18+ |
-| npm *(dev only)* | 9+ |
+| Node.js *(للتطوير فقط)* | 18+ |
+| npm *(للتطوير فقط)* | 9+ |
 
 ---
 
-##  Quick Start  Docker
+## 🚀 البدء السريع مع Docker
 
-The fastest way to run the full project with a single command:
+أسرع طريقة لتشغيل المشروع بأكمله بأمر واحد:
 
 ```bash
 git clone https://github.com/your-username/whearhouse-copilot.git
@@ -128,83 +117,85 @@ cd whearhouse-copilot
 docker compose up --build
 ```
 
-Once the build completes:
+بعد انتهاء عملية الإنشاء:
 
-| Service | URL |
-|---------|-----|
-|  Frontend | http://localhost:3002 |
-|  Backend API | http://localhost:4000 |
-|  PostgreSQL | localhost:5434 |
+| الخدمة | الـ URL |
+|--------|--------|
+| 🖥️ الواجهة الأمامية | http://localhost:3002 |
+| 🔌 API الخادم | http://localhost:4000 |
+| 🗄️ PostgreSQL | localhost:5434 |
 
-### Default Credentials
+### بيانات الدخول الافتراضية
 
-To seed the database with sample data, run the following after the containers are up:
+لملء قاعدة البيانات ببيانات تجريبية:
 
 ```bash
 docker compose exec backend node seed.js
 ```
 
-| Role | Email | Password |
-|------|-------|----------|
-| ADMIN | admin@example.com | admin123 |
+| الدور | البريد الإلكتروني | كلمة المرور |
+|------|------------------|-----------|
+| **ADMIN** | admin@gn.tn | admin123 |
+
+> **ملاحظة مهمة:** المسؤول **لا يضطر** لإدخال الإقليم أو اسم الوحدة الجهوية
 
 ---
 
-##  Manual Setup (Development)
+## 🛠️ الإعداد اليدوي للتطوير
 
-### 1. Database
+### 1. قاعدة البيانات
 
 ```bash
-# Start PostgreSQL only via Docker
+# تشغيل PostgreSQL فقط عبر Docker
 docker compose up postgres -d
 ```
 
-### 2. Backend
+### 2. الخادم الخلفي
 
 ```bash
 cd backend
 
-# Install dependencies
+# تثبيت المكتبات المطلوبة
 npm install
 
-# Apply schema to the database
+# تطبيق المخطط على قاعدة البيانات
 npx prisma db push
 
-# Generate Prisma Client
+# توليد Prisma Client
 npx prisma generate
 
-# (Optional) Seed sample data
+# (اختياري) ملء البيانات التجريبية
 node seed.js
 
-# Start development server
+# تشغيل خادم التطوير
 npm run dev
 ```
 
->  Backend will be available at: **http://localhost:4000**
+> 🔗 الخادم سيكون متاحاً على: **http://localhost:4000**
 
-### 3. Frontend
+### 3. الواجهة الأمامية
 
 ```bash
 cd frontend
 
-# Install dependencies
+# تثبيت المكتبات المطلوبة
 npm install
 
-# Start development server
+# تشغيل خادم التطوير
 npm run dev
 ```
 
->  Frontend will be available at: **http://localhost:5173**
+> 🔗 الواجهة ستكون متاحة على: **http://localhost:5173**
 
-### 4. Production Build
+### 4. البناء للإنتاج
 
 ```bash
-# Backend
+# الخادم الخلفي
 cd backend
 npm run build
 npm start
 
-# Frontend
+# الواجهة الأمامية
 cd frontend
 npm run build
 npm run preview
@@ -212,160 +203,195 @@ npm run preview
 
 ---
 
-##  Environment Variables
+## 🔐 متغيرات البيئة
 
 ### `backend/.env`
 
 ```env
-# Database connection (Prisma)
+# اتصال قاعدة البيانات (Prisma)
 DATABASE_URL=postgres://postgres:postgres@localhost:5434/warehouse
 
-# JWT secret key  change this in production!
-JWT_SECRET=supersecret_jwt_key
+# مفتاح JWT السري - غيره في الإنتاج!
+JWT_SECRET=supersecret_jwt_key_change_in_production
 
-# Low quantity threshold for stock alerts
+# حد التنبيه للأصناف الناقصة
 LOW_STOCK_THRESHOLD=5
 
-# Server port (optional, default 4000)
+# منفذ الخادم (اختياري، الافتراضي 4000)
 PORT=4000
 ```
 
 ### `frontend/.env`
 
 ```env
-# Backend API URL
+# عنوان API الخادم الخلفي
 VITE_API_URL=http://localhost:4000
 ```
 
->  **Security Warning:** Never use the default `JWT_SECRET` value in a production environment.
+⚠️ **تحذير أمني:** لا تستخدم القيم الافتراضية في بيئة الإنتاج!
 
 ---
 
-##  Project Structure
+## 📦 هيكل المشروع
 
 ```
 whearhouse-copilot/
-  docker-compose.yml
-  README.md
- database/
-    init.sql
-
- backend/                        # Node.js + Express + Prisma
-    src/
-       index.ts                # Server entry point
-       app.ts                  # Express setup + Middleware
-       config/                 # Database config and constants
-       controllers/            # HTTP handlers for each resource
-       services/               # Business Logic layer
-       routes/                 # API route definitions
-       middleware/
-          authGuard.ts        # JWT validation
-          roleGuard.ts        # Role-based protection
-          securityUnitContext.ts  # Automatic Row-Level Security
-          requestLogger.ts    # Request logging for audit
-       types/                  # Shared TypeScript definitions
-       utils/                  # Helpers (jwt, hash, errors)
-       validation/             # Zod validation schemas
-    prisma/
-       schema.prisma           # Full database model definitions
-    seed.js                     # Sample data seeder
-
- frontend/                       # React + TypeScript + Vite
-     src/
-        App.tsx                  # Routing + PrivateRoute + role guards
-        main.tsx
-        components/
-           common/             # Layout, Sidebar, GlobalSearch
-           charts/             # LowStockRadialChart, ChordChart
-           modals/             # Create/edit data modals
-           receipts/           # PDF print template + QR Code
-        context/
-           AuthContext.tsx     # Global auth context
-        hooks/                  # Custom React Hooks
-        pages/                  # All application pages
-        services/
-           client.ts           # Axios instance with JWT interceptors
-        utils/                  # Helper functions (formatting, export...)
-     index.html
+  ├── docker-compose.yml
+  ├── README.md
+  │
+  ├── database/
+  │   └── init.sql
+  │
+  ├── backend/                              # Node.js + Express + Prisma
+  │   ├── src/
+  │   │   ├── index.ts                     # نقطة دخول الخادم
+  │   │   ├── app.ts                       # إعداد Express والـ Middleware
+  │   │   ├── config/                      # إعدادات قاعدة البيانات والثوابت
+  │   │   ├── controllers/                 # معالجات HTTP لكل مورد
+  │   │   ├── services/                    # طبقة المنطق التجاري
+  │   │   ├── routes/                      # تعريفات مسارات API
+  │   │   ├── middleware/
+  │   │   │   ├── authGuard.ts            # التحقق من JWT
+  │   │   │   ├── roleGuard.ts            # حماية الأدوار
+  │   │   │   ├── securityUnitContext.ts  # Row-Level Security التلقائي
+  │   │   │   └── requestLogger.ts        # تسجيل الطلبات للتدقيق
+  │   │   ├── types/                       # تعريفات TypeScript المشتركة
+  │   │   ├── utils/                       # دوال مساعدة (jwt, hash, errors)
+  │   │   └── validation/                  # مخططات التحقق من Zod
+  │   ├── prisma/
+  │   │   └── schema.prisma                # تعريفات نموذج قاعدة البيانات
+  │   ├── seed.js                          # ملء البيانات التجريبية
+  │   └── package.json
+  │
+  └── frontend/                             # React + TypeScript + Vite
+      ├── src/
+      │   ├── App.tsx                       # التوجيه والحماية والتحقق من الأدوار
+      │   ├── main.tsx
+      │   ├── components/
+      │   │   ├── common/                  # Layout, Sidebar, GlobalSearch
+      │   │   ├── charts/                  # رسوم بيانية متقدمة
+      │   │   ├── modals/                  # نوافذ إنشاء وتعديل البيانات
+      │   │   └── receipts/                # قالب طباعة PDF مع رموز QR
+      │   ├── context/
+      │   │   └── AuthContext.tsx          # سياق المصادقة العام
+      │   ├── hooks/                        # Hooks React مخصصة
+      │   ├── pages/                        # جميع صفحات التطبيق
+      │   ├── services/
+      │   │   └── client.ts                # instance Axios مع معالجات JWT
+      │   └── utils/                        # دوال مساعدة (تنسيق، تصدير...)
+      ├── index.html
+      └── package.json
 ```
 
 ---
+
+## 🌐 نظرة عامة على API
+
+جميع المسارات محمية بـ JWT وتبدأ بـ `/api`
+
+| المسار | الطريقة | الوصف | المصادقة |
+|--------|--------|-------|---------|
+| `/auth/login` | `POST` | تسجيل الدخول وتلقي Token | عام |
+| `/items` | `GET / POST` | قائمة والتجهيزات وإنشاء | authGuard |
+| `/receptions` | `GET / POST` | عمليات الدخول اليومي | authGuard |
+| `/distributions` | `GET / POST` | عمليات الخرج اليومي | authGuard |
+| `/entities` | `GET / POST` | الجهات (موردين+مستقبلة) | authGuard |
+| `/entities/:id` | `GET` | تفاصيل الجهة مع الموظفين | authGuard |
+| `/vehicles` | `GET / POST / PATCH` | المركبات الإدارية | authGuard |
+| `/employees/:entityId` | `GET / POST` | موظفو الجهة | authGuard |
+| `/budgets` | `GET / POST` | الميزانيات المالية | authGuard |
+| `/receipts` | `GET / POST` | وصالات التسليم | authGuard |
+| `/users` | `GET` | قائمة المستخدمين | 4 أدوار |
+| `/users/meta` | `GET` | البيانات الوصفية | 4 أدوار |
+| `/audit` | `GET` | سجل التدقيق البصري | 4 أدوار |
+| `/monitoring/units` | `GET` | ملخص إحصائي للوحدات | أدوار المراقبة |
+| `/monitoring/units/:unit/*` | `GET` | بيانات تفصيلية للوحدة | أدوار المراقبة |
+| `/data/stats` | `GET` | إحصائيات عامة للنظام | 4 أدوار |
+| `/data/export` | `GET` | تصدير البيانات الكاملة | ADMIN / SECTION_CHIEF |
+| `/search` | `GET` | بحث عام في جميع الجهات | authGuard |
+| `/logs` | `GET` | سجلات العمليات | authGuard |
+
+---
+
+## 🗄️ قاعدة البيانات
+
+### نماذج البيانات الأساسية
+
+```
+User              [الأدوار: ADMIN | SECTION_CHIEF | USER | REGION_CHIEF | DISTRICT_MANAGER]
+Item              ←→ ReceptionItem ←→ Reception ←→ Entity (SUPPLIER / BENEFICIARY)
+Item              ←→ DistributionItem ←→ Distribution ←→ Entity + Employee
+Entity            ←→ Employee[]
+Entity            ←→ Vehicle[]
+Budget            ←→ Expense[] + SupplyRequest[]
+Distribution      ←→ DeliveryReceipt
+User / Reception / Distribution  ←→ Log (سجل التدقيق)
+```
+
+### Row-Level Security (أمان مستوى الصفوف)
+
+كل مستخدم يرى **فقط بيانات وحدته الأمنية الخاصة** (`securityUnit`) عبر Prisma Query Extension المبني على AsyncLocalStorage.
+
+**الأدوار غير المقيدة** (تشاهد جميع البيانات):
+- `ADMIN` | `REGION_CHIEF` | `DISTRICT_MANAGER`
+
+---
+
+## 🎯 الميزات الخاصة والتحسينات
+
+### 📊 لوحة التحكم (Dashboard)
+- ✅ عرض الأصناف المنخفضة في الـ charts بذكاء
+  - **يتم عرض فقط:** دفاتر إدارية + علم جمهورية + لفائف فاكس
+  - **الحد الأقصى:** 10 تجهيزات فقط
+  - **التحديث:** تحديث فوري لجميع المستخدمين
+
+### 👤 إدارة المستخدمين
+- ✅ المسؤول (ADMIN) **لا يضطر** لإدخال:
+  - الإقليم
+  - اسم الوحدة الجهوية
+- ✅ بقية المستخدمين: **يجب** إدخال الإقليم
+
+### 🎨 واجهة المستخدم
+- ✅ إصلاح كامل لـ RTL direction
+- ✅ أيقونات محاذاة صحيحة (أسهم وأزرار)
+- ✅ عدم تداخل النصوص مع الأيقونات
+- ✅ دعم كامل للغة العربية
+
+---
+
+## 📖 المساهمة
+
+1. **Fork** هذا المستودع
+2. أنشئ فرع ميزة: `git checkout -b feature/amazing-feature`
+3. انشر تعديلاتك: `git commit -m 'feat: add amazing feature'`
+4. أرسل إلى الفرع: `git push origin feature/amazing-feature`
+5. افتح Pull Request مع وصف تفصيلي
+
+### معايير الكود
+
+- استخدام TypeScript الصارم في الخلف والأمام
+- الامتثال لمعايير RESTful للمسارات
+- إضافة التحقق من Zod لكل endpoint جديد
+- ضمان احترام Row-Level Security للبيانات الحساسة
+- اتباع معايير الكود الموحدة والتعليقات الواضحة
+
+---
+
+## 📄 الترخيص
+
+هذا المشروع مرخص بموجب [MIT](LICENSE) License.
+
+---
+
+<div align="center">
+  صُنع بـ ❤️ لخدمة الوحدات الأمنية
+  <br/>
+  <strong>آخر تحديث: أبريل 2026</strong>
+</div>
 
 ##  API Overview
 
 All routes are JWT-protected and prefixed with `/api`
 
 | Route | Method | Description | Auth |
-|-------|--------|-------------|------|
-| `/auth/login` | `POST` | Login and receive Token | Public |
-| `/items` | `GET / POST` | List and create equipment | `authGuard` |
-| `/receptions` | `GET / POST` | Daily inbound operations | `authGuard` |
-| `/distributions` | `GET / POST` | Daily outbound operations | `authGuard` |
-| `/entities` | `GET / POST` | Entities (suppliers + beneficiaries) | `authGuard` |
-| `/entities/:id` | `GET` | Entity details with employees | `authGuard` |
-| `/vehicles` | `GET / POST / PATCH` | Administrative vehicles | `authGuard` |
-| `/employees/:entityId` | `GET / POST` | Entity employees | `authGuard` |
-| `/budgets` | `GET / POST` | Financial budgets | `authGuard` |
-| `/receipts` | `GET / POST` | Delivery receipts | `authGuard` |
-| `/users` | `GET` | User list | 4 roles |
-| `/users/meta` | `GET` | Metadata (regions, units, titles) | 4 roles |
-| `/audit` | `GET` | Visual audit log | 4 roles |
-| `/monitoring/units` | `GET` | Statistical summary of all units | Monitoring Roles |
-| `/monitoring/units/:unit/*` | `GET` | Detailed data for a unit | Monitoring Roles |
-| `/data/stats` | `GET` | General system statistics | 4 roles |
-| `/data/export` | `GET` | Full data export | ADMIN / SECTION_CHIEF |
-| `/search` | `GET` | Global search across all entities | `authGuard` |
-| `/logs` | `GET` | Operation logs | `authGuard` |
-
----
-
-##  Database
-
-### Core Data Models
-
-```
-User           Role: ADMIN | SECTION_CHIEF | USER | REGION_CHIEF | DISTRICT_MANAGER
-Item           ReceptionItem     Reception     Entity (SUPPLIER / BENEFICIARY)
-Item           DistributionItem  Distribution  Entity + Employee
-Entity         Employee[]
-Entity         Vehicle[]
-Budget         Expense[] + SupplyRequest[]
-Distribution   DeliveryReceipt
-User / Reception / Distribution  Log (audit trail)
-```
-
-### Row-Level Security
-
-Every user automatically sees **only their own security unit's data** (`securityUnit`) via a Prisma Query Extension built on AsyncLocalStorage.
-
-Unrestricted roles (see all data):
-- `ADMIN`  `REGION_CHIEF`  `DISTRICT_MANAGER`
-
----
-
-##  Contributing
-
-1. Fork this repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'feat: add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request with a detailed description
-
-### Code Standards
-
-- Use strict TypeScript in both Backend and Frontend
-- Follow RESTful conventions for API routes
-- Add Zod input validation for every new endpoint
-- Ensure Row-Level Security is respected for sensitive data
-
----
-
-##  License
-
-This project is licensed under the [MIT](LICENSE) License.
-
----
-
-<div align="center">
-  Made with  to serve security units
-</div>
+|-------|--------|-------------|------

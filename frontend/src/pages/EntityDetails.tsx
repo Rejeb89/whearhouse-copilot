@@ -823,7 +823,7 @@ export default function EntityDetails() {
         )}
 
         {/* Distributed Items Section — only for الوحدات المتنفعة */}
-        {entity.category === 'الوحدات المتنفعة' && (
+        {entity.type === 'BENEFICIARY' && (
         <div className="rounded-xl border border-border bg-card mb-8">
           <div className="p-5 border-b border-border flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -1199,7 +1199,7 @@ export default function EntityDetails() {
         )}
 
         {/* Employees Section — only for الوحدات المتنفعة */}
-        {entity.category === 'الوحدات المتنفعة' && (
+        {entity.type === 'BENEFICIARY' && (
         <div className="rounded-xl border border-border bg-card">
           <div className="p-6 border-b border-border flex justify-between items-center">
             <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">

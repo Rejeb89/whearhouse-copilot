@@ -29,4 +29,4 @@ COPY --from=builder /usr/src/app/package.json ./
 COPY --from=builder /usr/src/app/seed.js ./
 
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node seed.js && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/index.js"]
