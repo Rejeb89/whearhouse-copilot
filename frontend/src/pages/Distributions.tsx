@@ -430,15 +430,15 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
                 onFocus={() => setItemDropdownOpen(true)}
                 onBlur={() => setTimeout(() => setItemDropdownOpen(false), 180)}
                 placeholder="ابحث باسم التجهيز أو الصنف..."
-                className="w-full border border-input bg-background p-2 pl-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full border border-input bg-background p-2 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
-              <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <ChevronDown className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
               {itemSearch && (
                 <button
                   type="button"
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => { setItemSearch(''); setSelectedItem(null); setRefAutoFilled(false); itemInputRef.current?.focus() }}
-                  className="absolute left-7 top-2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>

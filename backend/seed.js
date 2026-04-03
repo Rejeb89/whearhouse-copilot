@@ -8,11 +8,11 @@ async function main() {
 
   // ================== المستخدمون ==================
   console.log('📝 إضافة المستخدمين...')
-  const pw = bcrypt.hashSync('password123', 10)
+  const pw = bcrypt.hashSync('admin123', 10)
   
   const users = []
   const userEmails = [
-    { email: 'admin@example.com', name: 'مسؤول النظام', role: 'ADMIN' },
+    { email: 'admin@gn.tn', name: 'مسؤول النظام', role: 'ADMIN' },
     { email: 'chief@example.com', name: 'رئيس القسم', role: 'SECTION_CHIEF' },
     { email: 'user1@example.com', name: 'علي أحمد', role: 'USER' },
     { email: 'user2@example.com', name: 'فاطمة محمود', role: 'USER' },

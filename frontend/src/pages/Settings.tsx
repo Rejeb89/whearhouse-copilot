@@ -236,7 +236,7 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
     if (!editing && !form.password) return 'كلمة المرور مطلوبة'
     if (form.password && form.password.length < 6) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'
     if (!form.name.trim()) return 'الاسم مطلوب'
-    if (!isSectionChief && !(form as any).region?.trim()) return 'الإقليم الحالي مطلوب'
+    if (form.role !== 'ADMIN' && !isSectionChief && !(form as any).region?.trim()) return 'الإقليم الحالي مطلوب'
     return ''
   }
 
@@ -326,6 +326,7 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
             />
           </div>
 
+          {form.role !== 'ADMIN' && (
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">الإقليم <span className="text-red-500">*</span></label>
             {isSectionChief ? (
@@ -341,7 +342,9 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
               />
             )}
           </div>
+          )}
 
+          {form.role !== 'ADMIN' && (
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">اسم الوحدة الجهوية</label>
             {isSectionChief ? (
@@ -358,6 +361,7 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
               />
             )}
           </div>
+          )}
 
           {(form.role === 'SECTION_CHIEF' || form.role === 'USER') && (
           <div>
@@ -382,6 +386,7 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
             </div>
           )}
 
+          {form.role !== 'ADMIN' && (
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">العنوان</label>
             {isSectionChief ? (
@@ -397,6 +402,7 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
               />
             )}
           </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">البريد الإلكتروني</label>

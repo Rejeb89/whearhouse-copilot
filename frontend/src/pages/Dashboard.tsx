@@ -69,8 +69,14 @@ export default function Dashboard() {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
 
   useEffect(() => {
-    const alerts = (items || []).filter((it: any) => (it.category || '').trim() !== 'اثاث قار' && (it.lowStockThreshold ?? 5) >= it.quantity)
-    setLowAlerts(alerts)
+    const filtered = (items || []).filter((it: any) => {
+      const isLow = (it.lowStockThreshold ?? 5) >= it.quantity
+      const category = (it.category || '').trim().toLowerCase()
+      const name = (it.name || '').trim().toLowerCase()
+      const isAdminOnly = category === 'دفاتر ادارية' || name === 'علم جمهورية' || name === 'لفائف فاكس'
+      return isLow && isAdminOnly
+    })
+    setLowAlerts(filtered.slice(0, 10))
   }, [items])
 
   const eventsStorageKey = user ? `calendar-events-${user.id}` : 'calendar-events-guest'

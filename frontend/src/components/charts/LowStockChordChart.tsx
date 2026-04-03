@@ -25,7 +25,11 @@ const COLORS = [
 ]
 
 const LowStockChordChart: React.FC<Props> = ({ items: rawItems, width = 440, height = 380 }) => {
-  const items = rawItems.filter((it) => (it.category || '').trim() !== 'اثاث قار')
+  const items = rawItems.filter((it) => {
+    const category = (it.category || '').trim().toLowerCase()
+    const name = (it.name || '').trim().toLowerCase()
+    return category === 'دفاتر ادارية' || name === 'علم جمهورية' || name === 'لفائف فاكس'
+  }).slice(0, 10)
   const [tooltip, setTooltip] = useState<{ x: number; y: number; label: string } | null>(null)
 
   const radius = Math.min(width, height) / 2 - 40
