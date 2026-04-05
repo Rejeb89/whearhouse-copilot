@@ -808,7 +808,6 @@ function ReceptionsTab({ unit }: { unit: string }) {
   const xlsHdrs = [
     { key: 'receptionId',     label: 'رقم العملية' },
     { key: 'itemName',        label: 'التجهيز' },
-    { key: 'itemSku',         label: 'الرمز (SKU)' },
     { key: 'itemCategory',    label: 'الفئة' },
     { key: 'itemDescription', label: 'الوصف' },
     { key: 'quantity',        label: 'الكمية المُدخَلَة' },
@@ -908,7 +907,6 @@ function ReceptionsTab({ unit }: { unit: string }) {
                       <Package className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
                       <span className="font-medium text-foreground whitespace-nowrap">{row.itemName}</span>
                     </div>
-                    {row.itemSku !== '—' && <p className="text-xs text-muted-foreground mt-0.5 font-mono">{row.itemSku}</p>}
                   </td>
                   <td className="px-3 py-3">
                     {row.itemCategory !== '—'
@@ -953,7 +951,6 @@ function ReceptionsTab({ unit }: { unit: string }) {
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">معلومات التجهيز</p>
               <div className="grid grid-cols-2 gap-2">
                 <Field label="اسم التجهيز"      value={selected.itemName} />
-                <Field label="الرمز (SKU)"        value={selected.itemSku}  mono />
                 <Field label="الفئة"              value={selected.itemCategory} />
                 <Field label="الكمية المُدخَلَة"  value={String(selected.quantity)} />
                 <Field label="الرقم الإداري"      value={selected.adminNumber} mono />
@@ -1080,7 +1077,6 @@ function DistributionsTab({ unit }: { unit: string }) {
   const xlsHdrs = [
     { key: 'distributionId',  label: 'رقم العملية' },
     { key: 'itemName',        label: 'التجهيز' },
-    { key: 'itemSku',         label: 'الرمز (SKU)' },
     { key: 'itemCategory',    label: 'الفئة' },
     { key: 'itemDescription', label: 'الوصف' },
     { key: 'quantity',        label: 'الكمية المُخرَجَة' },
@@ -1182,7 +1178,6 @@ function DistributionsTab({ unit }: { unit: string }) {
                       <Package className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                       <span className="font-medium text-foreground whitespace-nowrap">{row.itemName}</span>
                     </div>
-                    {row.itemSku !== '—' && <p className="text-xs text-muted-foreground mt-0.5 font-mono">{row.itemSku}</p>}
                   </td>
                   <td className="px-3 py-3">
                     {row.itemCategory !== '—'
@@ -1227,7 +1222,6 @@ function DistributionsTab({ unit }: { unit: string }) {
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">معلومات التجهيز</p>
               <div className="grid grid-cols-2 gap-2">
                 <Field label="اسم التجهيز"       value={selected.itemName} />
-                <Field label="الرمز (SKU)"         value={selected.itemSku}  mono />
                 <Field label="الفئة"               value={selected.itemCategory} />
                 <Field label="الكمية المُخرَجَة"   value={String(selected.quantity)} />
                 <Field label="الرقم الإداري"       value={selected.adminNumber} mono />

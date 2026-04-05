@@ -273,7 +273,13 @@ export default function FuelPage() {
       ]
     })
 
-    const today = new Date().toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' })
+    const today = (() => {
+      const d = new Date()
+      const day = String(d.getDate()).padStart(2, '0')
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const year = d.getFullYear()
+      return `${year}/${month}/${day}`
+    })()
 
     // جدول ملخص أنواع الوقود و الكميات الجملية
     const fuelSummaryMap: Record<string, number> = {}

@@ -76,7 +76,13 @@ async function exportProjectsPDF(
   user: { title?: string; securityUnit?: string; region?: string; regionChief?: string; name: string } | null,
 ) {
   const activeProjects = projects.filter(p => p.status === 'STUDY' || p.status === 'WORK')
-  const today = new Date().toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' })
+  const today = (() => {
+    const d = new Date()
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    return `${year}/${month}/${day}`
+  })()
   const unit             = user?.securityUnit || '—'
   const region           = user?.region       || '—'
   const title            = user?.title        || ''

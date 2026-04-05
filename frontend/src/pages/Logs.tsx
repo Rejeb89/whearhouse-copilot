@@ -1458,7 +1458,6 @@ export default function Logs() {
             // Sheet 1: summary
             const summaryRows = filtered.map((it: any) => ({
               'الاسم':             it.name,
-              'الرمز (SKU)':       it.sku,
               'الفئة':             it.category ?? '—',
               'إجمالي المستلم':    it.totalReceived,
               'إجمالي الموزع':     it.totalDistributed,
@@ -1475,7 +1474,6 @@ export default function Logs() {
             filtered.forEach((it: any) => {
               it.receptions.forEach((r: any) => recvRows.push({
                 'التجهيز':         it.name,
-                'الرمز':           it.sku,
                 'الفئة':           it.category ?? '—',
                 'نوع المرجع':      r.referenceType ?? '—',
                 'رقم المرجع':      r.referenceNumber ?? '—',
@@ -1495,7 +1493,6 @@ export default function Logs() {
             filtered.forEach((it: any) => {
               it.distributions.forEach((d: any) => distRows.push({
                 'التجهيز':         it.name,
-                'الرمز':           it.sku,
                 'الفئة':           it.category ?? '—',
                 'نوع المرجع':      d.referenceType ?? '—',
                 'رقم المرجع':      d.referenceNumber ?? '—',
