@@ -36,8 +36,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 3600,
 }))
-app.use(bodyParser.json({ limit: '10mb' }))
-app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }))
+app.use(bodyParser.json({ limit: '50mb' }))
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 app.use(requestLogger)
 // Decode JWT (if present) and store securityUnit in AsyncLocalStorage so the
 // Prisma query extension can automatically scope every DB query to the right unit.
