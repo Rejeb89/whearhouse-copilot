@@ -6,25 +6,35 @@ import bcrypt from 'bcryptjs'
 
 const ensureDefaultAdmin = async () => {
   try {
-    const adminEmail = 'admin@gn.tn'
+    const adminEmail = process.env.INITIAL_ADMIN_EMAIL
+    const adminPassword = process.env.INITIAL_ADMIN_PASSWORD
+
+    // Only create admin if environment variables are explicitly set
+    if (!adminEmail || !adminPassword) {
+      console.warn('⚠️  INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD not set - skipping admin creation')
+      console.warn('💡 To create admin: set INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD in .env')
+      return
+    }
+
     const existingAdmin = await prisma.user.findUnique({
       where: { email: adminEmail }
     })
 
     if (!existingAdmin) {
-      const hashedPassword = bcrypt.hashSync('admin123', 10)
+      const hashedPassword = bcrypt.hashSync(adminPassword, 10)
       await prisma.user.create({
         data: {
           email: adminEmail,
           password: hashedPassword,
-          name: 'مسؤول النظام',
+          name: 'Administrator',
           role: 'ADMIN',
-          personalNumber: 'ADMIN001'
+          personalNumber: `ADMIN_${Date.now()}`
         }
       })
-      console.log('✅ Created default admin user: admin@gn.tn')
+      console.log(`✅ Created admin user: ${adminEmail}`)
+      console.warn('⚠️  IMPORTANT: Change the admin password immediately after first login!')
     } else {
-      console.log('✅ Admin user already exists')
+      console.log(`✅ Admin user already exists: ${adminEmail}`)
     }
   } catch (error) {
     console.error('⚠️  Error ensuring default admin:', error)

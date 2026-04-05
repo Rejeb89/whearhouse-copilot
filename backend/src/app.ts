@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
 import bodyParser from 'body-parser'
 import { requestLogger } from './middleware/requestLogger'
 import { errorHandler } from './middleware/errorHandler'
@@ -8,10 +9,35 @@ import apiRoutes from './routes'
 
 const app = express()
 
-// Global middleware
-app.use(cors())
-app.use(bodyParser.json({ limit: '50mb' }))
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
+// ✅ Helmet: Add security headers (Content-Security-Policy, X-Frame-Options, etc.)
+app.use(helmet())
+
+// ✅ Trust proxy: Fix X-Forwarded-For header spoofing
+app.set('trust proxy', 1)
+
+// CORS Configuration: Only allow whitelisted origins
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3002').split(',')
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true)
+    
+    // Check if origin is allowed
+    if (ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true)
+    }
+    
+    // Reject origin not in whitelist
+    callback(new Error(`CORS not allowed for origin: ${origin}`))
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 3600,
+}))
+app.use(bodyParser.json({ limit: '10mb' }))
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }))
 app.use(requestLogger)
 // Decode JWT (if present) and store securityUnit in AsyncLocalStorage so the
 // Prisma query extension can automatically scope every DB query to the right unit.
