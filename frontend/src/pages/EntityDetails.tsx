@@ -959,7 +959,6 @@ export default function EntityDetails() {
                             {dist.items.map(i => (
                               <div key={i.id} className="text-foreground">
                                 {i.item.name}
-                                <span className="text-xs text-muted-foreground mr-1">({i.item.sku})</span>
                               </div>
                             ))}
                           </div>

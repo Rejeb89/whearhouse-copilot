@@ -173,7 +173,13 @@ export default function Vehicles() {
     const regionChief = (user as any)?.regionChief || ''
     const _r = (user?.securityUnit || '').trim()
     const regionChiefLabel = _r.startsWith('فوج') ? 'امر فوج' : _r.startsWith('اقليم') || _r.startsWith('إقليم') ? 'مدير الاقليم' : _r.startsWith('منطقة') ? 'رئيس المنطقة' : 'رئيس المنطقة'
-    const today = new Date().toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' })
+    const today = (() => {
+      const d = new Date()
+      const day = String(d.getDate()).padStart(2, '0')
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const year = d.getFullYear()
+      return `${year}/${month}/${day}`
+    })()
 
     const headers = ['الرقم', 'رقم الوسيلة', 'نوع الوسيلة', 'الوحدة التابعة', 'الحالة', 'الملاحظات']
     const rows = filtered.map((v, i) => [

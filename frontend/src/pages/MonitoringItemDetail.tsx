@@ -290,7 +290,7 @@ export default function MonitoringItemDetail() {
         <div className="min-w-0 flex-1">
           <h1 className="font-bold text-base text-foreground truncate">{item.name}</h1>
           <p className="text-xs text-muted-foreground">
-            {item.sku}{item.category ? ` · ${item.category}` : ''} · الوحدة:{' '}
+            {item.category ? `${item.category} · ` : ''}الوحدة:{' '}
             <span className="font-semibold text-foreground">{unit}</span>
           </p>
         </div>

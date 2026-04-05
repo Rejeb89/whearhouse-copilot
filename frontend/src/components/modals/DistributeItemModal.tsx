@@ -269,7 +269,7 @@ export default function DistributeItemModal({ isOpen, onClose, onSuccess }: Dist
                           onClick={() => handleSelectItem(item)}
                           className="w-full text-right p-2 hover:bg-blue-50 border-b text-sm flex justify-between"
                         >
-                          <span>{item.name} ({item.sku})</span>
+                          <span>{item.name}</span>
                           <span className="text-muted-foreground">المتاح: {item.quantity}</span>
                         </button>
                       ))
@@ -290,7 +290,6 @@ export default function DistributeItemModal({ isOpen, onClose, onSuccess }: Dist
                   <div key={item.id} className="flex items-center gap-2 p-2 bg-blue-50 rounded">
                     <div className="flex-grow">
                       <div className="text-sm font-semibold">{item.name}</div>
-                      <div className="text-xs text-muted-foreground">{item.sku}</div>
                     </div>
                     <input
                       type="number"

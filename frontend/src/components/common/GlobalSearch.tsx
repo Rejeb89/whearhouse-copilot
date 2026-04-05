@@ -81,7 +81,6 @@ export default function GlobalSearch({ placeholder, className }: Props) {
                 </div>
                 {searchResults.items.map((item: any) => (
                   <button key={item.id} onClick={() => go('/items')} className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/50 transition-colors text-right">
-                    <span className="text-xs text-muted-foreground">{item.sku || '—'}</span>
                     <div>
                       <p className="text-sm font-medium text-foreground">{item.name}</p>
                       <p className="text-xs text-muted-foreground">المخزون: {item.quantity}</p>

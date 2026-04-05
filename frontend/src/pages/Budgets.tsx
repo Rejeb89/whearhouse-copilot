@@ -285,7 +285,7 @@ export default function Budgets() {
     
     const headerHTML = `
       <h1 style="text-align: center; font-size: 28px; margin-bottom: 5px; font-weight: bold;">تقرير الاعتمادات المالية</h1>
-      <p style="text-align: center; font-size: 12px; color: #666; margin-bottom: 20px;">التاريخ: ${new Date().toLocaleDateString('ar-TN')}</p>
+      <p style="text-align: center; font-size: 12px; color: #666; margin-bottom: 20px;">التاريخ: ${(() => { const d = new Date(); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth() + 1).padStart(2, '0'); const year = d.getFullYear(); return `${year}/${month}/${day}`; })()}</p>
     `
     
     const tableHTML = `

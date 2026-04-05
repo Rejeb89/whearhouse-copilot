@@ -339,7 +339,6 @@ export default function Items() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold text-foreground">{it.name}</p>
-                        <p className="text-xs text-muted-foreground font-mono mt-0.5">{it.sku}</p>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">{it.category || 'بدون صنف'}</p>
@@ -382,7 +381,7 @@ export default function Items() {
           <Search className="absolute right-3 top-3 w-5 h-5 text-muted-foreground pointer-events-none" />
           <input
             type="text"
-            placeholder="ابحث عن تجهيز باسمه، رمزه (SKU)، صنفه أو وصفه..."
+            placeholder="ابحث عن تجهيز باسمه، صنفه أو وصفه..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value)
@@ -464,7 +463,6 @@ export default function Items() {
                             </div>
                           </div>
                           <p className="text-sm font-bold text-foreground mb-1 leading-snug">{it.name}</p>
-                          <p className="text-xs text-muted-foreground font-mono mb-1">{it.sku}</p>
                           <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{it.category || 'بدون صنف'}</p>
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground">الكمية</span>
@@ -577,7 +575,6 @@ export default function Items() {
                       </div>
                     </div>
                     <p className="text-sm font-bold text-foreground mb-1 leading-snug">{it.name}</p>
-                    <p className="text-xs text-muted-foreground font-mono mb-3">{it.sku}</p>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">الكمية</span>
                       <span className={`font-bold text-lg ${low ? 'text-red-600' : 'text-green-700'}`}>
@@ -624,7 +621,6 @@ export default function Items() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-foreground">{selectedItem.name}</h2>
-                  <p className="text-xs text-muted-foreground font-mono mt-0.5">{selectedItem.sku}</p>
                   <p className="text-xs text-muted-foreground mt-1">{selectedItem.category || 'بدون صنف'}</p>
                   {selectedItem.description && (
                     <p className="text-sm text-muted-foreground mt-2">{selectedItem.description}</p>
@@ -924,10 +920,6 @@ export default function Items() {
                 <div className="col-span-2">
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">اسم التجهيز *</label>
                   <input className="w-full border border-input bg-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">الرمز (SKU)</label>
-                  <input className="w-full border border-input bg-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={editForm.sku} onChange={e => setEditForm(f => ({ ...f, sku: e.target.value }))} />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">الصنف</label>
