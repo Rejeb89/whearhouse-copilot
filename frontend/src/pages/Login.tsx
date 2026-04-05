@@ -18,15 +18,32 @@ export default function Login() {
     setLoading(true)
     setError(null)
     setIsBlocked(false)
+    
+    // Trim inputs
+    const trimmedEmail = email.trim()
+    const trimmedPassword = password.trim()
+    
+    if (!trimmedEmail) {
+      setError('📧 يرجى إدخال البريد الإلكتروني')
+      setLoading(false)
+      return
+    }
+    
+    if (!trimmedPassword) {
+      setError('🔐 يرجى إدخال كلمة المرور')
+      setLoading(false)
+      return
+    }
+    
     try {
-      const u = await login(email, password)
+      const u = await login(trimmedEmail, trimmedPassword)
       navigate(u?.role === 'ADMIN' ? '/monitoring' : '/')
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.error || 'بيانات الدخول غير صحيحة'
+      const errorMessage = err?.response?.data?.error || '❌ حدث خطأ أثناء تسجيل الدخول'
       setError(errorMessage)
       
       // التحقق من ما إذا كان الحساب موقوفاً
-      if (errorMessage.includes('موقوف')) {
+      if (errorMessage.includes('🔒')) {
         setIsBlocked(true)
       }
     } finally {
@@ -134,14 +151,14 @@ export default function Login() {
                   </span>
                 </div>
               </div>
-              <h2 className="text-2xl font-bold text-foreground">تسجيل الدخول</h2>
+              <h2 className="text-2xl font-bold text-foreground">مرحباً بك 👋</h2>
               <p className="text-muted-foreground text-sm mt-1">أدخل بياناتك للوصول إلى النظام</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-semibold text-foreground">البريد الإلكتروني</label>
+                <label className="block text-sm font-semibold text-foreground">📧 البريد الإلكتروني</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-muted-foreground pointer-events-none">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -155,7 +172,7 @@ export default function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    placeholder="admin@example.com"
+                    placeholder="your.email@example.com"
                     className="w-full border border-input bg-background rounded-xl py-3 pr-11 pl-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition hover:bg-muted/50"
                   />
                 </div>
@@ -163,7 +180,7 @@ export default function Login() {
 
               {/* Password */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-semibold text-foreground">كلمة المرور</label>
+                <label className="block text-sm font-semibold text-foreground">🔐 كلمة المرور</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-muted-foreground pointer-events-none">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -214,7 +231,7 @@ export default function Login() {
                   <div className="flex-1">
                     <p className="font-semibold">{error}</p>
                     {isBlocked && (
-                      <p className="text-xs mt-1 opacity-90">يرجى التواصل مع إدارة النظام لتفعيل حسابك</p>
+                      <p className="text-xs mt-1 opacity-90">يرجى التواصل مع فريق الدعم للمساعدة في تفعيل حسابك.</p>
                     )}
                   </div>
                 </div>
@@ -233,7 +250,7 @@ export default function Login() {
                   </>
                 ) : (
                   <>
-                    <span>تسجيل الدخول</span>
+                    <span>دخول 🚀</span>
                     <svg className="w-4 h-4 rotate-180" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>

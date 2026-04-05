@@ -1,4 +1,4 @@
-export { createUserSchema, updateUserSchema } from './userSchemas'
+export { createUserSchema, updateUserSchema, loginSchema } from './userSchemas'
 export type { CreateUserInput, UpdateUserInput } from './userSchemas'
 
 export { vehicleSchema } from './vehicleSchemas'

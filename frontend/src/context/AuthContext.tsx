@@ -80,7 +80,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token, user])
 
   const login = async (email: string, password: string) => {
-    const res = await client.post('/auth/login', { email, password })
+    const res = await client.post('/auth/login', { 
+      email: email.trim().toLowerCase(), 
+      password: password.trim() 
+    })
     const { token, user } = res.data.data
     setToken(token)
     setUser(user)

@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import { login, register } from '../services/authService'
 import prisma from '../config/database'
 import { signToken } from '../utils/jwt'
+import { loginSchema } from '../validation'
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -14,10 +15,14 @@ export const registerUser = async (req: Request, res: Response) => {
 
 export const loginUser = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body
-    if (!email || !password) {
-      return res.status(400).json({ error: 'البريد الإلكتروني وكلمة المرور مطلوبان' })
+    // Validate input
+    const parsed = loginSchema.safeParse(req.body)
+    if (!parsed.success) {
+      const errors = parsed.error.errors.map(e => e.message).join(', ')
+      return res.status(400).json({ error: errors })
     }
+
+    const { email, password } = parsed.data
     const { user, token } = await login(email, password)
     res.json({
       data: {
@@ -36,12 +41,12 @@ export const loginUser = async (req: Request, res: Response) => {
     let statusCode = 401
     let errorMessage = err.message
     
-    // التحقق من رسالة الخطأ المحددة للحساب الموقوف
-    if (err.message.includes('موقوف')) {
+    // معالجة الأخطاء بشكل ودي
+    if (err.message.includes('🔒')) {
       statusCode = 403
-      errorMessage = 'الحساب موقوف، تواصل مع المسؤول'
-    } else if (err.message.includes('Invalid credentials')) {
-      errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
+      errorMessage = err.message
+    } else if (err.message.includes('❌')) {
+      errorMessage = err.message
     }
     
     res.status(statusCode).json({ error: errorMessage })
@@ -52,7 +57,7 @@ export const getMe = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id
     const user = await prisma.user.findUnique({ where: { id: userId } })
-    if (!user) return res.status(404).json({ error: 'المستخدم غير موجود' })
+    if (!user) return res.status(404).json({ error: '👤 لم نتمكن من العثور على بيانات حسابك' })
     // Issue a fresh JWT so that any admin-side changes (role, securityUnit, etc.) take effect immediately
     const freshToken = signToken({ id: user.id, role: user.role, email: user.email, securityUnit: user.securityUnit, region: user.region })
     res.json({
@@ -64,6 +69,6 @@ export const getMe = async (req: Request, res: Response) => {
       token: freshToken,
     })
   } catch (err: any) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: '⚠️ حدث خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً.' })
   }
 }
