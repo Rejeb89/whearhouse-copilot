@@ -13,17 +13,24 @@ interface AuthContextValue {
 export const AuthContext = createContext<AuthContextValue>({} as AuthContextValue)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // 🔒 Use sessionStorage for token (cleared when browser tab closes)
+  // 🔒 Only store minimal user info (ID, role, email)
   const [user, setUser] = useState<User | null>(() => {
-    const s = localStorage.getItem('user')
-    return s ? JSON.parse(s) : null
+    try {
+      const storedUser = sessionStorage.getItem('user')
+      return storedUser ? JSON.parse(storedUser) : null
+    } catch {
+      return null
+    }
   })
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
+  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem('token'))
 
   useEffect(() => {
-    if (token) localStorage.setItem('token', token)
-    else localStorage.removeItem('token')
+    if (token) sessionStorage.setItem('token', token)
+    else sessionStorage.removeItem('token')
   }, [token])
 
+  // 🔒 Refresh user data on each page load to get latest permissions
   useEffect(() => {
     if (token) {
       client.get('/auth/me').then(res => {
@@ -31,23 +38,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Refresh the JWT so admin-side changes (securityUnit, role) take effect
         if (res.data.token) {
           setToken(res.data.token)
-          localStorage.setItem('token', res.data.token)
+          sessionStorage.setItem('token', res.data.token)
         }
-      }).catch(() => {})
+      }).catch(() => {
+        // Token expired or invalid, clear it
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('user')
+      })
     }
   }, [])
 
+  // 🔒 Store minimal user data only
   useEffect(() => {
-    if (user) localStorage.setItem('user', JSON.stringify(user))
-    else localStorage.removeItem('user')
+    if (user) {
+      sessionStorage.setItem('user', JSON.stringify(user))
+    } else {
+      sessionStorage.removeItem('user')
+    }
   }, [user])
 
-  // المعالج تمنع تسجيل خروج عند الضغط على زر العودة للوراء
+  // Prevent data loss on browser back button
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
-      // استرجاع الـ token من localStorage في حالة vحذفها
-      const storedToken = localStorage.getItem('token')
-      const storedUser = localStorage.getItem('user')
+      const storedToken = sessionStorage.getItem('token')
+      const storedUser = sessionStorage.getItem('user')
       
       if (storedToken && !token) {
         setToken(storedToken)
@@ -76,8 +90,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setToken(null)
     setUser(null)
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+    sessionStorage.removeItem('token')
+    sessionStorage.removeItem('user')
   }
 
   return <AuthContext.Provider value={{ user, token, login, logout }}>{children}</AuthContext.Provider>

@@ -79,7 +79,9 @@ export const update = async (req: Request, res: Response) => {
   }
   try {
     const actor = (req as any).user
-    const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress
+    // ✅ Fix header spoofing: Get client IP securely with trust proxy
+    const ip = typeof req.ip === 'string' ? req.ip : 
+               (Array.isArray(req.ips) ? req.ips[0] : req.socket.remoteAddress)
     const data = { ...parsed.data }
     if (data.password === '') delete data.password
     const updated = await userService.updateUser(Number(req.params.id), data, actor?.email, actor?.id, ip)
@@ -92,7 +94,9 @@ export const update = async (req: Request, res: Response) => {
 export const remove = async (req: Request, res: Response) => {
   try {
     const actor = (req as any).user
-    const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress
+    // ✅ Fix header spoofing: Get client IP securely with trust proxy
+    const ip = typeof req.ip === 'string' ? req.ip : 
+               (Array.isArray(req.ips) ? req.ips[0] : req.socket.remoteAddress)
     await userService.deleteUser(Number(req.params.id), actor?.email, actor?.id, ip)
     res.json({ data: true })
   } catch (err: any) {

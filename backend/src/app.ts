@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
 import bodyParser from 'body-parser'
 import { requestLogger } from './middleware/requestLogger'
 import { errorHandler } from './middleware/errorHandler'
@@ -7,6 +8,12 @@ import { securityUnitContext } from './middleware/securityUnitContext'
 import apiRoutes from './routes'
 
 const app = express()
+
+// ✅ Helmet: Add security headers (Content-Security-Policy, X-Frame-Options, etc.)
+app.use(helmet())
+
+// ✅ Trust proxy: Fix X-Forwarded-For header spoofing
+app.set('trust proxy', 1)
 
 // CORS Configuration: Only allow whitelisted origins
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3002').split(',')
