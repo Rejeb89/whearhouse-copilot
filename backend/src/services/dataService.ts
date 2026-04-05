@@ -73,24 +73,47 @@ export const importData = async (
     await prisma.budget.deleteMany()
   }
 
-  const defaultPasswordHash = await hashPassword('admin123')
+  // Generate secure random password for imported users
+  const generateSecurePassword = () => {
+    return require('crypto').randomBytes(12).toString('hex')
+  }
 
   // Users
   if (Array.isArray(data.users) && data.users.length > 0) {
     let count = 0
+    const importedUsers: Array<{email: string; tempPassword: string}> = []
+    
     for (const raw of data.users) {
       const { password: _pw, createdAt: _ca, updatedAt: _ua, receptions: _r, distributions: _d, logs: _l, ...user } = raw
       if (!user.id || !user.email || !user.role) continue
+      
       try {
-        await prisma.user.upsert({
+        // Generate unique secure password for each imported user
+        const tempPassword = generateSecurePassword()
+        const passwordHash = await hashPassword(tempPassword)
+        
+        const created = await prisma.user.upsert({
           where: { id: user.id },
           update: { email: user.email, name: user.name, role: user.role },
-          create: { ...user, password: defaultPasswordHash },
+          create: { ...user, password: passwordHash },
+        })
+        
+        // Track for secure distribution (should be emailed separately, not logged)
+        importedUsers.push({
+          email: created.email,
+          tempPassword: tempPassword
         })
         count++
       } catch { /* skip */ }
     }
+    
     stats.users = count
+    
+    // Log import but DO NOT include plaintext passwords in response
+    if (importedUsers.length > 0) {
+      console.warn(`⚠️  ${importedUsers.length} users imported with temporary passwords`)
+      console.warn('💡 Temporary passwords should be sent via secure email, not displayed to user')
+    }
   }
 
   // Items

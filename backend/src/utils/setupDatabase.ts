@@ -25,11 +25,22 @@ export async function setupDatabase(): Promise<void> {
     console.log('🔧  Running database security setup...')
 
     // ── 1. Create limited app_user role ──────────────────────────────────────
+    const appUserPassword = process.env.APP_DB_PASSWORD || 'app_secure_2024'
+    
+    if (process.env.NODE_ENV === 'production' && !process.env.APP_DB_PASSWORD) {
+      throw new Error('CRITICAL: APP_DB_PASSWORD must be set to a strong password in production environment')
+    }
+    
+    // Escape single quotes in password for SQL
+    const escapedPassword = appUserPassword.replace(/'/g, "''")
+    
     await admin.$executeRawUnsafe(`
       DO $$
       BEGIN
         IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_user') THEN
-          CREATE ROLE app_user LOGIN PASSWORD 'app_secure_2024';
+          CREATE ROLE app_user LOGIN PASSWORD '${escapedPassword}';
+        ELSE
+          ALTER ROLE app_user WITH PASSWORD '${escapedPassword}';
         END IF;
       END
       $$
