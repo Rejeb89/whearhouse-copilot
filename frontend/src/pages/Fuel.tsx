@@ -4,6 +4,7 @@ import client from '../services/client'
 import { AuthContext } from '../context/AuthContext'
 import { Fuel, Settings2, X, Pencil, ChevronDown, Trash2, FileDown } from 'lucide-react'
 import FuelThresholdChart, { MonthStat } from '../components/charts/FuelThresholdChart'
+import MonthlyServicesTab from '../components/MonthlyServicesTab'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FuelPrice { id: number; fuelType: string; pricePerLiter: number }
@@ -64,6 +65,7 @@ export default function FuelPage() {
   const qc = useQueryClient()
   const { user } = useContext(AuthContext)
   const now = new Date()
+  const [activeTab, setActiveTab] = useState<'fuel' | 'monthly-services'>('fuel')
   const [selMonth, setSelMonth] = useState(now.getMonth() + 1)
   const [selYear,  setSelYear]  = useState(now.getFullYear())
   const [showPrices, setShowPrices] = useState(false)
@@ -392,7 +394,41 @@ export default function FuelPage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">متابعة استهلاك الوقود الشهري للوسائل</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+      </div>
+
+      {/* ── Tab Navigation ── */}
+      <div className="border-b border-border">
+        <nav className="flex gap-1">
+          <button
+            onClick={() => setActiveTab('fuel')}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'fuel'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            المحروقات
+          </button>
+          {(user?.role === 'SECTION_CHIEF' || user?.role === 'ADMIN') && (
+            <button
+              onClick={() => setActiveTab('monthly-services')}
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                activeTab === 'monthly-services'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              الخدمات الشهرية
+            </button>
+          )}
+        </nav>
+      </div>
+
+      {/* ── Tab Content ── */}
+      {activeTab === 'fuel' && (
+      <div className="space-y-6 pt-4">
+        {/* ── Controls ── */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
           {/* Date picker for ADMIN / REGION_CHIEF / DISTRICT_MANAGER */}
           {(user?.role === 'ADMIN' || user?.role === 'REGION_CHIEF' || user?.role === 'BATTALION_COMMANDER' || user?.role === 'DISTRICT_MANAGER') && (
             <div className="flex items-center gap-1.5 border border-input bg-background rounded-lg px-3 py-1.5">
@@ -450,10 +486,9 @@ export default function FuelPage() {
             تصدير PDF
           </button>
         </div>
-      </div>
 
-      {/* ── Fuel Prices Panel ── */}
-      {showPrices && (
+        {/* ── Fuel Prices Panel ── */}
+        {showPrices && (
         <div className="rounded-xl border border-border bg-card p-5 space-y-4">
           <h3 className="font-semibold text-foreground flex items-center gap-2">
             <Settings2 className="w-4 h-4 text-primary" />
@@ -684,6 +719,13 @@ export default function FuelPage() {
           />
         </div>
       </div>
+      </div>
+      )}
+
+      {/* ── Monthly Services Tab Content ── */}
+      {activeTab === 'monthly-services' && (
+        <MonthlyServicesTab user={user} selMonth={selMonth} selYear={selYear} setSelMonth={setSelMonth} setSelYear={setSelYear} />
+      )}
 
       {/* ── Edit Modal ── */}
       {showModal && editVehicle && (

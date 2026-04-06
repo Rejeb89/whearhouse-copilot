@@ -36,8 +36,8 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/warehouse
-      APP_DATABASE_URL: postgres://${APP_USER:-app_user}:${APP_PASSWORD}@postgres:5432/warehouse
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/warehouse?schema=public&client_encoding=UTF8
+      APP_DATABASE_URL: postgres://${APP_USER:-app_user}:${APP_PASSWORD}@postgres:5432/warehouse?schema=public&client_encoding=UTF8
       JWT_SECRET: ${JWT_SECRET}
       NODE_ENV: ${NODE_ENV:-production}
       LOG_LEVEL: ${LOG_LEVEL:-info}

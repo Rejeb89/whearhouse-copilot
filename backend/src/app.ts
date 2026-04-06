@@ -38,6 +38,12 @@ app.use(cors({
 }))
 app.use(bodyParser.json({ limit: '50mb' }))
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
+
+// ✅ Ensure UTF-8 encoding in all responses
+app.use((req, res, next) => {
+  res.set('Content-Type', 'application/json; charset=utf-8')
+  next()
+})
 app.use(requestLogger)
 // Decode JWT (if present) and store securityUnit in AsyncLocalStorage so the
 // Prisma query extension can automatically scope every DB query to the right unit.

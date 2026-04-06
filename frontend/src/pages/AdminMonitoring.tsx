@@ -16,7 +16,7 @@ import {
   ShoppingCart, Receipt, Paperclip, TrendingUp, CheckCircle2, AlertTriangle, Clock,
   DollarSign, Layers, ArrowDownToLine, ArrowUpFromLine, PackageSearch, Warehouse,
   Calendar, ShieldCheck, ChevronDown, ChevronUp, HardHat, Hammer, BookOpen, BadgePercent,
-  Fuel as FuelIcon,
+  Fuel as FuelIcon, Trash2,
 } from 'lucide-react'
 
 /* ─── API helpers ─── */
@@ -2798,18 +2798,56 @@ const computeFuelRow = (rec: any, price: number, quota: number) => {
 }
 
 function FuelTab({ unit }: { unit: string }) {
+  const { user } = useContext(AuthContext)
   const now = new Date()
   const [selMonth, setSelMonth] = useState(now.getMonth() + 1)
   const [selYear,  setSelYear]  = useState(now.getFullYear())
   const [search, setSearch] = useState('')
   const [selFuelType, setSelFuelType] = useState<string>('all')
   const [selected, setSelected] = useState<any>(null)
+  const [showComparison, setShowComparison] = useState(false)
+  const [compYear1, setCompYear1] = useState(new Date().getFullYear() - 1) // 2025
+  const [compYear2, setCompYear2] = useState(new Date().getFullYear())     // 2026
+  // Monthly services filter
+  const [msMonth, setMsMonth] = useState(now.getMonth() + 1)
+  const [msYear, setMsYear] = useState(now.getFullYear())
+  const [msSearch, setMsSearch] = useState('')
+  const [selectedFile, setSelectedFile] = useState<any>(null)
 
   const { data: fuelData, isLoading } = useQuery(
     ['monitoring', unit, 'fuel', selMonth, selYear],
     async () => {
       const encoded = encodeURIComponent(unit)
       return (await client.get(`/monitoring/units/${encoded}/fuel?month=${selMonth}&year=${selYear}`)).data.data
+    }
+  )
+
+  // Fetch yearly comparison data
+  const { data: compData1 } = useQuery(
+    ['monitoring', unit, 'fuel-stats', compYear1],
+    async () => {
+      if (!showComparison) return null
+      const encoded = encodeURIComponent(unit)
+      return (await client.get(`/monitoring/units/${encoded}/fuel/stats?year=${compYear1}`)).data.data
+    },
+    { enabled: showComparison }
+  )
+
+  const { data: compData2 } = useQuery(
+    ['monitoring', unit, 'fuel-stats', compYear2],
+    async () => {
+      if (!showComparison) return null
+      const encoded = encodeURIComponent(unit)
+      return (await client.get(`/monitoring/units/${encoded}/fuel/stats?year=${compYear2}`)).data.data
+    },
+    { enabled: showComparison }
+  )
+
+  // Fetch monthly service files
+  const { data: monthlyServiceFiles = [], isLoading: msLoading, refetch: refetchMsFiles } = useQuery(
+    ['monitoring', unit, 'monthly-services', msMonth, msYear],
+    async () => {
+      return (await client.get(`/fuel/monthly-services`, { params: { month: msMonth, year: msYear, unit } })).data.data ?? []
     }
   )
 
@@ -2862,21 +2900,162 @@ function FuelTab({ unit }: { unit: string }) {
     )
   }, [filteredByType, search])
 
+  // Filter monthly service files
+  const filteredMsFiles = useMemo(() => {
+    const q = msSearch.trim().toLowerCase()
+    if (!q) return monthlyServiceFiles
+    return monthlyServiceFiles.filter((f: any) =>
+      f.fileName?.toLowerCase().includes(q) ||
+      (f.uploadedBy?.name || '').toLowerCase().includes(q) ||
+      (f.uploadedBy?.email || '').toLowerCase().includes(q)
+    )
+  }, [monthlyServiceFiles, msSearch])
+
+  const handleDeleteFile = async (fileId: number) => {
+    if (!window.confirm('هل تريد حذف هذا الملف؟')) return
+    try {
+      await client.delete(`/fuel/monthly-services/${fileId}`)
+      refetchMsFiles()
+    } catch (err) {
+      console.error('Delete failed:', err)
+    }
+  }
+
   const FUEL_HEADERS = ['الرقم الإداري', 'نوع الوسيلة', 'المقرر (لتر)', 'المسلم (د.ت)', 'الإضافي (د.ت)', 'المستهلك (د.ت)', 'الفائض (د.ت)', 'النقص (د.ت)', 'عداد أول الشهر', 'عداد آخر الشهر', 'المسافة المقطوعة (كلم)', 'المعدل المئوي', 'ملاحظات']
 
-  if (isLoading) return <LoadingBlock />
+  if (isLoading && !showComparison) return <LoadingBlock />
 
   return (
     <div className="p-5 space-y-4">
-      {/* Month/Year selector + search */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <select value={selMonth} onChange={e => setSelMonth(+e.target.value)}
-          className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-          {MONTHS_AR.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
-        </select>
-        <input type="number" value={selYear} onChange={e => setSelYear(+e.target.value)} min={2020} max={2099}
-          className="w-20 rounded-lg border border-input bg-background px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-ring" />
-        <SearchInput value={search} onChange={setSearch} placeholder="بحث..." />
+      {/* Toggle Comparison Button */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground"></h3>
+        <button
+          onClick={() => setShowComparison(!showComparison)}
+          className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+            showComparison
+              ? 'bg-blue-100 text-blue-700 border border-blue-200'
+              : 'bg-muted text-muted-foreground border border-border'
+          }`}
+        >
+          {showComparison ? '✓ مقارنة سنوية' : 'مقارنة سنوية'}
+        </button>
+      </div>
+
+      {/* Comparison View */}
+      {showComparison ? (
+        <div className="space-y-4">
+          {/* Year selectors for comparison */}
+          <div className="flex items-center gap-3 flex-wrap bg-blue-50 border border-blue-100 rounded-lg p-4">
+            <label className="text-xs font-semibold text-blue-900">السنة الأولى:</label>
+            <input
+              type="number"
+              value={compYear1}
+              onChange={e => setCompYear1(+e.target.value)}
+              min={2020}
+              max={2099}
+              className="w-24 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-xs text-blue-700 font-semibold mx-2">مقابل</span>
+            <label className="text-xs font-semibold text-blue-900">السنة الثانية:</label>
+            <input
+              type="number"
+              value={compYear2}
+              onChange={e => setCompYear2(+e.target.value)}
+              min={2020}
+              max={2099}
+              className="w-24 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Comparison Table */}
+          {compData1?.length && compData2?.length ? (
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+                    <th className="text-right px-4 py-3 text-xs font-bold text-blue-900">الشهر</th>
+                    <th className="text-center px-4 py-3 text-xs font-bold text-blue-900">
+                      {compYear1} - الاستهلاك (د.ت)
+                    </th>
+                    <th className="text-center px-4 py-3 text-xs font-bold text-blue-900">
+                      {compYear2} - الاستهلاك (د.ت)
+                    </th>
+                    <th className="text-center px-4 py-3 text-xs font-bold text-blue-900">الفرق (د.ت)</th>
+                    <th className="text-center px-4 py-3 text-xs font-bold text-blue-900">نسبة التغير %</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {compData1.map((month1: any, idx: number) => {
+                    const month2 = compData2[idx] || { consumed: 0, delivered: 0 }
+                    const c1 = month1.consumed || 0
+                    const c2 = month2.consumed || 0
+                    const diff = c2 - c1
+                    const changePercent = c1 > 0 ? ((diff / c1) * 100) : (c2 > 0 ? 100 : 0)
+                    const isPositive = diff > 0
+                    return (
+                      <tr key={idx} className="hover:bg-muted/50 transition-colors">
+                        <td className="text-right px-4 py-3 font-semibold text-foreground">{MONTHS_AR[idx]}</td>
+                        <td className="text-center px-4 py-3 font-mono text-muted-foreground">{fmtF(c1, 1)}</td>
+                        <td className="text-center px-4 py-3 font-mono text-muted-foreground">{fmtF(c2, 1)}</td>
+                        <td className={`text-center px-4 py-3 font-mono font-bold ${
+                          isPositive ? 'text-orange-600' : 'text-emerald-600'
+                        }`}>
+                          {isPositive ? '+' : ''}{fmtF(diff, 1)}
+                        </td>
+                        <td className={`text-center px-4 py-3 font-mono font-bold ${
+                          isPositive ? 'text-orange-600' : 'text-emerald-600'
+                        }`}>
+                          {isPositive ? '+' : ''}{fmtF(changePercent, 1)}%
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-gradient-to-r from-blue-100 to-indigo-100 font-bold text-xs border-t-2 border-blue-200">
+                    <td className="text-right px-4 py-3">الإجمالي السنوي</td>
+                    <td className="text-center px-4 py-3 font-mono">
+                      {fmtF(compData1.reduce((sum: number, m: any) => sum + (m.consumed || 0), 0), 1)}
+                    </td>
+                    <td className="text-center px-4 py-3 font-mono">
+                      {fmtF(compData2.reduce((sum: number, m: any) => sum + (m.consumed || 0), 0), 1)}
+                    </td>
+                    <td className="text-center px-4 py-3 font-mono">
+                      {(() => {
+                        const sum1 = compData1.reduce((s: number, m: any) => s + (m.consumed || 0), 0)
+                        const sum2 = compData2.reduce((s: number, m: any) => s + (m.consumed || 0), 0)
+                        return fmtF(sum2 - sum1, 1)
+                      })()}
+                    </td>
+                    <td className="text-center px-4 py-3 font-mono">
+                      {(() => {
+                        const sum1 = compData1.reduce((s: number, m: any) => s + (m.consumed || 0), 0)
+                        const sum2 = compData2.reduce((s: number, m: any) => s + (m.consumed || 0), 0)
+                        const pct = sum1 > 0 ? ((sum2 - sum1) / sum1 * 100) : (sum2 > 0 ? 100 : 0)
+                        return fmtF(pct, 1)
+                      })()}%
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          ) : (
+            <EmptyBlock message="لا توجد بيانات مقارنة متاحة" />
+          )}
+        </div>
+      ) : (
+        /* Normal Monthly View */
+        <>
+          {/* Month/Year selector + search */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <select value={selMonth} onChange={e => setSelMonth(+e.target.value)}
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+              {MONTHS_AR.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+            </select>
+            <input type="number" value={selYear} onChange={e => setSelYear(+e.target.value)} min={2020} max={2099}
+              className="w-20 rounded-lg border border-input bg-background px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-ring" />
+            <SearchInput value={search} onChange={setSearch} placeholder="بحث..." />
         <ExportBar unit={unit} tabLabel="المحروقات" count={filtered.length}
           onExcel={() => {
             const hdrs = FUEL_HEADERS.map((label, i) => ({ key: `c${i}`, label }))
@@ -3000,8 +3179,134 @@ function FuelTab({ unit }: { unit: string }) {
           </table>
         </div>
       )}
+        </>
+      )}
 
-      {/* Detail modal */}
+      {/* Monthly Services Section - Only for ADMIN, SECTION_CHIEF, REGION_CHIEF, DISTRICT_MANAGER, BATTALION_COMMANDER */}
+      {(user?.role === 'ADMIN' || user?.role === 'SECTION_CHIEF' || user?.role === 'REGION_CHIEF' || user?.role === 'DISTRICT_MANAGER' || user?.role === 'BATTALION_COMMANDER') && (
+      <div className="space-y-4 mt-8 pt-8 border-t border-border">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-violet-100 text-violet-600"><FileText className="w-4 h-4" /></div>
+            <h3 className="text-sm font-bold text-foreground">الخدمات الشهرية</h3>
+            <span className="text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full border border-violet-100">{filteredMsFiles.length} ملف</span>
+          </div>
+          <ExportBar unit={unit} tabLabel="الملفات الشهرية" count={filteredMsFiles.length}
+            onExcel={() => {
+              const hdrs = [
+                { key: 'fileName', label: 'اسم الملف' },
+                { key: 'fileSize', label: 'حجم الملف (كيلوبايت)' },
+                { key: 'mimeType', label: 'نوع الملف' },
+                { key: 'uploadedBy', label: 'رفع بواسطة' },
+                { key: 'uploadedAt', label: 'تاريخ الرفع' },
+                { key: 'notes', label: 'ملاحظات' },
+              ]
+              const rows = filteredMsFiles.map((f: any) => ({
+                fileName: f.fileName,
+                fileSize: Math.round((f.fileSize || 0) / 1024),
+                mimeType: f.mimeType || '—',
+                uploadedBy: f.uploadedBy?.name || f.uploadedBy?.email || '—',
+                uploadedAt: new Date(f.uploadedAt).toLocaleDateString('ar-TN'),
+                notes: f.notes || '—',
+              }))
+              exportExcel(rows, hdrs, 'الملفات الشهرية', `ملفات_شهرية_${unit}_${msMonth}_${msYear}.xlsx`)
+            }}
+            onPDF={() => {
+              const hdrs = ['اسم الملف', 'حجم الملف', 'نوع الملف', 'رفع بواسطة', 'تاريخ الرفع', 'ملاحظات']
+              const rows = filteredMsFiles.map((f: any) => [
+                f.fileName,
+                `${Math.round((f.fileSize || 0) / 1024)} KB`,
+                f.mimeType || '—',
+                f.uploadedBy?.name || f.uploadedBy?.email || '—',
+                new Date(f.uploadedAt).toLocaleDateString('ar-TN'),
+                f.notes || '—',
+              ])
+              exportPDF(unit, `الملفات الشهرية — ${MONTHS_AR[msMonth-1]} ${msYear}`, hdrs, rows, `ملفات_شهرية_${unit}_${msMonth}_${msYear}.pdf`)
+            }}
+          />
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <select value={msMonth} onChange={e => setMsMonth(+e.target.value)}
+            className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+            {MONTHS_AR.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+          </select>
+          <input type="number" value={msYear} onChange={e => setMsYear(+e.target.value)} min={2020} max={2099}
+            className="w-20 rounded-lg border border-input bg-background px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-ring" />
+          <SearchInput value={msSearch} onChange={setMsSearch} placeholder="بحث عن الملف..." />
+          {(msSearch) && (
+            <button onClick={() => setMsSearch('')} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+              <X className="w-3 h-3" /> مسح
+            </button>
+          )}
+        </div>
+
+        {/* Files Table */}
+        {msLoading ? (
+          <LoadingBlock />
+        ) : filteredMsFiles.length === 0 ? (
+          <EmptyBlock message="لا توجد ملفات خدمات شهرية لهذا الشهر" />
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/30 border-b border-border">
+                  <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">اسم الملف</th>
+                  <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">الحجم</th>
+                  <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">النوع</th>
+                  <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">رفع بواسطة</th>
+                  <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">التاريخ</th>
+                  <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground">ملاحظات</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredMsFiles.map((file: any) => (
+                  <tr key={file.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                        <span className="font-medium text-foreground">{file.fileName}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{Math.round((file.fileSize || 0) / 1024)} KB</td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full border border-violet-100 whitespace-nowrap">
+                        {file.mimeType?.split('/')[1] || 'ملف'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-medium text-foreground">{file.uploadedBy?.name || file.uploadedBy?.email}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(file.uploadedAt).toLocaleDateString('ar-TN')}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-[150px]">{file.notes || '—'}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 justify-end">
+                        <a href={`/api/fuel/monthly-services/download/${file.id}`}
+                          download={file.fileName}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors">
+                          <Download className="w-3 h-3" /> تنزيل
+                        </a>
+                        <button onClick={() => handleDeleteFile(file.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors">
+                          <Trash2 className="w-3 h-3" /> حذف
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      )}
+
       <DetailModal open={!!selected} onClose={() => setSelected(null)} title={`محروقات: ${selected?.adminNumber ?? ''}`}>
         {selected && (() => {
           const quota = selected.fuelQuota ?? 0
