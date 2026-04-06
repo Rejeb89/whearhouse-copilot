@@ -23,15 +23,39 @@ export const listUnits = async (req: Request, res: Response) => {
     if (user.role === 'REGION_CHIEF' || user.role === 'BATTALION_COMMANDER') {
       // Only their own unit
       data = data.filter((u: any) => u.securityUnit === user.securityUnit)
+    } else if (user.role === 'SECTION_CHIEF') {
+      // Only their own unit
+      data = data.filter((u: any) => u.securityUnit === user.securityUnit)
     } else if (user.role === 'DISTRICT_MANAGER') {
-      // Only units that have at least one user with the same region
-      const unitsInRegion = await prisma.user.findMany({
-        where: { region: user.region, securityUnit: { not: null } },
-        select: { securityUnit: true },
-        distinct: ['securityUnit'],
-      })
-      const allowed = new Set(unitsInRegion.map((u: any) => u.securityUnit))
-      data = data.filter((u: any) => allowed.has(u.securityUnit))
+      // District manager sees all units that have at least one user where:
+      // 1. The user has the same region as the district manager, OR
+      // 2. The user's region field is populated and matches
+      
+      if (!user.region || user.region.trim() === '') {
+        // If district manager has no region set, show no units
+        data = []
+      } else {
+        // Get all unique units that have users with the same region
+        const unitsInRegion = await prisma.user.findMany({
+          where: { 
+            region: {
+              equals: user.region,
+              mode: 'insensitive' // Case-insensitive search
+            },
+            securityUnit: { not: null } 
+          },
+          select: { securityUnit: true },
+          distinct: ['securityUnit'],
+        })
+        
+        const allowed = new Set(
+          unitsInRegion
+            .map((u: any) => u.securityUnit)
+            .filter(Boolean) // Filter out null values
+        )
+        
+        data = data.filter((u: any) => allowed.has(u.securityUnit))
+      }
     }
 
     res.json({ data })

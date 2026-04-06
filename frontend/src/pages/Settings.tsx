@@ -247,7 +247,16 @@ function UserModal({ open, editing, onClose, onSaved, currentUser }: UserModalPr
     setLoading(true)
     setError('')
     try {
-      const payload: any = { name: form.name, email: form.email, role: form.role, personalNumber: form.personalNumber || undefined, securityUnit: form.securityUnit || undefined, region: (form as any).region || undefined, regionChief: (form as any).regionChief || undefined, title: (form as any).title || undefined }
+      const payload: any = {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        role: form.role,
+        personalNumber: form.personalNumber?.trim() || undefined,
+        securityUnit: form.securityUnit?.trim() || undefined,
+        region: (form as any).region?.trim() || undefined,
+        regionChief: (form as any).regionChief?.trim() || undefined,
+        title: (form as any).title?.trim() || undefined
+      }
       if (form.password) payload.password = form.password
       if (editing) await updateUser(editing.id, payload)
       else await createUser({ ...payload, password: form.password })

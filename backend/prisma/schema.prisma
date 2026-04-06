@@ -25,6 +25,7 @@ model User {
   logs      Log[]
   createdReceipts  DeliveryReceipt[] @relation("ReceiptCreator")
   approvedReceipts DeliveryReceipt[] @relation("ReceiptApprover")
+  monthlyServices MonthlyFuelService[]
 }
 
 model Item {
@@ -336,4 +337,24 @@ model FuelRecord {
   updatedAt          DateTime @updatedAt
 
   @@unique([vehicleId, month, year])
+}
+
+model MonthlyFuelService {
+  id              Int      @id @default(autoincrement())
+  month           Int
+  year            Int
+  securityUnit    String?
+  fileName        String
+  fileData        Bytes    // تخزين الملف
+  fileSize        Int
+  mimeType        String   @default("application/octet-stream")
+  uploadedBy      User     @relation(fields: [uploadedById], references: [id])
+  uploadedById    Int
+  uploadedAt      DateTime @default(now())
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([year, month, securityUnit, fileName])
+  @@index([year, month, securityUnit])
 }
