@@ -2921,6 +2921,24 @@ function FuelTab({ unit }: { unit: string }) {
     }
   }
 
+  const handleDownloadFile = async (fileId: number, fileName: string) => {
+    try {
+      const res = await client.get(`/fuel/monthly-services/download/${fileId}`, {
+        responseType: 'blob'
+      })
+      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', fileName)
+      document.body.appendChild(link)
+      link.click()
+      link.parentElement?.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Error downloading file:', err)
+    }
+  }
+
   const FUEL_HEADERS = ['الرقم الإداري', 'نوع الوسيلة', 'المقرر (لتر)', 'المسلم (د.ت)', 'الإضافي (د.ت)', 'المستهلك (د.ت)', 'الفائض (د.ت)', 'النقص (د.ت)', 'عداد أول الشهر', 'عداد آخر الشهر', 'المسافة المقطوعة (كلم)', 'المعدل المئوي', 'ملاحظات']
 
   if (isLoading && !showComparison) return <LoadingBlock />
@@ -3287,11 +3305,11 @@ function FuelTab({ unit }: { unit: string }) {
                     <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-[150px]">{file.notes || '—'}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 justify-end">
-                        <a href={`/api/fuel/monthly-services/download/${file.id}`}
-                          download={file.fileName}
+                        <button 
+                          onClick={() => handleDownloadFile(file.id, file.fileName)}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors">
                           <Download className="w-3 h-3" /> تنزيل
-                        </a>
+                        </button>
                         <button onClick={() => handleDeleteFile(file.id)}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors">
                           <Trash2 className="w-3 h-3" /> حذف

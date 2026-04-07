@@ -151,7 +151,7 @@ export default function Login() {
                   </span>
                 </div>
               </div>
-              <h2 className="text-2xl font-bold text-foreground">مرحباً بك 👋</h2>
+              <h2 className="text-2xl font-bold text-foreground">مرحباً بك</h2>
               <p className="text-muted-foreground text-sm mt-1">أدخل بياناتك للوصول إلى النظام</p>
             </div>
 
