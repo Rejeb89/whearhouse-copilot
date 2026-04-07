@@ -3300,7 +3300,7 @@ function FuelTab({ unit }: { unit: string }) {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(file.uploadedAt).toLocaleDateString('ar-TN')}
+                      {new Date(file.uploadedAt).toLocaleDateString('en-US')}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-[150px]">{file.notes || '—'}</td>
                     <td className="px-4 py-3">

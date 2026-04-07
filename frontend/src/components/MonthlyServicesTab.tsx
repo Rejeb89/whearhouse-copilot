@@ -374,7 +374,7 @@ export default function MonthlyServicesTab({
                       {service.fileName}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {formatFileSize(service.fileSize)} • {service.uploadedBy?.name || service.uploadedBy?.email || 'مستخدم'} • {new Date(service.uploadedAt).toLocaleDateString('ar-EG')}
+                      {formatFileSize(service.fileSize)} • {service.uploadedBy?.name || service.uploadedBy?.email || 'مستخدم'}
                     </p>
                     {service.notes && (
                       <p className="text-xs text-muted-foreground mt-1 italic">
