@@ -73,8 +73,10 @@ export default function Dashboard() {
       const isLow = (it.lowStockThreshold ?? 5) >= it.quantity
       const category = (it.category || '').trim().toLowerCase()
       const name = (it.name || '').trim().toLowerCase()
-      const isAdminOnly = category === 'دفاتر ادارية' || name === 'علم جمهورية' || name === 'لفائف فاكس'
-      return isLow && isAdminOnly
+      const allowedCategories = ['دفاتر ادارية', 'المستهلكات', 'مستهلكات']
+      const allowedNames = ['علم جمهورية', 'الـ علم الجمهورية', 'علم الجمهورية', 'لفائف فاكس']
+      const isAllowed = allowedCategories.includes(category) || allowedNames.includes(name)
+      return isLow && isAllowed
     })
     setLowAlerts(filtered.slice(0, 10))
   }, [items])
