@@ -28,7 +28,9 @@ const LowStockChordChart: React.FC<Props> = ({ items: rawItems, width = 440, hei
   const items = rawItems.filter((it) => {
     const category = (it.category || '').trim().toLowerCase()
     const name = (it.name || '').trim().toLowerCase()
-    return category === 'دفاتر ادارية' || name === 'علم جمهورية' || name === 'لفائف فاكس'
+    const allowedCategories = ['دفاتر ادارية', 'المستهلكات', 'مستهلكات']
+    const allowedNames = ['علم جمهورية', 'الـ علم الجمهورية', 'علم الجمهورية', 'لفائف فاكس']
+    return allowedCategories.includes(category) || allowedNames.includes(name)
   }).slice(0, 10)
   const [tooltip, setTooltip] = useState<{ x: number; y: number; label: string } | null>(null)
 

@@ -2,49 +2,98 @@
 
 # 🏢 Warehouse-Copilot: نظام إدارة المخزن الأمني
 
-### Security Warehouse Management System
+### Security Warehouse Management System  
+**Your Complete Solution for National Guard Inventory & Assets Management**
 
 <p>
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=white" />
-  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
-  <img src="https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=node.js&logoColor=white" />
+  <img src="https://img.shields.io/badge/TypeScript-5.1-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white" />
+  <img src="https://img.shields.io/badge/Express-4.18-gray?style=for-the-badge&logo=express&logoColor=white" />
   <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Prisma-5.0-2D3748?style=for-the-badge&logo=prisma&logoColor=white" />
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
-  <img src="https://img.shields.io/badge/Security-Hardened-10B981?style=for-the-badge&logo=shield&logoColor=white" />
-  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Security-OWASP%2022--Fixed-10B981?style=for-the-badge&logo=shield&logoColor=white" />
 </p>
 
-**نظام متكامل وآمن بنسبة 100% لإدارة المخزن والتجهيزات للوحدات الأمنية**
+---
 
-يوفر لوحة تحكم مركزية متقدمة مع:
-- ✅ دعم كامل للغة العربية وواجهة RTL احترافية
-- ✅ نظام تحكم وصول متقدم يعتمد على 6 أدوار بـ Row-Level Security
+## 📌 ما هو Warehouse-Copilot؟
+
+**نظام متكامل وآمن 100% لإدارة المخزن والتجهيزات والموارد للوحدات الأمنية التابعة للحرس الوطني التونسي.** يوفر لوحة تحكم مركزية متقدمة مع دعم كامل للعربية وصلاحيات متعددة المستويات.
+
+### 🎯 الرؤية
+بناء نظام موثوق وآمن وفعال يسمح للقادة الأمنيين بإدارة موارد وحداتهم بشفافية كاملة وتدقيق شامل.
+
+### ✨ الميزات الأساسية  
+- ✅ **دعم كامل للغة العربية** مع واجهة RTL احترافية وحروف عربية في التقارير
+- ✅ **نظام تحكم وصول متقدم** يعتمد على 6 أدوار مع Row-Level Security على البيانات
 - ✅ **جميع 22 ضعف أمني تم إصلاحها** (4 حرجة + 7 عالية + 6 متوسطة + 5 منخفضة)
-- ✅ تقارير متقدمة وتصدير إلى PDF و Excel
-- ✅ سجلات تدقيق شاملة لكل العمليات
-- ✅ Helmet security headers (15+ نوع حماية)
-- ✅ Rate limiting على جميع نقاط الاتصال
-- ✅ كلمات مرور قوية (8+ أحرف مع تعقيد)
+- ✅ **لوحة مراقبة مركزية** للمسؤولين مع إحصائيات حية وتنبيهات فورية
+- ✅ **تقارير متقدمة** مع تصدير إلى PDF و Excel وإمكانية الطباعة
+- ✅ **سجلات تدقيق شاملة** لكل العمليات مع إمكانية البحث المتقدم
+- ✅ **أمان على مستوى المؤسسة** مع Helmet headers (15+ نوع حماية) و Rate limiting
+- ✅ **كلمات مرور قوية** (8+ أحرف مع uppercase + lowercase + رقم + رمز خاص)
+- ✅ **صور عالية الدقة** لإدارة المستودعات والموارد والوثائق الرقمية
+
+### 📊 الإحصائيات
+- **17 صفحة رئيسية** مع واجهات احترافية وتفاعلية
+- **80+ نقطة اتصال API** لكل العمليات والاستعلامات
+- **17 جدول قاعدة بيانات** مع تكامل كامل وعلاقات آمنة
+- **6 أدوار مستخدمين** مع صلاحيات موزعة وقابلة للتخصيص
+- **100% TypeScript** لضمان Type Safety والتطوير الآمن
+- **صفر ثغرات حرجة** في الاختبار الأمني الشامل
 
 </div>
 
 ---
 
-## 🚀 ابدأ الآن
+## 🚀 البدء السريع
 
-### التشغيل السريع مع Docker (30 ثانية)
+### التشغيل بـ Docker (30 ثانية) ⚡
+
+أسرع طريقة للبدء - كل شيء في حاوية واحدة:
 
 ```bash
+# 1. استنساخ المستودع
 git clone <repository-url>
 cd whearhouse-copilot
+
+# 2. تشغيل جميع الخدمات
 docker compose up --build
+
+# 3. انتظر 15-20 ثانية حتى تكتمل التهيئة
+# يمكنك رؤية الرسالة: "Backend listening on 4000"
 ```
 
-**ثم افتح:** http://localhost:3002
+**ثم افتح المتصفح:**
+- 🌐 **الواجهة الرئيسية:** http://localhost:3002
+- 🔌 **API Backend:** http://localhost:4000
+- 🗄️ **قاعدة البيانات:** localhost:5434
 
-**بيانات دخول الإدارة:**
-- 📧 البريد: `admin@gn.tn`
-- 🔑 كلمة المرور: `admin123`
+**بيانات دخول الإدارة الافتراضية:**
+```
+📧 البريد: admin@gn.tn
+🔑 كلمة المرور: admin123
+```
+
+### ⚙️ التشغيل بدون Docker (للمطورين)
+
+إذا كنت تفضل التطوير المحلي مباشرة:
+
+```bash
+# Backend Setup
+cd backend
+npm install
+npx prisma db push           # إنشاء قاعدة البيانات
+npx prisma db seed           # إدراج البيانات الأولية
+npm run dev                  # تشغيل الخادم على http://localhost:4000
+
+# Frontend Setup (في Terminal جديد)
+cd frontend
+npm install
+npm run dev                  # تشغيل الواجهة على http://localhost:5173
+```
 
 ---
 
