@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
 import * as monthlyFuelService from '../services/monthlyFuelService'
+import prisma from '../config/database'
 
 /**
  * Fix filename encoding (convert Latin1 mojibake back to UTF-8)
@@ -99,37 +100,88 @@ export const downloadMonthlyService = async (req: Request, res: Response) => {
     const user = (req as any).user
     const { fileId } = req.params
 
-    const file = await monthlyFuelService.getMonthlyServiceFile(parseInt(fileId))
+    console.log(`[Download] Starting download for fileId: ${fileId}, userId: ${user.id}`)
 
-    // Check access
-    const record = await (async () => {
-      const { PrismaClient } = await import('@prisma/client')
-      const prisma = new PrismaClient()
-      const r = await prisma.monthlyFuelService.findUnique({
-        where: { id: parseInt(fileId) },
-      })
-      await prisma.$disconnect()
-      return r
-    })()
+    // Get file and verify access
+    const record = await prisma.monthlyFuelService.findUnique({
+      where: { id: parseInt(fileId) },
+    })
+
+    if (!record) {
+      console.log(`[Download] File not found: ${fileId}`)
+      return res.status(404).json({ error: 'الملف غير موجود' })
+    }
+
+    console.log(`[Download] Found file: ${record.fileName}, size: ${record.fileSize} bytes, unit: ${record.securityUnit}`)
 
     // Check access - allow supervisory roles to access any unit's files
     const allowedRoles = ['ADMIN', 'SECTION_CHIEF', 'REGION_CHIEF', 'DISTRICT_MANAGER', 'BATTALION_COMMANDER']
     const isSupervisory = allowedRoles.includes(user.role)
 
-    if (record?.securityUnit !== user.securityUnit && !isSupervisory) {
+    console.log(`[Download] Access check - record unit: ${record.securityUnit}, user unit: ${user.securityUnit}, role: ${user.role}, supervisory: ${isSupervisory}`)
+
+    if (record.securityUnit !== user.securityUnit && !isSupervisory) {
+      console.log(`[Download] Access denied for user ${user.id}`)
       return res.status(403).json({ error: 'ليس لديك صلاحيات لتنزيل هذا الملف' })
     }
 
     // Fix filename encoding for download
-    const fixedFileName = fixFilenameEncoding(file.fileName)
+    const fixedFileName = fixFilenameEncoding(record.fileName)
+    console.log(`[Download] Filename: "${record.fileName}" -> "${fixedFileName}"`)
 
+    // Create a safe ASCII filename for the fallback
+    const safeFilename = record.fileName
+      .replace(/[^\w\s.-]/g, '_')  // Replace non-word chars with underscore
+      .replace(/\s+/g, '_')  // Replace spaces with underscore
+      .substring(0, 200)  // Limit length
+
+    console.log(`[Download] Safe filename for fallback: "${safeFilename}"`)
+
+    // Validate fileData
+    if (!record.fileData) {
+      console.error(`[Download] No fileData in record`)
+      return res.status(500).json({ error: 'بيانات الملف فارغة' })
+    }
+
+    // Ensure fileData is a Buffer
+    let fileBuffer: Buffer
+    if (Buffer.isBuffer(record.fileData)) {
+      fileBuffer = record.fileData
+    } else if (typeof record.fileData === 'string') {
+      fileBuffer = Buffer.from(record.fileData, 'binary')
+    } else {
+      fileBuffer = Buffer.from(record.fileData as any)
+    }
+
+    console.log(`[Download] FileData type: ${typeof fileBuffer}, is Buffer: ${Buffer.isBuffer(fileBuffer)}, actual size: ${fileBuffer.length} bytes`)
+
+    if (fileBuffer.length === 0) {
+      console.error(`[Download] FileData is empty (0 bytes)`)
+      return res.status(500).json({ error: 'بيانات الملف فارغة' })
+    }
+
+    const dispositionHeader = `attachment; filename*=UTF-8''${encodeURIComponent(fixedFileName)}; filename="${safeFilename}"`
+    console.log(`[Download] Content-Disposition: ${dispositionHeader}`)
+    console.log(`[Download] Content-Type: ${record.mimeType || 'application/octet-stream'}`)
+
+    // Set response headers
     res.set({
-      'Content-Type': file.mimeType,
-      'Content-Disposition': `attachment; filename="${fixedFileName}"`,
+      'Content-Type': record.mimeType || 'application/octet-stream',
+      'Content-Length': fileBuffer.length.toString(),
+      'Content-Disposition': dispositionHeader,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
     })
 
-    res.send(file.fileData)
+    console.log(`[Download] Sending ${fileBuffer.length} bytes of type ${record.mimeType || 'application/octet-stream'}`)
+    
+    // Send file using res.send() which handles Buffers well
+    res.send(fileBuffer)
+    
+    console.log(`[Download] File sent successfully`)
   } catch (err: any) {
+    console.error(`[Download] Error: ${err.message}`, err)
     res.status(500).json({ error: err.message })
   }
 }
