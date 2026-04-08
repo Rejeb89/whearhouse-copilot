@@ -10,6 +10,7 @@ router.post('/', roleGuard(['ADMIN', 'SECTION_CHIEF']), receptionController.crea
 router.get('/', receptionController.list)
 router.get('/reference-types', receptionController.referenceTypes)
 router.get('/by-item/:itemId', receptionController.byItem)
+router.get('/available-by-item/:itemId', receptionController.receptionsWithAvailableQty) // جديد
 router.get('/recent', receptionController.recent)
 router.get('/by-supplier/:supplierId', receptionController.bySupplier)
 

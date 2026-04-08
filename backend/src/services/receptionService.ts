@@ -103,6 +103,71 @@ export const getLatestReceptionByItem = async (itemId: number, securityUnit?: st
   return receptionItem?.reception ?? null
 }
 
+// جديد: جلب جميع المراجع للصنف مع الكميات المتاحة (مرتبة من الأقدم)
+export const getReceptionsWithAvailableQtyByItem = async (itemId: number, securityUnit?: string | null) => {
+  // 1. جلب جميع المراجع الاستقبالية للصنف
+  const where: any = { itemId }
+  if (securityUnit) where.reception = { securityUnit }
+  
+  const receptionItems = await prisma.receptionItem.findMany({
+    where,
+    orderBy: { reception: { createdAt: 'asc' } }, // الأقدم أولاً
+    include: {
+      reception: {
+        select: {
+          id: true,
+          referenceType: true,
+          referenceNumber: true,
+          referenceDate: true,
+          reference: true,
+          notes: true,
+          supplier: { select: { id: true, name: true } },
+          createdAt: true,
+        }
+      }
+    }
+  })
+
+  // 2. لكل مرجع، حساب الكمية المستخرجة منه
+  const result = await Promise.all(
+    receptionItems.map(async (ri) => {
+      // جمع الكميات المستخرجة من هذا المرجع (نفس نوع ورقم وتاريخ المرجع)
+      const used = await prisma.distributionItem.aggregate({
+        where: {
+          itemId,
+          distribution: {
+            referenceType: ri.reception.referenceType,
+            referenceNumber: ri.reception.referenceNumber,
+            referenceDate: ri.reception.referenceDate,
+          }
+        },
+        _sum: { quantity: true }
+      })
+
+      const usedQty = used._sum.quantity || 0
+      const availableQty = ri.quantity - usedQty
+
+      return {
+        id: ri.reception.id,
+        itemId,
+        receptionQty: ri.quantity,
+        usedQty,
+        availableQty,
+        referenceType: ri.reception.referenceType,
+        referenceNumber: ri.reception.referenceNumber,
+        referenceDate: ri.reception.referenceDate,
+        reference: ri.reception.reference,
+        supplier: ri.reception.supplier,
+        createdAt: ri.reception.createdAt,
+        notes: ri.reception.notes,
+      }
+    })
+  )
+
+  // 3. فلترة المراجع التي لا تزال فيها كميات متاحة
+  return result.filter(r => r.availableQty > 0)
+}
+
 export const recentReceptions = (limit = 10, securityUnit?: string | null) => {
   const where: any = {}
   if (securityUnit) where.securityUnit = securityUnit
