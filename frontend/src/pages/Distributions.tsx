@@ -97,6 +97,11 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
   const [refAutoFilled, setRefAutoFilled] = useState(false)
   const [loadingRef, setLoadingRef] = useState(false)
 
+  // جديد: تخزين جميع المراجع المتاحة
+  const [availableReferences, setAvailableReferences] = useState<any[]>([])
+  const [selectedReferenceId, setSelectedReferenceId] = useState<number | null>(null)
+  const [selectedRefInfo, setSelectedRefInfo] = useState<any>(null)
+
   // Per-item receipt fields
   const [itemAdminNumber, setItemAdminNumber] = useState('')
   const [itemCondition, setItemCondition] = useState<'NEW' | 'USED' | 'NEEDS_MAINTENANCE'>('NEW')
@@ -240,24 +245,51 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
     setItemSearch(item.name)
   }
 
-  // Auto-fill reference fields from the latest reception when item changes
+  // Auto-fill reference fields from available receptions
   useEffect(() => {
-    if (!selectedItem) return
-    setRefAutoFilled(false)
+    if (!selectedItem) {
+      setAvailableReferences([])
+      setSelectedReferenceId(null)
+      setSelectedRefInfo(null)
+      return
+    }
     setLoadingRef(true)
-    client.get(`/receptions/by-item/${selectedItem.id}`)
+    setRefAutoFilled(false)
+    setAvailableReferences([])
+    setSelectedReferenceId(null)
+    setSelectedRefInfo(null)
+
+    // جلب جميع المراجع المتاحة
+    client.get(`/receptions/available-by-item/${selectedItem.id}`)
       .then(res => {
-        const r = res.data.data
-        if (r) {
-          setReferenceType(r.referenceType || '')
-          setReferenceNumber(r.referenceNumber || '')
-          setReferenceDate(r.referenceDate ? r.referenceDate.split('T')[0] : '')
+        const refs = res.data.data || []
+        setAvailableReferences(refs)
+        
+        // تحديد أول مرجع (الأقدم) تلقائياً
+        if (refs.length > 0) {
+          setSelectedReferenceId(refs[0].id)
+          const ref = refs[0]
+          setReferenceType(ref.referenceType || '')
+          setReferenceNumber(ref.referenceNumber || '')
+          setReferenceDate(ref.referenceDate ? ref.referenceDate.split('T')[0] : '')
+          setSelectedRefInfo(ref)
           setRefAutoFilled(true)
         }
       })
       .catch(() => { /* silent */ })
       .finally(() => setLoadingRef(false))
   }, [selectedItem?.id])
+
+  const handleReferenceChange = (refId: number) => {
+    setSelectedReferenceId(refId)
+    const ref = availableReferences.find(r => r.id === refId)
+    if (ref) {
+      setReferenceType(ref.referenceType || '')
+      setReferenceNumber(ref.referenceNumber || '')
+      setReferenceDate(ref.referenceDate ? ref.referenceDate.split('T')[0] : '')
+      setSelectedRefInfo(ref)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -267,8 +299,22 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
     if (!selectedBeneficiary) { setError('يرجى اختيار الجهة المنتفعة'); return }
     if (!selectedEmployee) { setError('يرجى تحديد المكلف بالسحب'); return }
     if (quantity < 1) { setError('الكمية يجب أن تكون 1 على الأقل'); return }
+    
+    // التحقق من الكمية المتاحة في المخزون العام
     if (selectedItem.quantity < quantity) {
       setError(`الكمية المتاحة في المخزون هي ${selectedItem.quantity}`)
+      return
+    }
+
+    // جديد: التحقق من الكمية المتاحة في المرجع المختار
+    if (selectedRefInfo && quantity > selectedRefInfo.availableQty) {
+      setError(`الكمية المتاحة من هذا المرجع هي ${selectedRefInfo.availableQty} فقط`)
+      return
+    }
+    
+    // جديد: التأكد من اختيار مرجع إذا كانت هناك مراجع متاحة
+    if (availableReferences.length > 0 && !selectedReferenceId) {
+      setError('يرجى اختيار المرجع من القائمة')
       return
     }
     try {
@@ -304,6 +350,9 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
       setReferenceDate('')
       setDeliveredByName(user?.name || user?.email || '')
       setRefAutoFilled(false)
+      setAvailableReferences([])
+      setSelectedReferenceId(null)
+      setSelectedRefInfo(null)
       // Auto-fetch receipt and print
       if (distributionId) {
         try {
@@ -570,41 +619,52 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            {/* قائمة المراجع المتاحة */}
+            {availableReferences.length > 0 ? (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <label className="block text-sm mb-2 font-medium text-foreground">اختر المرجع</label>
+                <select
+                  value={selectedReferenceId || ''}
+                  onChange={(e) => handleReferenceChange(parseInt(e.target.value))}
+                  className="w-full border border-blue-300 bg-white p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- اختر مرجع --</option>
+                  {availableReferences.map((ref) => (
+                    <option key={ref.id} value={ref.id}>
+                      {ref.referenceType || 'بدون نوع'} / {ref.referenceNumber || '-'} ({ref.availableQty} من {ref.receptionQty} متوفر) - {new Date(ref.createdAt).toLocaleDateString('ar-DZ')}
+                    </option>
+                  ))}
+                </select>
+                
+                {selectedRefInfo && (
+                  <div className="mt-3 p-2 bg-white rounded border border-blue-200 text-sm space-y-1">
+                    <div><span className="font-medium">الجهة المرسلة:</span> {selectedRefInfo.supplier?.name || '-'}</div>
+                    <div><span className="font-medium">الكمية المتاحة:</span> <span className="text-green-600 font-bold">{selectedRefInfo.availableQty}</span> من {selectedRefInfo.receptionQty}</div>
+                    <div><span className="font-medium">التاريخ:</span> {new Date(selectedRefInfo.createdAt).toLocaleDateString('ar-DZ')}</div>
+                    {selectedRefInfo.notes && <div><span className="font-medium">ملاحظات:</span> {selectedRefInfo.notes}</div>}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+                {loadingRef ? 'جارٍ جلب المراجع المتاحة...' : 'لا توجد مراجع متاحة لهذا التجهيز'}
+              </div>
+            )}
+
+            {/* بيانات المرجع (للعرض) */}
+            <div className="grid grid-cols-2 gap-3 mt-4 p-3 bg-gray-50 rounded-lg">
               <div>
-                <label className="block text-sm mb-1">نوع المرجع</label>
-                <input
-                  type="text"
-                  value={referenceType}
-                  onChange={e => { setReferenceType(e.target.value); setRefAutoFilled(false) }}
-                  className={`w-full border p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring ${
-                  refAutoFilled && referenceType ? 'border-green-300 bg-green-50' : 'border-input bg-background'
-                }`}
-                  placeholder="أمر خدمة / قرار ..."
-                />
+                <label className="block text-xs font-medium text-muted-foreground mb-1">نوع المرجع</label>
+                <div className="text-sm font-medium text-foreground">{referenceType || '-'}</div>
               </div>
               <div>
-                <label className="block text-sm mb-1">رقم المرجع</label>
-                <input
-                  type="text"
-                  value={referenceNumber}
-                  onChange={e => { setReferenceNumber(e.target.value); setRefAutoFilled(false) }}
-                  className={`w-full border p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring ${
-                  refAutoFilled && referenceNumber ? 'border-green-300 bg-green-50' : 'border-input bg-background'
-                }`}
-                  placeholder="2024/XXXX"
-                />
+                <label className="block text-xs font-medium text-muted-foreground mb-1">رقم المرجع</label>
+                <div className="text-sm font-medium text-foreground">{referenceNumber || '-'}</div>
               </div>
               <div>
-                <label className="block text-sm mb-1">تاريخ المرجع</label>
-                <input
-                  type="date"
-                  value={referenceDate}
-                  onChange={e => { setReferenceDate(e.target.value); setRefAutoFilled(false) }}
-                  className={`w-full border p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring ${
-                  refAutoFilled && referenceDate ? 'border-green-300 bg-green-50' : 'border-input bg-background'
-                }`}
-                />
+                <label className="block text-xs font-medium text-muted-foreground mb-1">تاريخ المرجع</label>
+                <div className="text-sm font-medium text-foreground">{referenceDate ? new Date(referenceDate).toLocaleDateString('ar-DZ') : '-'}</div>
               </div>
               <div>
                 <label className="block text-sm mb-1">اسم المسلِّم</label>
@@ -612,7 +672,7 @@ export default function Distributions({ preselectedItem: propItem }: { preselect
                   type="text"
                   value={deliveredByName}
                   onChange={e => setDeliveredByName(e.target.value)}
-                className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full border border-input bg-background p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="الاسم الكامل للمسلِّم"
                 />
               </div>

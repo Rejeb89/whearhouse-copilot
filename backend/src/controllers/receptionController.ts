@@ -67,6 +67,18 @@ export const byItem = async (req: Request, res: Response) => {
   }
 }
 
+// جديد: جلب جميع المراجع مع الكميات المتاحة
+export const receptionsWithAvailableQty = async (req: Request, res: Response) => {
+  try {
+    const itemId = parseInt(req.params.itemId)
+    if (isNaN(itemId)) return res.status(400).json({ error: 'معرف التجهيز غير صالح' })
+    const receptions = await receptionService.getReceptionsWithAvailableQtyByItem(itemId, getSU(req))
+    res.json({ data: receptions })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
 export const recent = async (req: Request, res: Response) => {
   try {
     const data = await receptionService.recentReceptions(10, getSU(req))
